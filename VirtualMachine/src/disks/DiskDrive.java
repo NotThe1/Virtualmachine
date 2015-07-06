@@ -28,19 +28,19 @@ public class DiskDrive {
 	private MappedByteBuffer disk;
 	private byte[] readSector;
 	private ByteBuffer writeSector;
-	
-	public DiskDrive(Path path){
+
+	public DiskDrive(Path path) {
 		this(path.resolve(path).toString());
 	}
 
 	public DiskDrive(String strPathName) {
-		//String strPathName = path.resolve(path).toString();
+		// String strPathName = path.resolve(path).toString();
 		resolveDiskType(strPathName);
 
 		try {
 			File file = new File(strPathName);
-			fileChannel = new RandomAccessFile(file,"rw").getChannel();
-			disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0,fileChannel.size());// this.totalBytesOnDisk);
+			fileChannel = new RandomAccessFile(file, "rw").getChannel();
+			disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, fileChannel.size());// this.totalBytesOnDisk);
 			fileAbsoluteName = file.getAbsolutePath();
 			fileLocalName = file.getName();
 		} catch (IOException e) {
@@ -57,7 +57,7 @@ public class DiskDrive {
 		if (fileNameComponents.length != 2) {
 			fireVDiskError((long) 0, "Bad Disk - " + drive);
 			return;
-		}//if
+		}// if
 		String fileExtension = fileNameComponents[1]; // have the file extension
 		boolean validFile = false;
 		for (DiskLayout diskLayout : DiskLayout.values()) {
@@ -77,24 +77,25 @@ public class DiskDrive {
 			fireVDiskError((long) 2, "Not a Valid disk type " + fileNameComponents[1]);
 		}// if
 	}// resolveDiskType
-	
-	public String getFileAbsoluteName(){
+
+	public String getFileAbsoluteName() {
 		return this.fileAbsoluteName;
-	}//getFileAbsoluteName
-	public String getFileLocalName(){
+	}// getFileAbsoluteName
+
+	public String getFileLocalName() {
 		return this.fileLocalName;
-	}//getFileLocalName
-	
-	public void homeHeads(){
+	}// getFileLocalName
+
+	public void homeHeads() {
 		this.currentHead = 0;
 		this.currentTrack = 0;
-		this.currentSector =1;
-		this.currentAbsoluteSector=0;
+		this.currentSector = 1;
+		this.currentAbsoluteSector = 0;
 	}
 
 	private void setSectorPosition() {
 		int offset = currentAbsoluteSector * bytesPerSector;
-		//System.out.printf("offset = %d, disk size = %d%n",offset,disk.capacity());
+		// System.out.printf("offset = %d, disk size = %d%n",offset,disk.capacity());
 		disk.position(offset);
 	}// setSectorPosition
 
@@ -115,9 +116,9 @@ public class DiskDrive {
 		if (sector.length != bytesPerSector) {
 			fireVDiskError((long) sector.length, "Wrong sized sector");
 		} else {
-			//writeSector.put(sector);
+			// writeSector.put(sector);
 			setSectorPosition();
-			//disk.put(writeSector);
+			// disk.put(writeSector);
 			disk.put(sector);
 		}// if
 
@@ -128,8 +129,8 @@ public class DiskDrive {
 		write(sector);
 		return;
 	}// readnext
-	
-	public long getTotalBytes(){
+
+	public long getTotalBytes() {
 		return this.totalBytesOnDisk;
 	}
 
@@ -171,7 +172,8 @@ public class DiskDrive {
 		return currentAbsoluteSector;
 	}// getCurrentAbsoluteSector
 
-	public void setCurrentAbsoluteSector(int currentAbsoluteSector) {
+	public boolean setCurrentAbsoluteSector(int currentAbsoluteSector) {
+		boolean setCurrentAbsoluteSector = false;
 		if (validateAbsoluteSector(currentAbsoluteSector)) {
 			this.currentAbsoluteSector = currentAbsoluteSector;
 			setCurrentHead((int) currentAbsoluteSector / sectorsPerHead);
@@ -179,10 +181,13 @@ public class DiskDrive {
 					- (currentHead * sectorsPerHead);
 			setCurrentTrack(netTrack / sectorsPerTrack);
 			setCurrentSector(1 + (currentAbsoluteSector % sectorsPerTrack));
+			setCurrentAbsoluteSector = true;
 		}
+		return setCurrentAbsoluteSector;
 	}// setCurrentAbsoluteSector
 
-	public void setCurrentAbsoluteSector(int head, int track, int sector) {
+	public boolean setCurrentAbsoluteSector(int head, int track, int sector) {
+		boolean setCurrentAbsoluteSector = false;
 		if (validateHead(head) & validateSector(sector) & validateTrack(track)) {
 			int absoluteSector = ((head) * sectorsPerHead)
 					+ (track * sectorsPerTrack) + (sector - 1);
@@ -191,15 +196,17 @@ public class DiskDrive {
 				this.currentHead = head;
 				this.currentTrack = track;
 				this.currentSector = sector;
+				setCurrentAbsoluteSector = true;
 			}// inner if
 		}// outer if
+		return setCurrentAbsoluteSector;
 	}// setCurrentAbsoluteSector
 
 	private boolean validateHead(int head) {
 		boolean validateHead = true;
 		// between 0 and heads-1
 		if (!((head >= 0) & (head < heads))) {
-			homeHeads();		
+			homeHeads();
 			fireVDiskError((long) head, "Bad head");
 			validateHead = false;
 		}// if

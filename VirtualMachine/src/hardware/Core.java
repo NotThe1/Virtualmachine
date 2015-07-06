@@ -17,7 +17,7 @@ public class Core implements Serializable {
 	private boolean trapEnabled;
 	private HashMap<Integer, TRAP> trapLocations; // locations that can be
 													// trapped duh!
-	private byte writeValue; // used for IO trap
+	//private byte writeValue; // used for IO trap
 
 	public Core(Integer size) {
 		this(size, 0);
@@ -26,14 +26,7 @@ public class Core implements Serializable {
 	public Core(Integer size, Integer protectedBoundary) {
 		this.trapEnabled = false;
 		trapLocations = new HashMap<Integer, TRAP>();
-		int a =0;
-		try{
-			trapLocations.put(DISK_CONTROL_BYTE_40, TRAP.IO);
-		trapLocations.put(DISK_CONTROL_BYTE_45, TRAP.IO);
 		
-		}catch(Exception e){
-			System.err.printf("Bad put int trapLocations: %s not valid%n", e.getMessage());
-		}
 		if (size <= 0) {
 			System.err.printf("Memory size %d not valid%n", size);
 			System.exit(-1);
@@ -61,7 +54,7 @@ public class Core implements Serializable {
 	}// Constructor
 
 	public void write(int location, byte value) {
-		writeValue = value; // save for IO trap
+		//writeValue = value; // save for IO trap
 		if (checkAddress(location, value) == true) {
 			storage[location] = value;
 		}// if
@@ -156,7 +149,7 @@ public class Core implements Serializable {
 	private boolean checkAddress(int location, byte value) {	//used for writes
 		if (trapLocations.containsKey(location)) {
 			if (trapLocations.get(location).equals(Core.TRAP.IO)) {
-				storage[location] = writeValue; // write so DCU has access to it
+				storage[location] = value; // write so DCU has access to it
 				fireMemoryTrap(location, Core.TRAP.IO);
 				//System.out.printf("Core.java - checkAddress line 153%n");
 				return true;

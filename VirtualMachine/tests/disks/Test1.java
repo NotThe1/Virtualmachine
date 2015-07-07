@@ -5,6 +5,7 @@ import hardware.Core;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFileChooser;
 
@@ -27,17 +28,20 @@ public class Test1 {
 	private void doIt5() {
 		core = new Core(1024);
 		DiskControlUnit dcu = new DiskControlUnit(core);
-		dcu.addDiskDrive(0, "C:\\Users\\admin\\git\\Virtualmachine\\VirtualMachine\\Disks\\EightSS.F8SS");
+		dcu.addDiskDrive(0, "C:\\Users\\admin\\git\\Virtualmachine\\VirtualMachine\\Disks\\EightDS.F8DS");
 		System.out.printf("%nIn doIt5()%n");
 		int controlByteLocation8 = 0X0040;
 		int controlTableLocation = 0X0100;
 
 		currentLocation = controlTableLocation;
-		writeNextByte((byte) 0X01); // 01 => read /02 => write
+		
+		loadMemory(0X0200,128,(byte)0X55);
+		
+		writeNextByte((byte) 0X02); // 01 => read /02 => write
 		writeNextByte((byte) 0X00); // unit
 		writeNextByte((byte) 0X00); // head
-		writeNextByte((byte) 0X80); // track
-		writeNextByte((byte) 0X0A); // sector
+		writeNextByte((byte) 0X00); // track
+		writeNextByte((byte) 0X03); // sector
 		writeNextByte((byte) 0X00); // lo byteCount byte count = 00FF
 		writeNextByte((byte) 0X00); // hi byteCount
 		writeNextByte((byte) 0X00); // lo DMA DMA = 00C8
@@ -45,13 +49,19 @@ public class Test1 {
 
 		core.write(0X0041, (byte) 00);
 		core.write(0X0042, (byte) 01); // point at the controlTable
-		core.write(controlByteLocation8, (byte) 0X80); // Set the Control byte to
+		core.write(controlByteLocation8, (byte) 0X80); // Set the Control byte to start IO
 		
-		System.out.printf("Core :Value: %02X, + 128: = %02X%n", core.read(0X0200),core.read(0X027F));
-
+		System.out.printf("Test1: Status: %02X - %02X%n",core.read(0X0043), core.read(0X0044));
+		System.out.printf("Test1: Value:  %02X, + 128: = %02X%n", core.read(0X0200),core.read(0X027F));
 
 		dcu = null;
 	}// doIt5()
+	
+	private void loadMemory(int location,int length, byte value){
+		for (int i = 0; i < length; i++){
+			core.write(location++, value);
+		}//for
+	}//loadMemory
 
 	private void writeNextByte(byte value) {
 		core.write(currentLocation++, value);

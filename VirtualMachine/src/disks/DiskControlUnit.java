@@ -2,12 +2,14 @@ package disks;
 
 import hardware.Core;
 import hardware.Core.TRAP;
+import hardware.MemoryAccessErrorEvent;
+import hardware.MemoryAccessErrorListener;
 import hardware.MemoryTrapEvent;
 import hardware.MemoryTrapListener;
 
 import javax.swing.JOptionPane;
 
-public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
+public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorListener, VDiskErrorListener {
 
 	private int maxNumberOfDrives;
 	private Core core;
@@ -22,10 +24,12 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 	private int currentSector;
 	private int currentByteCount;
 	private int currentDMAAddress;
+	private boolean goodOperation;
 
 	public DiskControlUnit(Core core, int maxNumberOfDrives) {
 		this.core = core;
 		core.addMemoryTrapListener(this);
+		core.addMemoryAccessErrorListener(this);
 		core.addTrapLocation(DISK_CONTROL_BYTE_5, TRAP.IO);
 		core.addTrapLocation(DISK_CONTROL_BYTE_8, TRAP.IO);
 		this.maxNumberOfDrives = maxNumberOfDrives;
@@ -66,14 +70,21 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 	}// getDrives
 
 	@Override
+	public void memoryAccessError(MemoryAccessErrorEvent me) {
+		diskErrorReport(ERROR_INVALID_DMA_ADDRESS, me.getMessage());
+		return;
+	}// memoryAccessError
+
+	@Override
 	public void vdiskError(VDiskErrorEvent vdee) {
 		diskErrorReport(ERROR_INVALID_SECTOR_DESIGNAMTOR, vdee.getMessage());
 		return;
-	}
+	}// vdiskError
 
 	@Override
 	public void memoryTrap(MemoryTrapEvent mte) {
 		currentDiskControlByte = mte.getLocation(); // 0X0040 for 8" / 0X0045 for 5.25"
+		goodOperation = true; // assume all goes well
 		if ((core.read(currentDiskControlByte) & 0X80) == 0) {
 			return; // not a disk command
 		}
@@ -94,7 +105,7 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 		currentDrive = (currentDiskControlByte == DISK_CONTROL_BYTE_8) ? 0 : 2; // 8"  or 5"
 		currentDrive += currentUnit; // (A&B) or (C&D)
 
-		if (currentDrive >=maxNumberOfDrives){
+		if (currentDrive >= maxNumberOfDrives) {
 			diskErrorReport(ERROR_NO_DRIVE, String.format("No unit  %d", currentDrive));
 			return;
 		}
@@ -103,21 +114,26 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 			return;
 		}// if
 		int currentSectorSize = drives[currentDrive].getBytesPerSector();
-		if (!drives[currentDrive].setCurrentAbsoluteSector(currentHead, currentTrack, currentSector)){
-			diskErrorReport(ERROR_SECTOR_NOT_SET,"Sector not set properly");
+		if (!drives[currentDrive].setCurrentAbsoluteSector(currentHead, currentTrack, currentSector)) {
+			diskErrorReport(ERROR_SECTOR_NOT_SET, "Sector not set properly");
 			return;
 		}//
 		System.out.printf("DCU: Head: %d, Track: %d, Sector: %d AbsoluteSector: %d%n",
 				currentHead, currentTrack, currentSector, drives[currentDrive].getCurrentAbsoluteSector());
+		if (!goodOperation) {
+			return; // return if any problems
+		}
 		if (currentCommand == COMMAND_READ) {
 			byte[] readBuffer = drives[currentDrive].read();
 			core.writeDMA(currentDMAAddress, readBuffer);
-			 System.out.printf("DCU:Value: %02X, length = %d%n", readBuffer[1],readBuffer.length);
+			System.out.printf("DCU:Value: %02X, length = %d%n", readBuffer[1], readBuffer.length);
 		} else {
 			byte[] writeBuffer = core.readDMA(currentDMAAddress, currentSectorSize);
 			drives[currentDrive].write(writeBuffer);
 		}//
-		core.write(currentDiskControlByte, (byte) 00); // reset - operation is over
+		if (goodOperation) {
+			reportStatus((byte) 00, (byte) 00); // reset - operation is over
+		}//
 
 	}// memoryTrap
 
@@ -127,14 +143,21 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 		return 0XFFFF & (hiByte + loByte);
 	}// getWordReversed
 
+	private void reportStatus(byte firstCode, byte secondCode) {
+		core.write(DISK_STATUS_BLOCK, firstCode);
+		core.write(DISK_STATUS_BLOCK + 1, secondCode);
+		core.write(currentDiskControlByte, (byte) 00); // reset - operation is over
+	}//
+
 	private void diskErrorReport(int code, String message) {
 		// TODO write to error code, and clear ControlByte
-		System.err.printf("DiskError - %d - %s%n",code,message);
-		core.write(DISK_STATUS_BLOCK, (byte) 00);
-		core.write(DISK_STATUS_BLOCK + 1, (byte) code);
-		core.write(currentDiskControlByte, (byte) 00); // reset - operation is over
-
-	}
+		System.err.printf("DiskError - %d - %s%n", code, message);
+		goodOperation = false;
+		reportStatus((byte) 00, (byte) code);
+		// core.write(DISK_STATUS_BLOCK, (byte) 00);
+		// core.write(DISK_STATUS_BLOCK + 1, (byte) code);
+		// core.write(currentDiskControlByte, (byte) 00); // reset - operation is over
+	}// diskErrorReport
 
 	private void debugShowControlTable() {
 		System.out.printf("currentCommand: %02X%n", currentCommand);
@@ -150,6 +173,7 @@ public class DiskControlUnit implements MemoryTrapListener, VDiskErrorListener {
 	private static final int ERROR_INVALID_SECTOR_DESIGNAMTOR = 11;
 	private static final int ERROR_NO_DRIVE = 12;
 	private static final int ERROR_SECTOR_NOT_SET = 13;
+	private static final int ERROR_INVALID_DMA_ADDRESS = 14;
 
 	private static final byte COMMAND_READ = 01;
 	private static final byte COMMAND_WRITE = 02;

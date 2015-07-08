@@ -1,5 +1,7 @@
 package disks;
 
+import java.io.Serializable;
+
 import hardware.Core;
 import hardware.Core.TRAP;
 import hardware.MemoryAccessErrorEvent;
@@ -39,6 +41,14 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	public DiskControlUnit(Core core) {
 		this(core, 4);
 	}// Constructor
+	
+	public void close(){ // remove the core listeners
+		core.removeMemoryTrapListener(this);
+		core.removeMemoryAccessErrorListener(this);
+		core.removeTrapLocation(DISK_CONTROL_BYTE_5, TRAP.IO);
+		core.removeTrapLocation(DISK_CONTROL_BYTE_8, TRAP.IO);
+	}//
+	
 
 	public void addDiskDrive(int index, String fileName) {
 		if (drives[index] != null) {

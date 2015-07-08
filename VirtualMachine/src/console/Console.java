@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -172,7 +174,22 @@ public class Console extends Device8080 {
 
 	public TerminalSettings getTerminalSettings() {
 		return terminalSettings;
-	}
+	}//getTerminalSettings
+	
+	private String stripSuffix(String fileName) {
+		String result = fileName;
+		int periodLocation = fileName.indexOf(".");
+		if (periodLocation != -1) {// this selection has a suffix
+			result = fileName.substring(0, periodLocation); // removed suffix
+		}// inner if
+		return result;
+	}//stripSuffix
+	
+	private String getConsoleSettingsFile(){
+		Path sourcePath = Paths.get(FILE_LOCATION, CONSOLE,DEFAULT_STATE_FILE).toAbsolutePath().normalize();
+		return  sourcePath.toString();
+	}//getDefaultMachineStateFile
+
 
 	public void loadSettings() {
 		loadSettings(DEFAULT_STATE_FILE);
@@ -180,8 +197,9 @@ public class Console extends Device8080 {
 
 	private void loadSettings(String fileName) {
 		terminalSettings = new TerminalSettings();
-		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
-				fileName + FILE_SUFFIX_PERIOD))) {
+		String fp = getConsoleSettingsFile();
+							
+		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fp))) {
 			terminalSettings = (TerminalSettings) ois.readObject();
 		} catch (ClassNotFoundException | IOException cnfe) {
 			String msg = String.format(
@@ -199,23 +217,24 @@ public class Console extends Device8080 {
 	}// loadSettings(fileName)
 
 	public void saveSettings() {
-		saveSettings(DEFAULT_STATE_FILE);
+		saveSettings(getConsoleSettingsFile());
 	}
 
 	private void saveSettings(String fileName) {
-		try (ObjectOutputStream oos = new ObjectOutputStream(
-				new FileOutputStream(fileName + FILE_SUFFIX_PERIOD))) {
+		String fp = getConsoleSettingsFile();
+		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fp))) {
 			oos.writeObject(terminalSettings);
 		} catch (Exception e) {
-			String msg = String.format("Could not save to : %s%S. ", fileName,
-					FILE_SUFFIX_PERIOD);
+			String msg = String.format("Could not save to : %s%S. ", fp);
 			JOptionPane.showMessageDialog(null, msg);
-		}
-	}
+		}//try
+	}//saveSettings
 
-	private final static String DEFAULT_STATE_FILE = "defaultConsoleSettings";
-	private final static String FILE_SUFFIX = "ser";
-	private final static String FILE_SUFFIX_PERIOD = "." + FILE_SUFFIX;
+	private final static String DEFAULT_STATE_FILE = "defaultConsoleSettings.con";
+	private final static String FILE_LOCATION = ".";
+	private final static String CONSOLE = "Console";
+
+
 
 	// private void readInputBuffer() {
 	// Byte inByte = inputBuffer.poll();
@@ -282,4 +301,5 @@ public class Console extends Device8080 {
 		}// serialEvent
 
 	}// class SerialPortReader
+
 }// class console

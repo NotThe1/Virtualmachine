@@ -12,11 +12,6 @@ import javax.swing.border.LineBorder;
 import java.awt.Color;
 
 import javax.swing.border.TitledBorder;
-//import javax.swing.border.MatteBorder;
-
-
-
-
 
 import java.awt.BorderLayout;
 
@@ -26,16 +21,16 @@ import javax.swing.JFormattedTextField;
 import java.awt.Font;
 import java.text.ParseException;
 import java.util.HashMap;
-//import java.util.Scanner;
 import java.util.Set;
+//import java.util.concurrent.TimeUnit;
 
 import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.JTextComponent;
-//import javax.swing.text.DefaultFormatterFactory;
 import javax.swing.text.MaskFormatter;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JSpinner;
@@ -45,24 +40,25 @@ import javax.swing.JTextArea;
 import javax.swing.JCheckBox;
 
 import device.DeviceController;
+import disks.DiskControlUnit;
+import disks.DiskUserInterface;
+import disks.MakeNewDisk;
 
 import java.awt.event.FocusListener;
-//import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
-//import java.io.BufferedReader;
 import java.io.BufferedWriter;
 //import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-//import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-//import java.awt.event.FocusAdapter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.awt.event.FocusEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -73,9 +69,8 @@ import java.awt.event.WindowEvent;
 
 //import org.eclipse.wb.swing.FocusTraversalOnArray;
 
-
 public class Machine8080 implements PropertyChangeListener, MouseListener,
-		FocusListener, ItemListener,ActionListener {
+		FocusListener, ItemListener, ActionListener {
 
 	public static final int MEMORY_SIZE_K = 64; // in K
 	private static final int MEMORY_SIZE_BYTES = MEMORY_SIZE_K * 1024;
@@ -87,12 +82,15 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	private CentralProcessingUnit cpu;
 	private DeviceController dc;
 
+	private DiskControlUnit dcu;
+//	private DiskUserInterface dui;
+
 	private MaskFormatter format2HexDigits;
 	private MaskFormatter format4HexDigits;
 
 	private String currentMachineName = DEFAULT_STATE_FILE;
 	private int displayProgramCounter = 0; // need place to hold until we have
-												// a CPU
+											// a CPU
 	private int memoryStart;
 	private int memoryLength;
 
@@ -111,15 +109,16 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			}// catch
 		});
 	}// main
-	
-	private void appInit(){
+
+	private void appInit() {
+		currentMachineName = getDefaultMachineStateFile();
 		restoreMachineState();
 		dc = new DeviceController();
 		au = new ArithmeticUnit(ccr);
-		cpu = new CentralProcessingUnit(mm, ccr, au, wrs,dc);
+		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
 		cpu.setProgramCounter(displayProgramCounter);
+		dcu = new DiskControlUnit(core);
 	}
-
 
 	/**
 	 * Create the application.
@@ -157,23 +156,23 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			} else if (source instanceof JTextArea) {
 				int lineLength = 73;
 				JTextComponent thisElement = (JTextComponent) source;
-				if(thisElement.getName() == "txtMainMemory"){// the one we want
+				if (thisElement.getName() == "txtMainMemory") {// the one we want
 					int caretPosition = (int) thisElement.getCaretPosition();
 					int lineNumber = (caretPosition / lineLength);
 					int startSel = (lineNumber * lineLength);
-					
+
 					thisElement.setSelectionStart(startSel);
 					thisElement.setSelectionEnd(startSel + 4);
 					String strAddress = thisElement.getSelectedText();
 					int intAddress = Integer.valueOf(strAddress, 16);
 					thisElement.setSelectionStart(startSel + 6);
 					thisElement.setSelectionEnd(startSel + 54);
-					
+
 					MemoryEdit.showDialog(null, null, mm,
-							 intAddress);
+							intAddress);
 					displayMainMemory();
 				}// the main memory text area
-			}//if instanceOf
+			}// if instanceOf
 		}// if mouse click
 	}// mouseClicked
 
@@ -181,12 +180,12 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	public void focusLost(FocusEvent fe) {
 		JFormattedTextField ftf = (JFormattedTextField) fe.getSource();
 		ftf.setEditable(false);
-		if (ftf.getName().equals(NAME_MEM_START)){
+		if (ftf.getName().equals(NAME_MEM_START)) {
 			ftfMemoryLength.setEditable(true);
 			ftfMemoryLength.selectAll();
 			ftfMemoryLength.requestFocus();
-		}//if - 
-		
+		}// if -
+
 	}// focusLost
 
 	@Override
@@ -343,9 +342,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		ftfReg_M.setValue(getByteDisplayValue(value));
 	}// showRegM
 
-		private String generateMemoryDisplay(int memoryStart, int memoryLength) {
-		memoryStart =  memoryStart &  0XFFF0; // start at xxx0
-		memoryLength =  memoryLength | 0X000F; // end at yyyF
+	private String generateMemoryDisplay(int memoryStart, int memoryLength) {
+		memoryStart = memoryStart & 0XFFF0; // start at xxx0
+		memoryLength = memoryLength | 0X000F; // end at yyyF
 		int lastIndex = memoryStart + memoryLength;
 		StringBuilder thisLine = new StringBuilder();
 		char thisChar;
@@ -389,17 +388,17 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 
 	private String getByteDisplayValue(int value) {
 		return String.format("%02X", value & 0XFF);
-		//return getDisplayValue(value, 2);
+		// return getDisplayValue(value, 2);
 	}// getDisplayValue(int value)
 
 	private String getWordDisplayValue(int value) {
 		return String.format("%04X", value & 0XFFFF);
-//		String result = String.format("%04X", value);
-//		return result.substring(result.length() - numberOfDigits);
+		// String result = String.format("%04X", value);
+		// return result.substring(result.length() - numberOfDigits);
 	}// getDisplayValue(int value,int numberOfDigits)
 
 	private void saveMachineState() {
-		saveMachineState(DEFAULT_STATE_FILE);
+		saveMachineState(getDefaultMachineStateFile());;
 	}// saveMachineState
 
 	private void saveMachineState(String fileName) {
@@ -409,8 +408,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 				(String) ftfMemoryLength.getValue(), 16);
 		MachineState8080 currentState = new MachineState8080(
 				cpu.getProgramCounter(), memoryStart, memoryLength);
-
+		dcu.close();
 		try {
+			// Core rats = core;
 			ObjectOutputStream oos = new ObjectOutputStream(
 					new FileOutputStream(fileName + FILE_SUFFIX_PERIOD));
 
@@ -418,15 +418,21 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			oos.writeObject(ccr);
 			oos.writeObject(wrs);
 			oos.writeObject(core);
+			// oos.writeObject(rats);
 			// currentMachineName = fileName;
 			oos.close();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}// try - write objects
 	}// saveMachineState(String fileName)
+	
+	private String getDefaultMachineStateFile(){
+		Path sourcePath = Paths.get(FILE_LOCATION, SETTINGS,DEFAULT_STATE_FILE).toAbsolutePath().normalize();
+		return  sourcePath.toString();
+	}//getDefaultMachineStateFile
 
 	private void restoreMachineState() {
-		restoreMachineState(currentMachineName);
+		restoreMachineState(currentMachineName);//getDefaultMachineStateFile()
 		// restoreMachineState("SimpleMachine");
 	}
 
@@ -440,9 +446,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			ccr = (ConditionCodeRegister) ois.readObject();
 			wrs = (WorkingRegisterSet) ois.readObject();
 			core = (Core) ois.readObject();
-			//mm = (MainMemory) ois.readObject();
+			// mm = (MainMemory) ois.readObject();
 			currentMachineName = fileName;
-			//int k = core.getSize();
+			// int k = core.getSize();
 			frm8080Emulator.setTitle(fileName);
 			ois.close();
 		} catch (Exception e) {
@@ -451,10 +457,10 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 					e.getMessage());
 
 			savedState = new MachineState8080(0X0100, 0X0100, 0X0400);
-//			mm = new MainMemory(MEMORY_SIZE_K);
-//			for (int i = 0; i < MEMORY_SIZE_BYTES; i++) {
-//				mm.setByte(i, (byte) i);
-//			}// for seeding memory
+			// mm = new MainMemory(MEMORY_SIZE_K);
+			// for (int i = 0; i < MEMORY_SIZE_BYTES; i++) {
+			// mm.setByte(i, (byte) i);
+			// }// for seeding memory
 			core = new Core(MEMORY_SIZE_BYTES);
 			ccr = new ConditionCodeRegister();
 			wrs = new WorkingRegisterSet();
@@ -476,11 +482,12 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			result = fileName.substring(0, periodLocation); // removed suffix
 		}// inner if
 		return result;
-	}
+	}//stripSuffix
+
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-		
-		switch (ae.getActionCommand()){
+
+		switch (ae.getActionCommand()) {
 		case "btnRun":
 			cpu.startRunMode();
 			loadTheDisplay();
@@ -490,42 +497,41 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			loadTheDisplay();
 			break;
 		case "btnStop":
-			//doBtnStop();
+			// doBtnStop();
 			break;
 		case "btnRefresh":
 			displayMainMemory();
 			break;
-			
+
 		case "mnuFileNew":
-			//doMnuFileNew();
+			// doMnuFileNew();
 			break;
 		case "mnuFileReset":
-			//doMnuFileReset();
+			// doMnuFileReset();
 			break;
 		case "mnuFileOpen":
-			//doMnuFileOpen();
+			// doMnuFileOpen();
 			break;
 		case "mnuFileSave":
-			//doMnuFileSave();
+			// doMnuFileSave();
 			break;
 		case "mnuFileSaveAs":
-			////doMnuFileSaveAs();
+			// //doMnuFileSaveAs();
 			break;
 		case "mnuFileClose":
-			//doMnuFileClose();
+			// doMnuFileClose();
 			break;
 		case "mnuToolsLoadMemoryFromFile":
-			//doMnuToolsLoadMemoryFromFile();
+			// doMnuToolsLoadMemoryFromFile();
 			break;
 		case "mnuToolsSaveMemoryDisplay":
-			//doMnuToolSaveMemoryDisplay();
+			// doMnuToolSaveMemoryDisplay();
 			break;
-		}//switch	
-	}//actionPerformed
+		}// switch
+	}// actionPerformed
 
 	/**
-	 * Initialize the contents of the
-	 * frame.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	 * Initialize the contents of the frame.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	 */
 	private void initialize() {
 		frm8080Emulator = new JFrame();
@@ -584,24 +590,22 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		mnuFileOpen.setActionCommand("mnuFileOpen");
 		mnuFileOpen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser chooser = new JFileChooser();
+				
+				Path sourcePath = Paths.get(FILE_LOCATION, SETTINGS);
+				String fp = sourcePath.resolve(FILE_LOCATION).toString();
+
+				JFileChooser chooser = new JFileChooser(fp);
 				chooser.setMultiSelectionEnabled(false);
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"Saved State Files", FILE_SUFFIX);
-				chooser.setFileFilter(filter);
-				int returnValue = chooser.showOpenDialog(frm8080Emulator);
-				if (returnValue == JFileChooser.APPROVE_OPTION) {
-					String absolutePath = chooser.getSelectedFile()
-							.getAbsolutePath();
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("Saved Machine State", FILE_SUFFIX));
+				chooser.setAcceptAllFileFilterUsed(false);
+
+				if (chooser.showOpenDialog(frm8080Emulator) == JFileChooser.APPROVE_OPTION) {
+					String absolutePath = chooser.getSelectedFile()	.getAbsolutePath();
 					// need to strip the file suffix off (will replace later)
-					int periodLocation = absolutePath.indexOf(".");
-					if (periodLocation != -1) {// this selection has a suffix
-						absolutePath = absolutePath
-								.substring(0, periodLocation); // removed suffix
-					}// inner if
+					absolutePath = stripSuffix(absolutePath);	
 					restoreMachineState(absolutePath);
 				} else {
-					System.out.printf("You cancelled the Save as...%n", "");
+					System.out.printf("You cancelled the Open...%n", "");
 				}// if - returnValue
 			}// actionPerformed
 		});
@@ -613,7 +617,7 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		mnuFileSave.setActionCommand("mnuFileSave");
 		mnuFileSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
-				saveMachineState(DEFAULT_STATE_FILE);
+				saveMachineState(getDefaultMachineStateFile());
 			}// actionPerformed
 		});
 		mnuFile.add(mnuFileSave);
@@ -622,24 +626,25 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		mnuFileSaveAs.setActionCommand("mnuFileSaveAs");
 		mnuFileSaveAs.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser chooser = new JFileChooser();
+				Path sourcePath = Paths.get(FILE_LOCATION, SETTINGS);
+				String fp = sourcePath.resolve(FILE_LOCATION).toString();
+
+				JFileChooser chooser = new JFileChooser(fp);
 				chooser.setMultiSelectionEnabled(false);
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"Saved State Files", FILE_SUFFIX);
-				chooser.setFileFilter(filter);
-				int returnValue = chooser.showSaveDialog(frm8080Emulator);
-				if (returnValue == JFileChooser.APPROVE_OPTION) {
-					String absolutePath = chooser.getSelectedFile()
-							.getAbsolutePath();
-					// need to strip the file suffix off (will replace later)
-					int periodLocation = absolutePath.indexOf(".");
-					if (periodLocation != -1) {// this selection has a suffix
-						absolutePath = absolutePath
-								.substring(0, periodLocation); // removed suffix
-					}// inner if
-					saveMachineState(absolutePath);
-				} else {
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("Saved Machine State", FILE_SUFFIX));
+				chooser.setAcceptAllFileFilterUsed(false);
+				// int returnValue = chooser.showSaveDialog(frm8080Emulator);
+				if (chooser.showSaveDialog(frm8080Emulator) != JFileChooser.APPROVE_OPTION) {
 					System.out.printf("You cancelled the Save as...%n", "");
+				} else {
+//					File selectedFile = chooser.getSelectedFile();
+//					javax.swing.filechooser.FileFilter  chooserFilter = chooser.getFileFilter();
+					
+					String absolutePath = chooser.getSelectedFile().getAbsolutePath();
+					// need to strip the file suffix off (will replace later)
+					absolutePath = stripSuffix(absolutePath);	
+
+					saveMachineState(absolutePath);
 				}// if - returnValue
 			}// actionPerformed
 		});
@@ -656,6 +661,27 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			}// actionPerformed
 		});
 		mnuFile.add(mnuFileClose);
+
+		JMenu mnuDisks = new JMenu("Disks");
+		menuBar.add(mnuDisks);
+
+		JMenuItem mnuDisksMount = new JMenuItem("Mount/Diskmoutt disks...");
+		mnuDisksMount.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				DiskUserInterface duid = new DiskUserInterface(dcu);
+				duid.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+				duid.setVisible(true);
+			}//
+		});
+		mnuDisks.add(mnuDisksMount);
+
+		JMenuItem mnuMakeNewDisk = new JMenuItem("Make a New Disk...");
+		mnuMakeNewDisk.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				MakeNewDisk.makeNewDisk();
+			}//
+		});
+		mnuDisks.add(mnuMakeNewDisk);
 
 		JMenu mnuTools = new JMenu("Tools");
 		menuBar.add(mnuTools);
@@ -698,18 +724,21 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		mnuToolsSaveMemoryDisplay.setActionCommand("mnuToolsSaveMemoryDisplay");
 		mnuToolsSaveMemoryDisplay.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-				JFileChooser chooser = new JFileChooser();
+				Path sourcePath = Paths.get(FILE_LOCATION,MEMORY);
+				String fp = sourcePath.resolve(FILE_LOCATION).toString();
+				JFileChooser chooser = new JFileChooser(fp);
 				chooser.setMultiSelectionEnabled(false);
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"Saved State Files", ".txt", "TXT","mem");
-				chooser.setFileFilter(filter);
-				int returnValue = chooser.showSaveDialog(frm8080Emulator);
+				chooser.addChoosableFileFilter(new FileNameExtensionFilter("Memory file",MEMORY_SUFFIX));
+				chooser.setAcceptAllFileFilterUsed(false);
 
-				if (returnValue == JFileChooser.APPROVE_OPTION) {
-					String destinationPath = chooser.getSelectedFile()
-							.getPath();
-					destinationPath = stripSuffix(destinationPath) + ".mem";
+//				FileNameExtensionFilter filter = new FileNameExtensionFilter(
+//						"Saved State Files", ".txt", "TXT", "mem");
+//				chooser.setFileFilter(filter);
+//				int returnValue = chooser.showSaveDialog(frm8080Emulator);
+
+				if (chooser.showSaveDialog(frm8080Emulator) == JFileChooser.APPROVE_OPTION) {
+					String destinationPath = chooser.getSelectedFile().getPath();
+					destinationPath = stripSuffix(destinationPath) + "." + MEMORY_SUFFIX;
 
 					// File destinationFile = chooser.getSelectedFile();
 
@@ -1224,15 +1253,16 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		txtLog.setRows(10);
 		txtLog.setColumns(15);
 		scrollPane.setViewportView(txtLog);
-		
+
 		JButton btnRefresh = new JButton("Refresh");
 		btnRefresh.setActionCommand("btnRefresh");
 		btnRefresh.addActionListener(this);
 		btnRefresh.setBounds(490, 13, 110, 35);
 		pnlMainMemory.add(btnRefresh);
-		//pnlMainMemory.setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{ftfMemoryStart, ftfMemoryLength}));
-		
-//		appInit();
+		// pnlMainMemory.setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{ftfMemoryStart,
+		// ftfMemoryLength}));
+
+		// appInit();
 	}// Initialize +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// Declarations
@@ -1286,8 +1316,12 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 
 	private final static String LF = "\n";
 	private final static String DEFAULT_STATE_FILE = "defaultMachineState";
-	private final static String FILE_SUFFIX = "ser";
+	public final static String MEMORY_SUFFIX = "mem";
+	private final static String FILE_SUFFIX = "sms";
 	private final static String FILE_SUFFIX_PERIOD = "." + FILE_SUFFIX;
+	public final static String FILE_LOCATION = ".";
+	private final static String SETTINGS = "Settings";
+	public final static String MEMORY = "Memory";
 	private JTextArea txtMainMemory;
 
 	@Override
@@ -1314,6 +1348,4 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	public void focusGained(FocusEvent arg0) {
 		// Not implemented
 	}// focusGained
-
-
 }// class Machine8080

@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -36,13 +38,19 @@ public class LoadMemoryImage {
 
 	public void doIt() {
 		memoryImage = new HashMap<Integer, Byte>();
-		JFileChooser chooser = new JFileChooser();
+		Path sourcePath = Paths.get(Machine8080.FILE_LOCATION,Machine8080.MEMORY);
+		String fp = sourcePath.resolve(Machine8080.FILE_LOCATION).toString();
+		JFileChooser chooser = new JFileChooser(fp);
 		chooser.setMultiSelectionEnabled(false);
-		FileNameExtensionFilter filter = new FileNameExtensionFilter(
-				"Saved State Files", ".txt", "TXT","mem");
-		chooser.setFileFilter(filter);
-		int returnValue = chooser.showOpenDialog(jc);
-		if (returnValue == JFileChooser.APPROVE_OPTION) {
+		
+//		FileNameExtensionFilter filter = new FileNameExtensionFilter(
+//				"Saved State Files", ".txt", "TXT","mem");
+//		chooser.setFileFilter(filter);
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter("Memory file",Machine8080.MEMORY_SUFFIX));
+		chooser.setAcceptAllFileFilterUsed(false);
+
+//		int returnValue = chooser.showOpenDialog(jc);
+		if (chooser.showOpenDialog(jc) == JFileChooser.APPROVE_OPTION) {
 			File sourceFile = chooser.getSelectedFile();
 
 			try {

@@ -26,7 +26,7 @@ public class Test1 {
 	}// main
 
 	private void doIt5() {
-		core = new Core(1024);
+		core = new Core(4096);
 		DiskControlUnit dcu = new DiskControlUnit(core);
 		dcu.addDiskDrive(0, "C:\\Users\\admin\\git\\Virtualmachine\\VirtualMachine\\Disks\\EightDS.F8DS");
 		System.out.printf("%nIn doIt5()%n");
@@ -41,9 +41,9 @@ public class Test1 {
 		writeNextByte((byte) 0X00); // unit
 		writeNextByte((byte) 0X00); // head
 		writeNextByte((byte) 0X00); // track
-		writeNextByte((byte) 0X03); // sector
+		writeNextByte((byte) 0X01); // sector
 		writeNextByte((byte) 0X00); // lo byteCount byte count = 00FF
-		writeNextByte((byte) 0X00); // hi byteCount
+		writeNextByte((byte) 0X02); // hi byteCount
 		writeNextByte((byte) 0X00); // lo DMA DMA = 00C8
 		writeNextByte((byte) 0X02); // hi DMA
 
@@ -51,6 +51,13 @@ public class Test1 {
 		core.write(0X0042, (byte) 01); // point at the controlTable
 		core.write(controlByteLocation8, (byte) 0X80); // Set the Control byte to start IO
 		
+		
+		
+//		core.write(0X0040,(byte) 0X02); // 01 => read /02 => write
+//		core.write(0X0041, (byte) 00);
+//		core.write(0X0042, (byte) 01); // point at the controlTable
+//		core.write(controlByteLocation8, (byte) 0X80); // Set the Control byte to start IO
+//		
 		System.out.printf("Test1: Status: %02X - %02X%n",core.read(0X0043), core.read(0X0044));
 		System.out.printf("Test1: Value:  %02X, + 128: = %02X%n", core.read(0X0200),core.read(0X027F));
 

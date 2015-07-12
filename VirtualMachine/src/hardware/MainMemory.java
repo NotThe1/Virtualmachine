@@ -5,8 +5,7 @@ import java.io.Serializable;
 import javax.swing.JOptionPane;
 
 //need to throw address out of bounds error, protection violation
-public class MainMemory implements Serializable, MemoryAccessErrorListener,
-		MemoryTrapListener {
+public class MainMemory implements Serializable, MemoryAccessErrorListener{ //,	MemoryTrapListener
 
 	private static final long serialVersionUID = 1L;
 	int K = 1024;
@@ -22,10 +21,15 @@ public class MainMemory implements Serializable, MemoryAccessErrorListener,
 	public MainMemory(Core core) {
 		this.core = core;
 		core.addMemoryAccessErrorListener(this);
-		core.addMemoryTrapListener(this);
+//		core.addMemoryTrapListener(this);
 
 //		allocatedMemory = core.getSize();
 	}
+	
+//	public void  close(){
+//		core.removeMemoryAccessErrorListener(this);
+//		core.removeMemoryTrapListener(this);
+//	}
 
 	public byte getByte(int location) {
 			return core.read(location);
@@ -80,17 +84,17 @@ public class MainMemory implements Serializable, MemoryAccessErrorListener,
 		return (int) (core.getSize() / K);
 	}// getSize
 
-	@Override
-	public void memoryTrap(MemoryTrapEvent mte) {
-		JOptionPane.showConfirmDialog(null, "choose one", "choose one",
-				JOptionPane.YES_NO_OPTION);
-	}
+//	@Override
+//	public void memoryTrap(MemoryTrapEvent mte) {
+//		JOptionPane.showConfirmDialog(null, "choose one", "choose one",
+//				JOptionPane.YES_NO_OPTION);
+//	}
 
 	@Override
 	public void memoryAccessError(MemoryAccessErrorEvent mae) {
-		System.err.printf("%n%nFatal memory error%n%n");
-		System.err.printf(String.format("Location: %s%n", mae.getLocation()));
-		System.err.printf(String.format("%s%n", mae.getMessage()));
+		System.err.printf("MM: %n%nFatal memory error%n%n");
+		System.err.printf(String.format("MM: Location: %s%n", mae.getLocation()));
+		System.err.printf(String.format("MM: %s%n", mae.getMessage()));
 		// System.exit(-1);
 
 	}

@@ -1,6 +1,7 @@
 package disks;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 import hardware.Core;
 import hardware.Core.TRAP;
@@ -41,14 +42,13 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	public DiskControlUnit(Core core) {
 		this(core, 4);
 	}// Constructor
-	
-	public void close(){ // remove the core listeners
+
+	public void close() { // remove the core listeners
 		core.removeMemoryTrapListener(this);
 		core.removeMemoryAccessErrorListener(this);
 		core.removeTrapLocation(DISK_CONTROL_BYTE_5, TRAP.IO);
 		core.removeTrapLocation(DISK_CONTROL_BYTE_8, TRAP.IO);
 	}//
-	
 
 	public void addDiskDrive(int index, String fileName) {
 		if (drives[index] != null) {
@@ -94,10 +94,12 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	@Override
 	public void memoryTrap(MemoryTrapEvent mte) {
 		currentDiskControlByte = mte.getLocation(); // 0X0040 for 8" / 0X0045 for 5.25"
+		
+		if (( core.readForIO(currentDiskControlByte) & 0X80) == 0){
+			return; // not a disk activation command
+		}//if
+		
 		goodOperation = true; // assume all goes well
-		if ((core.read(currentDiskControlByte) & 0X80) == 0) {
-			return; // not a disk command
-		}
 
 		System.out.printf("DCU: Location: %04X, Value: %02X%n", mte.getLocation(), core.read(mte.getLocation()));
 
@@ -112,8 +114,8 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 		currentByteCount = getWordReversed(controlTableLocation + DCT_BYTE_COUNT);
 		currentDMAAddress = getWordReversed(controlTableLocation + DCT_DMA_ADDRESS);
 		debugShowControlTable();
-		currentDrive = (currentDiskControlByte == DISK_CONTROL_BYTE_8) ? 0 : 2; // 8"  or 5"
-		currentDrive += currentUnit; // (A&B) or (C&D)
+		currentDrive = (currentDiskControlByte == DISK_CONTROL_BYTE_5) ? 0 : 2; // 5" => A or B
+		currentDrive += currentUnit; // First (A-C) or second (B-D);
 
 		if (currentDrive >= maxNumberOfDrives) {
 			diskErrorReport(ERROR_NO_DRIVE, String.format("No unit  %d", currentDrive));
@@ -128,18 +130,44 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 			diskErrorReport(ERROR_SECTOR_NOT_SET, "Sector not set properly");
 			return;
 		}//
+		int numberOfSectorsToMove = currentByteCount / currentSectorSize;
+		if (numberOfSectorsToMove < 0) {
+			diskErrorReport(ERROR_INVALID_BYTE_COUNT, String.format("Invalid Byte Count: %04X", currentByteCount));
+			return;
+		}// if - bad byte count
+
 		System.out.printf("DCU: Head: %d, Track: %d, Sector: %d AbsoluteSector: %d%n",
 				currentHead, currentTrack, currentSector, drives[currentDrive].getCurrentAbsoluteSector());
 		if (!goodOperation) {
-			return; // return if any problems
-		}
+			return; // return if any problems - don't do any I/O
+		}//
+
 		if (currentCommand == COMMAND_READ) {
-			byte[] readBuffer = drives[currentDrive].read();
+			ByteBuffer readByteBuffer = ByteBuffer.allocate(numberOfSectorsToMove * currentSectorSize);
+			readByteBuffer.put(drives[currentDrive].read());
+			for (int i = 0; i < numberOfSectorsToMove - 1; i++) {
+				readByteBuffer.put(drives[currentDrive].readNext());
+			}// for
+			byte[] readBuffer = readByteBuffer.array();
 			core.writeDMA(currentDMAAddress, readBuffer);
 			System.out.printf("DCU:Value: %02X, length = %d%n", readBuffer[1], readBuffer.length);
-		} else {
-			byte[] writeBuffer = core.readDMA(currentDMAAddress, currentSectorSize);
-			drives[currentDrive].write(writeBuffer);
+		} else { // its a COMMAND_WRITE
+		// byte[] writeBuffer = core.readDMA(currentDMAAddress, currentSectorSize);
+		// drives[currentDrive].write(writeBuffer);
+
+			byte[] writeSector = new byte[currentSectorSize];
+			byte[] readFromCore = core.readDMA(currentDMAAddress, currentByteCount);
+			
+			ByteBuffer writeByteBuffer= ByteBuffer.wrap(readFromCore);
+//			ByteBuffer writeSectorBuffer = ByteBuffer.allocate(currentSectorSize);
+			writeByteBuffer.get(writeSector);
+			drives[currentDrive].write(writeSector);
+			for (int i = 0; i < numberOfSectorsToMove - 1; i++) {
+				writeByteBuffer.get(writeSector);
+				drives[currentDrive].writeNext(writeSector);
+			}// for
+
+	
 		}//
 		if (goodOperation) {
 			reportStatus((byte) 00, (byte) 00); // reset - operation is over
@@ -161,7 +189,7 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 
 	private void diskErrorReport(int code, String message) {
 		// TODO write to error code, and clear ControlByte
-		System.err.printf("DiskError - %d - %s%n", code, message);
+		System.err.printf("DCU: DiskError - %d - %s%n", code, message);
 		goodOperation = false;
 		reportStatus((byte) 00, (byte) code);
 		// core.write(DISK_STATUS_BLOCK, (byte) 00);
@@ -184,6 +212,7 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	private static final int ERROR_NO_DRIVE = 12;
 	private static final int ERROR_SECTOR_NOT_SET = 13;
 	private static final int ERROR_INVALID_DMA_ADDRESS = 14;
+	private static final int ERROR_INVALID_BYTE_COUNT = 15;
 
 	private static final byte COMMAND_READ = 01;
 	private static final byte COMMAND_WRITE = 02;

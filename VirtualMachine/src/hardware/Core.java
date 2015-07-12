@@ -17,7 +17,8 @@ public class Core implements Serializable {
 	private boolean trapEnabled;
 	private HashMap<Integer, TRAP> trapLocations; // locations that can be
 													// trapped duh!
-	//private byte writeValue; // used for IO trap
+
+	// private byte writeValue; // used for IO trap
 
 	public Core(Integer size) {
 		this(size, 0);
@@ -26,7 +27,7 @@ public class Core implements Serializable {
 	public Core(Integer size, Integer protectedBoundary) {
 		this.trapEnabled = false;
 		trapLocations = new HashMap<Integer, TRAP>();
-		
+
 		if (size <= 0) {
 			System.err.printf("Memory size %d not valid%n", size);
 			System.exit(-1);
@@ -54,11 +55,18 @@ public class Core implements Serializable {
 	}// Constructor
 
 	public void write(int location, byte value) {
-		//writeValue = value; // save for IO trap
-		if (checkAddress(location, value) == true) {
+		// writeValue = value; // save for IO trap
+		if (checkAddressAndTraps(location, value) == true) {
 			storage[location] = value;
 		}// if
-	}// setContent
+	}// setContent- for MM
+	
+	public void writeForIO(int location, byte value) {
+		// writeValue = value; // save for IO trap
+		if (checkAddress(location) == true) {
+			storage[location] = value;
+		}// if
+	}// setContent- for IO devices
 
 	public void writeDMA(int location, byte[] values) {
 		int numberOfBytes = values.length;
@@ -70,11 +78,18 @@ public class Core implements Serializable {
 	}// writeDMA
 
 	public byte read(int location) {
-		if (checkAddress(location) == true) {
+		if (checkAddressAndTraps(location) == true) { // send dummy argument
 			return storage[location];
 		}// if
 		return 00;
-	}// getContent
+	}// getContent- for MM
+	
+	public byte readForIO(int location) {
+		if (checkAddress(location) == true) { // send dummy argument
+			return storage[location];
+		}// if
+		return 00;
+	}// getContent - for IO devices
 
 	public byte[] readDMA(int location, int length) {
 		byte[] readDMA = new byte[length];
@@ -123,7 +138,7 @@ public class Core implements Serializable {
 
 	}// removeTrapLocation
 
-	private boolean checkAddress(int location) { //used for reads
+	private boolean checkAddress(int location) {// just check its in readable memory
 		boolean checkAddress = true;
 		if (location < protectedBoundary) {
 			// protection violation
@@ -133,30 +148,71 @@ public class Core implements Serializable {
 			// out of bounds error
 			checkAddress = false;
 			fireAccessError(location, "Invalid memory location");
-		} else if (trapLocations.containsKey(location)) {
+		}// if
+		return checkAddress;
+
+	}
+
+	private boolean checkAddressAndTraps(int location) {
+		// send a dummy value for reads
+		return checkAddressAndTraps(location, (byte) 00);
+	}
+
+	private boolean checkAddressAndTraps(int location, byte value) {
+		boolean checkAddressAndTraps = checkAddress(location);
+		if (trapLocations.containsKey(location)) {
 			switch (trapLocations.get(location)) {
 			case DEBUG:
 				if (trapEnabled) {
 					fireMemoryTrap(location, trapLocations.get(location));
 				}// if (trapEnabled);
+				break;
+			case IO:
+				storage[location] = value; // write so DCU has access to it
+				fireMemoryTrap(location, Core.TRAP.IO);
+				// System.out.printf("Core.java - checkAddress line 153%n");
+				break;
 			default:
 				// ignore switch set up for later enhancements
 			}// switch
 		}// if
-		return checkAddress; // true if all is good or a Trap
-	}// checkAddress
+		return checkAddressAndTraps;
+	}
 
-	private boolean checkAddress(int location, byte value) {	//used for writes
-		if (trapLocations.containsKey(location)) {
-			if (trapLocations.get(location).equals(Core.TRAP.IO)) {
-				storage[location] = value; // write so DCU has access to it
-				fireMemoryTrap(location, Core.TRAP.IO);
-				//System.out.printf("Core.java - checkAddress line 153%n");
-				return true;
-			}// inner if
-		}// if
-		return checkAddress(location);
-	}// checkAddress
+//	private boolean XcheckAddress(int location, byte value) { // used for writes
+//		if (trapLocations.containsKey(location)) {
+//			if (trapLocations.get(location).equals(Core.TRAP.IO)) {
+//				storage[location] = value; // write so DCU has access to it
+//				fireMemoryTrap(location, Core.TRAP.IO);
+//				// System.out.printf("Core.java - checkAddress line 153%n");
+//				return true;
+//			}// inner if
+//		}// if
+//		return checkAddress(location);
+//	}// checkAddress
+//
+//	private boolean XcheckAddress(int location) { // used for reads
+//		boolean checkAddress = true;
+//		if (location < protectedBoundary) {
+//			// protection violation
+//			checkAddress = false;
+//			fireAccessError(location, "Protected memory access");
+//		} else if (location > maximumAddress) {
+//			// out of bounds error
+//			checkAddress = false;
+//			fireAccessError(location, "Invalid memory location");
+//		} else if (trapLocations.containsKey(location)) {
+//			switch (trapLocations.get(location)) {
+//			case DEBUG:
+//				if (trapEnabled) {
+//					fireMemoryTrap(location, trapLocations.get(location));
+//				}// if (trapEnabled);
+//			default:
+//				// ignore switch set up for later enhancements
+//			}// switch
+//		}// if
+//		return checkAddress; // true if all is good or a Trap
+//	}// checkAddress
 
 	private boolean checkAddressDMA(int location, int length) {
 		boolean checkAddressDMA = true;
@@ -187,6 +243,13 @@ public class Core implements Serializable {
 		}// for
 	}// fireProtectedMemoryAccess
 
+	public void resetListeners() {
+		memoryAccessErrorListeners = null;
+		memoryAccessErrorListeners = new Vector<MemoryAccessErrorListener>();
+		memoryTrapListeners = null;
+		memoryTrapListeners = new Vector<MemoryTrapListener>();
+	}// resetListeners
+
 	private Vector<MemoryAccessErrorListener> memoryAccessErrorListeners = new Vector<MemoryAccessErrorListener>();
 
 	public synchronized void addMemoryAccessErrorListener(
@@ -212,8 +275,7 @@ public class Core implements Serializable {
 			if (0 == size) {
 				return; // no listeners
 			}// if
-			MemoryTrapEvent memoryTrapEvent = new MemoryTrapEvent(this,
-					location, trap);
+			MemoryTrapEvent memoryTrapEvent = new MemoryTrapEvent(this, location, trap);
 			for (int i = 0; i < size; i++) {
 				MemoryTrapListener listener = (MemoryTrapListener) mtl
 						.elementAt(i);
@@ -244,7 +306,7 @@ public class Core implements Serializable {
 	static int MINIMUM_MEMORY = 8 * K;
 	static int MAXIMUM_MEMORY = 64 * K;
 	static int DEFAULT_MEMORY = 16 * K;
-	
+
 	static Integer DISK_CONTROL_BYTE_40 = 0X0040;
 	static Integer DISK_CONTROL_BYTE_45 = 0X0045;
 

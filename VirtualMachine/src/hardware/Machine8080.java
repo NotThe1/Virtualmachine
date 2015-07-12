@@ -247,11 +247,11 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			// not yet implemented
 			break;
 		case NAME_REG_SP:
-			wrs.setStackPointer((short) intValue);
+			wrs.setStackPointer((int) intValue);
 			break;
 		case NAME_REG_PC:
 			if (cpu != null) {
-				cpu.setProgramCounter((short) intValue);
+				cpu.setProgramCounter((int) intValue);
 				showImmediateValues(cpu.getProgramCounter());
 			}
 			break;
@@ -267,12 +267,12 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			break;
 
 		case NAME_MEM_START:
-			memoryStart = (short) intValue;
+			memoryStart = (int) intValue;
 			break;
 		case NAME_MEM_LEN:
-			memoryLength = (short) intValue;
+			memoryLength = (int) intValue;
 			if ((memoryStart + memoryLength) > MEMORY_SIZE_BYTES) {
-				memoryLength = (short) (MEMORY_SIZE_BYTES - (memoryStart + 16));
+				memoryLength = (int) (MEMORY_SIZE_BYTES - (memoryStart + 16));
 				ftfMemoryLength.setValue(getWordDisplayValue(memoryLength));
 			}// if - limits size
 			txtMainMemory.setText(generateMemoryDisplay(memoryStart,
@@ -409,8 +409,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		MachineState8080 currentState = new MachineState8080(
 				cpu.getProgramCounter(), memoryStart, memoryLength);
 		dcu.close();
+		core.resetListeners();
+//		mm.close();
 		try {
-			// Core rats = core;
 			ObjectOutputStream oos = new ObjectOutputStream(
 					new FileOutputStream(fileName + FILE_SUFFIX_PERIOD));
 
@@ -467,9 +468,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		}// try
 		mm = new MainMemory(core);
 
-		memoryStart = (short) savedState.getMemoryStart();
-		memoryLength = (short) savedState.getMemoryLength();
-		displayProgramCounter = (short) savedState.getProgramCounter();
+		memoryStart = (int) savedState.getMemoryStart();
+		memoryLength = (int) savedState.getMemoryLength();
+		displayProgramCounter = (int) savedState.getProgramCounter();
 		displayProgramCounter = (displayProgramCounter < (MEMORY_SIZE_BYTES)) ? displayProgramCounter
 				: 0X000;
 		loadTheDisplay();
@@ -558,13 +559,13 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		mnuFileNew.setActionCommand("mnuFileNew");
 		mnuFileNew.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
-				short initialValue = (short) 0X0000;
+				int initialValue = (int) 0X0000;
 				displayProgramCounter = initialValue;
 				cpu = null;
 				cpu = new CentralProcessingUnit();
 				cpu.setProgramCounter(displayProgramCounter);
 				memoryStart = initialValue;
-				memoryLength = (short) (initialValue + 15);
+				memoryLength = (int) (initialValue + 15);
 				core = null;
 				core = new Core(MEMORY_SIZE_BYTES);
 				mm = null;
@@ -713,8 +714,8 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 					return; // exit gracefully
 				}// try
 				int memorySpan = maxKey - minKey;
-				memoryStart = (short) minKey;
-				memoryLength = (short) memorySpan;
+				memoryStart = (int) minKey;
+				memoryLength = (int) memorySpan;
 				displayMainMemory();
 			}// actionPerformed
 		});

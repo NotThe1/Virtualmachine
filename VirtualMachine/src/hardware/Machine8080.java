@@ -22,7 +22,6 @@ import java.awt.Font;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Set;
-//import java.util.concurrent.TimeUnit;
 
 import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
@@ -50,7 +49,7 @@ import java.awt.event.MouseListener;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import java.io.BufferedWriter;
-//import java.io.File;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -67,7 +66,11 @@ import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-//import org.eclipse.wb.swing.FocusTraversalOnArray;
+import javax.swing.JSeparator;
+
+import memoryDisplay.ShowCoreMemory;
+import javax.swing.border.CompoundBorder;
+
 
 public class Machine8080 implements PropertyChangeListener, MouseListener,
 		FocusListener, ItemListener, ActionListener {
@@ -543,7 +546,7 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 			}
 		});
 		frm8080Emulator.setTitle("Martyn 8080");
-		frm8080Emulator.setBounds(100, 100, 915, 731);
+		frm8080Emulator.setBounds(100, 100, 1242, 731);
 		frm8080Emulator.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frm8080Emulator.getContentPane().setLayout(null);
 		// Memu
@@ -756,6 +759,20 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 				}// file was selected
 			}// actionPerformed
 		});
+		
+		JMenuItem mnuMemoryShow = new JMenuItem("Show Memory ...");
+		mnuMemoryShow.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ShowCoreMemory scm = new ShowCoreMemory(core);
+				Thread scmThread = new Thread(scm);
+				scmThread.start();
+				
+			}
+		});
+		mnuTools.add(mnuMemoryShow);
+		
+		JSeparator separator = new JSeparator();
+		mnuTools.add(separator);
 		mnuTools.add(mnuToolsSaveMemoryDisplay);
 		mnuTools.add(mnuToolsLoadMemoryFromFile);
 		// Memu
@@ -1260,6 +1277,18 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		btnRefresh.addActionListener(this);
 		btnRefresh.setBounds(490, 13, 110, 35);
 		pnlMainMemory.add(btnRefresh);
+		
+		JPanel panel = new JPanel();
+		panel.setBorder(new CompoundBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 1, true), "Assembler Code", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(255, 0, 0)), null));
+		panel.setBounds(904, 42, 273, 638);
+		frm8080Emulator.getContentPane().add(panel);
+		panel.setLayout(null);
+		
+		JTextArea txtrcLdaR = new JTextArea();
+		txtrcLdaR.setFont(new Font("Monospaced", Font.BOLD, 15));
+		txtrcLdaR.setText("2C30:   LDA   R, 1234");
+		txtrcLdaR.setBounds(10, 21, 253, 606);
+		panel.add(txtrcLdaR);
 		// pnlMainMemory.setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{ftfMemoryStart,
 		// ftfMemoryLength}));
 

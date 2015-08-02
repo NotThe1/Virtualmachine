@@ -49,7 +49,6 @@ import java.awt.event.MouseListener;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import java.io.BufferedWriter;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -68,7 +67,9 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JSeparator;
 
+import memoryDisplay.LoadMemoryImage;
 import memoryDisplay.ShowCoreMemory;
+
 import javax.swing.border.CompoundBorder;
 
 
@@ -86,7 +87,7 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	private DeviceController dc;
 
 	private DiskControlUnit dcu;
-//	private DiskUserInterface dui;
+	private ShowCoreMemory scm;
 
 	private MaskFormatter format2HexDigits;
 	private MaskFormatter format4HexDigits;
@@ -319,6 +320,9 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	}// loadTheDisplay
 
 	private void displayMainMemory() {
+		if (scm != null){
+			scm.refresh();
+		}
 		ftfMemoryStart.setValue(getWordDisplayValue(memoryStart));
 		ftfMemoryLength.setValue(getWordDisplayValue(memoryLength));
 		txtMainMemory.setText(generateMemoryDisplay(memoryStart, memoryLength));
@@ -438,7 +442,7 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 	private void restoreMachineState() {
 		restoreMachineState(currentMachineName);//getDefaultMachineStateFile()
 		// restoreMachineState("SimpleMachine");
-	}
+	}//restoreMachineState
 
 	private void restoreMachineState(String fileName) {
 		// txtLog.append("Restore form " + fileName + FILE_SUFFIX_PERIOD + LF);
@@ -763,10 +767,10 @@ public class Machine8080 implements PropertyChangeListener, MouseListener,
 		JMenuItem mnuMemoryShow = new JMenuItem("Show Memory ...");
 		mnuMemoryShow.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				ShowCoreMemory scm = new ShowCoreMemory(core);
-				Thread scmThread = new Thread(scm);
-				scmThread.start();
-				
+				 scm = new ShowCoreMemory(core);
+//				Thread scmThread = new Thread(scm);
+//				scmThread.start();
+			scm.run();	
 			}
 		});
 		mnuTools.add(mnuMemoryShow);

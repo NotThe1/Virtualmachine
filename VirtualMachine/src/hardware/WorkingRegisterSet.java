@@ -7,6 +7,7 @@ public class WorkingRegisterSet implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
+	private int programCounter = 0000;
 	private int stackPointer = 0000;
 	private HashMap<Reg, Byte> registers;
 
@@ -23,6 +24,14 @@ public class WorkingRegisterSet implements Serializable {
 		stackPointer = 0100; // set to a non zero value
 	}//initialize
 
+	protected int getProgramCounter() {
+		return programCounter;
+	}// getProgramCounter
+
+	protected void setProgramCounter(int programCounter) {
+		this.programCounter = programCounter;
+	}// setProgramCounter
+	
 	protected int getStackPointer() {
 		return stackPointer;
 	}// getStackPointer

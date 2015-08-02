@@ -1,4 +1,6 @@
-package hardware;
+package memoryDisplay;
+
+import hardware.Machine8080;
 
 import java.io.BufferedReader;
 import java.io.File;

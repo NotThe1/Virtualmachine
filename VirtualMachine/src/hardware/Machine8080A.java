@@ -28,6 +28,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.MaskFormatter;
+import javax.swing.text.PlainDocument;
 import javax.swing.JCheckBox;
 
 import java.awt.Font;
@@ -64,6 +65,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JFormattedTextField;
 import javax.swing.JOptionPane;
+import javax.swing.JTextPane;
 //import javax.swing.JFormattedTextField$AbstractFormatter;
 import javax.swing.SwingConstants;
 import javax.swing.JScrollPane;
@@ -72,12 +74,18 @@ import javax.swing.JButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
+import codeSupport.Disassembler;
 import memoryDisplay.MemorySaver;
 import memoryDisplay.ShowCoreMemory;
 import device.DeviceController;
 import disks.DiskControlUnit;
 import disks.DiskUserInterface;
 import disks.MakeNewDisk;
+
+import javax.swing.ScrollPaneConstants;
+import javax.swing.BoxLayout;
+
+import java.awt.FlowLayout;
 
 public class Machine8080A implements PropertyChangeListener, MouseListener,
 		FocusListener, ItemListener, ActionListener {
@@ -94,10 +102,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 
 	private DiskControlUnit dcu;
 	private ShowCoreMemory scm;
-
+	private Disassembler disassembler;
+	
 	private MaskFormatter format2HexDigits;
 	private MaskFormatter format4HexDigits;
-
 
 	private String currentMachineName = DEFAULT_STATE_FILE;
 
@@ -119,7 +127,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	private JFileChooser getFileChooser(String subDirectory,String filterDescription, String filterExtensions) {
+	private JFileChooser getFileChooser(String subDirectory, String filterDescription, String filterExtensions) {
 		Path sourcePath = Paths.get(FILE_LOCATION, subDirectory);
 		String fp = sourcePath.resolve(FILE_LOCATION).toString();
 
@@ -186,7 +194,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			wrs = new WorkingRegisterSet();
 		}// try
 		mm = new MainMemory(core);
-		loadTheDisplay();
+//		loadTheDisplay();
 	}// restoreMachineState
 
 	private void loadTheDisplay() {
@@ -201,11 +209,15 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		String spDisplay = getWordDisplayValue(sp);
 		ftfReg_SP.setValue(spDisplay);
 		showRegM();
-
-		if (cpu != null) { // use the current value, not the initial value from the restore file
-			wrs.setProgramCounter(cpu.getProgramCounter());
-		}//
+		wrs.setProgramCounter(cpu.getProgramCounter());
 		ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
+//		disassembler.run();
+
+//		if (cpu != null) { // use the current value, not the initial value from the restore file
+//			wrs.setProgramCounter(cpu.getProgramCounter());
+//			Disassembler d = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+//			d.run();
+//		}//
 		ckbSign.setSelected(ccr.isSignFlagSet());
 		ckbZero.setSelected(ccr.isZeroFlagSet());
 		ckbAuxCarry.setSelected(ccr.isAuxilaryCarryFlagSet());
@@ -299,6 +311,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		case NAME_REG_PC:
 			if (cpu != null) {
 				cpu.setProgramCounter((int) intValue);
+				disassembler.run();
 			}
 			break;
 
@@ -312,7 +325,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	}// showRun
 
 	private void loadMemoryImage() {
-		JFileChooser chooserLMI = getFileChooser(MEMORY,"Memory files", MEMORY_SUFFIX);
+		JFileChooser chooserLMI = getFileChooser(MEMORY, "Memory files", MEMORY_SUFFIX);
 		if (chooserLMI.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
@@ -323,7 +336,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 				String line;
 				while ((line = reader.readLine()) != null) {
 					parseAndLoadImage(line);
-				}//while
+				}// while
 				reader.close();
 			} catch (FileNotFoundException fnfe) {
 				JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
@@ -335,38 +348,38 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 						+ ie.getMessage(), "IO error",
 						JOptionPane.ERROR_MESSAGE);
 				return; // exit gracefully
-			}//try
+			}// try
 		}// if - returnValue
 
 	}// loadMemoryImage
-	
-	private void parseAndLoadImage(String line){
-		if (line.length()==0){
-			return;		// skip the line
-		}//if
-		
+
+	private void parseAndLoadImage(String line) {
+		if (line.length() == 0) {
+			return; // skip the line
+		}// if
+
 		Scanner scanner = new Scanner(line);
 		String strAddress = scanner.next();
 		strAddress = strAddress.replace(":", "");
-		int address = Integer.valueOf(strAddress,16);
-		
-		if((address + 0X0F) >= MEMORY_SIZE_BYTES){
+		int address = Integer.valueOf(strAddress, 16);
+
+		if ((address + 0X0F) >= MEMORY_SIZE_BYTES) {
 			JOptionPane.showMessageDialog(null,
 					"Address out of current memory on address line: "
 							+ strAddress, "Out of bounds",
 					JOptionPane.ERROR_MESSAGE);
 			return;
 		}// if max memeory test
-		
+
 		byte value;
 		byte[] values = new byte[SIXTEEN];
-		for (int i = 0; i < SIXTEEN; i++){
-			values[i] = (byte) ((int)Integer.valueOf(scanner.next(),16)) ;			
-		}//for values
-		
-		core.writeDMA(address, values);		// avoid setting off memory traps
-		
-	}//parseAndLoadImage
+		for (int i = 0; i < SIXTEEN; i++) {
+			values[i] = (byte) ((int) Integer.valueOf(scanner.next(), 16));
+		}// for values
+
+		core.writeDMA(address, values); // avoid setting off memory traps
+
+	}// parseAndLoadImage
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -400,12 +413,11 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			mm = new MainMemory(core);
 			wrs.initialize();
 			loadTheDisplay();
+			disassembler.run();
 			break;
-		case AC_MNU_FILE_RESET:
-			restoreMachineState();
-			break;
+
 		case AC_MNU_FILE_OPEN:
-			JFileChooser chooserOpen = getFileChooser(SETTINGS,"Saved Machine State", FILE_SUFFIX);
+			JFileChooser chooserOpen = getFileChooser(SETTINGS, "Saved Machine State", FILE_SUFFIX);
 			if (chooserOpen.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
 				String absolutePath = chooserOpen.getSelectedFile().getAbsolutePath();
 				// need to strip the file suffix off (will replace later)
@@ -419,7 +431,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			saveMachineState(getDefaultMachineStateFile());
 			break;
 		case AC_MNU_FILE_SAVEAS:
-			JFileChooser chooserSaveAs = getFileChooser(SETTINGS,"Saved Machine State", FILE_SUFFIX);
+			JFileChooser chooserSaveAs = getFileChooser(SETTINGS, "Saved Machine State", FILE_SUFFIX);
 			if (chooserSaveAs.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
 				System.out.printf("You cancelled the Save as...%n", "");
 			} else {
@@ -452,7 +464,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			break;
 		case AC_MNU_MEMORY_LOAD:
 			loadMemoryImage();
-			if (scm != null){
+			if (scm != null) {
 				scm.refresh();
 			}
 			break;
@@ -495,6 +507,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 				: false;
 		updateConditionCode(flagName, state);
 	}// itemStateChanged
+	
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -506,7 +519,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
 		cpu.setProgramCounter(wrs.getProgramCounter());
 		dcu = new DiskControlUnit(core);
-
+		disassembler  = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+		loadTheDisplay();
 	}
 
 	public Machine8080A() {
@@ -535,17 +549,19 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			}
 		});
 		frame.setTitle("Machine8080A");
-		frame.setBounds(100, 100, 687, 774);
+		frame.setBounds(100, 100, 693, 774);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] { 0, 608, 0, 0 };
-		gridBagLayout.rowHeights = new int[] { 0, 257, 96, 0, 105, 74, 0 };
+		gridBagLayout.columnWidths = new int[] { 20, 610, 20, 0 };
+		gridBagLayout.rowHeights = new int[] { 20, 257, 96, 1, 105, 74, 0 };
 		gridBagLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		frame.getContentPane().setLayout(gridBagLayout);
 
 		JPanel pnlRegistersAndStatus = new JPanel();
+		pnlRegistersAndStatus.setPreferredSize(new Dimension(610, 257));
+		pnlRegistersAndStatus.setMaximumSize(new Dimension(610, 257));
 		pnlRegistersAndStatus.setMinimumSize(new Dimension(400, 400));
 		pnlRegistersAndStatus.setBorder(new LineBorder(new Color(0, 0, 0), 2, true));
 		pnlRegistersAndStatus.setLayout(null);
@@ -557,13 +573,13 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		frame.getContentPane().add(pnlRegistersAndStatus, gbc_pnlRegistersAndStatus);
 
 		JPanel pnlRegisters = new JPanel();
+		pnlRegisters.setBounds(24, 11, 555, 130);
 		pnlRegisters.setLayout(null);
 		pnlRegisters.setBorder(new TitledBorder(new LineBorder(new Color(0, 0,
 
 				0), 1, true), "Registers", TitledBorder.LEADING,
 
 				TitledBorder.TOP, null, Color.RED));
-		pnlRegisters.setBounds(24, 11, 555, 130);
 		pnlRegistersAndStatus.add(pnlRegisters);
 
 		JPanel pnlReg_A = new JPanel();
@@ -762,9 +778,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		pnlReg_M.add(ftfReg_M, BorderLayout.CENTER);
 
 		JPanel pnlStatus = new JPanel();
+		pnlStatus.setBounds(24,152,555,79);
 		pnlStatus.setBorder(new CompoundBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0)), "Condition Codes",
 				TitledBorder.LEADING, TitledBorder.TOP, null, new Color(255, 0, 0)), null));
-		pnlStatus.setBounds(24, 152, 555, 79);
 		pnlRegistersAndStatus.add(pnlStatus);
 		pnlStatus.setLayout(null);
 
@@ -848,7 +864,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		pnlProgramCounter.add(ftfReg_SP);
 
 		JScrollPane scrollAssembler = new JScrollPane();
+		scrollAssembler.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollAssembler.setBorder(new LineBorder(Color.BLUE, 2, true));
+		
 		GridBagConstraints gbc_scrollAssembler = new GridBagConstraints();
 		gbc_scrollAssembler.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollAssembler.fill = GridBagConstraints.BOTH;
@@ -856,7 +874,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		gbc_scrollAssembler.gridy = 4;
 		frame.getContentPane().add(scrollAssembler, gbc_scrollAssembler);
 
-		txtAssemblerCode = new JTextArea();
+		txtAssemblerCode = new JTextPane();
+//		txtAssemblerCode.getDocument().putProperty(PlainDocument.tabSizeAttribute, 35);
+		txtAssemblerCode.setFont(new Font("Courier New", Font.BOLD, 14));
 		scrollAssembler.setViewportView(txtAssemblerCode);
 
 		JPanel panel = new JPanel();
@@ -909,11 +929,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		mnuFileNew.setActionCommand(AC_MNU_FILE_NEW);
 		mnuFileNew.addActionListener(this);
 		mnuFile.add(mnuFileNew);
-
-		JMenuItem mnuFileReset = new JMenuItem("Reset");
-		mnuFileReset.setActionCommand(AC_MNU_FILE_RESET);
-		mnuFileReset.addActionListener(this);
-		mnuFile.add(mnuFileReset);
 
 		JMenuItem mnuFileOpen = new JMenuItem("Open");
 		mnuFileOpen.setActionCommand(AC_MNU_FILE_OPEN);
@@ -978,7 +993,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 
 	public static final int MEMORY_SIZE_K = 64; // in K
 	private static final int MEMORY_SIZE_BYTES = MEMORY_SIZE_K * 1024;
-	
+
 	private final static int SIXTEEN = 16;
 
 	private final static String AC_BTN_STEP = "btnStep";
@@ -1036,7 +1051,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private JFormattedTextField ftfReg_PC;
 	private JFormattedTextField ftfReg_SP;
 	private JSpinner spinnerStepCount;
-	private JTextArea txtAssemblerCode;
+	private JTextPane txtAssemblerCode;
 	private JCheckBox ckbSign;
 	private JCheckBox ckbZero;
 	private JCheckBox ckbAuxCarry;

@@ -58,6 +58,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.AbstractButton;
 import javax.swing.JDialog;
@@ -104,6 +105,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private ShowCoreMemory scm;
 	private Disassembler disassembler;
 	
+	private JScrollPane scrollAssembler;
 	private MaskFormatter format2HexDigits;
 	private MaskFormatter format4HexDigits;
 
@@ -312,6 +314,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			if (cpu != null) {
 				cpu.setProgramCounter((int) intValue);
 				disassembler.run();
+				txtAssemblerCode.setCaretPosition(0);
+				scrollAssembler.getVerticalScrollBar().setValue(0);
 			}
 			break;
 
@@ -394,6 +398,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			loadTheDisplay();
 			break;
 		case AC_BTN_STOP:
+//			scrollAssembler.getVerticalScrollBar().setValue(0);
+//			System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
+
+			
 			showRun(true);
 			cpu.setRunning(false);
 			// loadTheDisplay();
@@ -412,8 +420,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			mm = null;
 			mm = new MainMemory(core);
 			wrs.initialize();
-			loadTheDisplay();
 			disassembler.run();
+			loadTheDisplay();
 			break;
 
 		case AC_MNU_FILE_OPEN:
@@ -467,6 +475,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			if (scm != null) {
 				scm.refresh();
 			}
+				disassembler.run();
+				scrollAssembler.getVerticalScrollBar().setValue(0);
 			break;
 
 		}// switch - actionCommand
@@ -863,8 +873,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		ftfReg_SP.setBounds(422, 25, 110, 40);
 		pnlProgramCounter.add(ftfReg_SP);
 
-		JScrollPane scrollAssembler = new JScrollPane();
-		scrollAssembler.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollAssembler = new JScrollPane();
+		scrollAssembler.setPreferredSize(new Dimension(0, 0));
 		scrollAssembler.setBorder(new LineBorder(Color.BLUE, 2, true));
 		
 		GridBagConstraints gbc_scrollAssembler = new GridBagConstraints();
@@ -892,7 +902,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		btnRun.setActionCommand(AC_BTN_RUN);
 		btnRun.addActionListener(this);
 		btnRun.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		btnRun.setActionCommand("btnRun");
 		btnRun.setBounds(491, 17, 90, 42);
 		panel.add(btnRun);
 
@@ -900,7 +909,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		btnStep.setActionCommand(AC_BTN_STEP);
 		btnStep.addActionListener(this);
 		btnStep.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		btnStep.setActionCommand("btnStep");
 		btnStep.setBounds(145, 17, 90, 42);
 		panel.add(btnStep);
 
@@ -915,7 +923,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		btnStop.addActionListener(this);
 		btnStop.setForeground(Color.RED);
 		btnStop.setFont(new Font("Tahoma", Font.BOLD, 16));
-		btnStop.setActionCommand("btnRun");
 		btnStop.setBounds(391, 17, 90, 42);
 		panel.add(btnStop);
 

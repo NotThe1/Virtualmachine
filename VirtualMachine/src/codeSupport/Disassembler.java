@@ -12,22 +12,27 @@ import hardware.CentralProcessingUnit;
 import hardware.Core;
 
 public class Disassembler implements Runnable {
+	private final static int LTD = 10; // LTD-> Lines To Display
+	private final static int LTT = 3; // LTT-> Lines to Trail
+	
+	private final static int LINE_WIDTH = 54;	// calculated by hand for now
+
+	private static final int ATTR_BLACK = 0;
+	private static final int ATTR_BLUE = 1;
+	private static final int ATTR_GRAY = 2;
+	private static final int ATTR_RED = 3;
+
 	private Core core;
 	private Document doc;
 	private CentralProcessingUnit cpu;
 	private int workingProgramCounter;
 	private int nextProgramCounter = -1;
 
-	private int maxMemory;
-
 	private int linesToDisplay;
-	private final static int LTD = 25;
-	HashMap<Byte, OperationStructure> opcodeMap;
+	private int linesToTrail;
+	private int currentLine;
 
-	private static final int ATTR_BLACK = 0;
-	private static final int ATTR_BLUE = 1;
-	private static final int ATTR_GRAY = 2;
-	private static final int ATTR_RED = 3;
+	HashMap<Byte, OperationStructure> opcodeMap;
 
 	SimpleAttributeSet[] attrs;
 
@@ -35,17 +40,44 @@ public class Disassembler implements Runnable {
 	public void run() {
 
 		this.workingProgramCounter = cpu.getProgramCounter();
-		if (workingProgramCounter != nextProgramCounter) {
+		if (workingProgramCounter != nextProgramCounter) {  // fresh listing
 			try {
+				currentLine = 0;
 				doc.remove(0, doc.getLength());
 			} catch (BadLocationException e) {
 				e.printStackTrace();
 			}// try
-		}// if
-		for (int i = 0; i < linesToDisplay; i++) {
-			workingProgramCounter += showCode();
-			nextProgramCounter = (i == 0) ? workingProgramCounter : nextProgramCounter;
-		}// for
+			for (int i = 0; i < linesToDisplay; i++) {
+				workingProgramCounter += showCode();
+				nextProgramCounter = (i == 0) ? workingProgramCounter : nextProgramCounter;
+			}// for
+		} else {	// next instruction
+			String oldLine;
+			int startLine = LINE_WIDTH * currentLine++;
+			try {
+			oldLine = doc.getText(startLine, LINE_WIDTH);
+				doc.remove(startLine, LINE_WIDTH);
+				doc.insertString(startLine, oldLine, attrs[ATTR_GRAY]);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}//try	
+			OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
+			nextProgramCounter +=currentOpCode.getSize();
+			
+			// now see if we need to drop the first line and add a line at the end
+			
+			if (currentLine >= linesToTrail){
+				try {
+					doc.remove(0, LINE_WIDTH);
+				} catch (BadLocationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+
+		}//run
+
 	}// run
 
 	private int showCode() {
@@ -54,7 +86,51 @@ public class Disassembler implements Runnable {
 		byte currentValue0 = core.read(workingProgramCounter);
 		byte currentValue1 = core.read(workingProgramCounter + 1);
 		byte currentValue2 = core.read(workingProgramCounter + 2);
-		
+		int lastDocumentEnd = doc.getLength();
+		try {
+			doc.insertString(doc.getLength(), String.format("%04X%4s", workingProgramCounter, ""), attrs[ATTR_GRAY]);
+			switch (opCodeSize) {
+			case 1:
+				doc.insertString(doc.getLength(), String.format("%02X%8s", currentValue0, ""), attrs[ATTR_RED]);
+				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(), null);
+				break;
+			case 2:
+				doc.insertString(doc.getLength(), String.format("%02X%02X%6s", currentValue0, currentValue1, ""),
+						attrs[ATTR_RED]);
+				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(currentValue1), null);
+				break;
+			case 3:
+				doc.insertString(doc.getLength(), String.format("%02X%02X%02X%4s",
+						currentValue0, currentValue1, currentValue2, ""), attrs[ATTR_RED]);
+
+				doc.insertString(
+						doc.getLength(),
+						currentOpCode.getAssemblerCode(core.read(workingProgramCounter + 1),
+								core.read(workingProgramCounter + 2)),
+						null);
+				break;
+			default:
+			}// switch
+			int columnPosition = 32 - (doc.getLength() - lastDocumentEnd);
+			String formatString = "%" + columnPosition + "s";
+			doc.insertString(doc.getLength(), String.format(formatString, ""), null);
+			doc.insertString(doc.getLength(), String.format("%-20s%n", currentOpCode.getFunction()), attrs[ATTR_GRAY]);
+			System.out.printf("address: %04X, EOL: %03d%n", workingProgramCounter, doc.getLength());
+
+			// doc.insertString(doc.getLength(), currentOpCode.getFunction() +"\n", attrs[ATTR_GRAY]);
+		} catch (BadLocationException e) {
+			e.printStackTrace();
+		}// try
+		return opCodeSize;
+	}// showCode
+
+	private int showCode0() {
+		OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
+		int opCodeSize = currentOpCode.getSize();
+		byte currentValue0 = core.read(workingProgramCounter);
+		byte currentValue1 = core.read(workingProgramCounter + 1);
+		byte currentValue2 = core.read(workingProgramCounter + 2);
+
 		int lastDocumentEnd = doc.getLength();
 		try {
 			// doc.remove(0, doc.getLength());
@@ -83,14 +159,13 @@ public class Disassembler implements Runnable {
 			}// switch
 			int columnPosition = 32 - (doc.getLength() - lastDocumentEnd);
 			String formatString = "%" + columnPosition + "s";
-			doc.insertString(doc.getLength(), String.format(formatString, ""),null);
-			doc.insertString(doc.getLength(), currentOpCode.getFunction() +"\n", attrs[ATTR_GRAY]);
+			doc.insertString(doc.getLength(), String.format(formatString, ""), null);
+			doc.insertString(doc.getLength(), currentOpCode.getFunction() + "\n", attrs[ATTR_GRAY]);
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}// try
 		return opCodeSize;
-	}
+	}// showCode
 
 	private SimpleAttributeSet[] makeAttributes() {
 		SimpleAttributeSet[] a = new SimpleAttributeSet[4];
@@ -111,8 +186,9 @@ public class Disassembler implements Runnable {
 		this.doc = doc;
 		this.cpu = cpu;
 		// this.programCounter = cpu.getProgramCounter();
-		this.maxMemory = core.getSize();
 		linesToDisplay = LTD;
+		linesToTrail = LTT;
+		currentLine = 0;
 
 		makeOpcodeMap();
 		attrs = makeAttributes();
@@ -452,9 +528,9 @@ public class Disassembler implements Runnable {
 			return this.function;
 		}// getFunction
 
-//		public String getFunctionFormatted() {
-//			return String.format("%8s%s%n", "", this.function);
-//		}// getFunction
+		// public String getFunctionFormatted() {
+		// return String.format("%8s%s%n", "", this.function);
+		// }// getFunction
 
 		public String getAssemblerCode() {
 			return String.format("%-4s %s%s", getInstruction(), getDestination(), getSource());

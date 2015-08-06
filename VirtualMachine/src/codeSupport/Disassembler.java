@@ -12,21 +12,13 @@ import hardware.CentralProcessingUnit;
 import hardware.Core;
 
 public class Disassembler implements Runnable {
-	private final static int LTD = 10; // LTD-> Lines To Display
-	private final static int LTT = 3; // LTT-> Lines to Trail
-	
-	private final static int LINE_WIDTH = 54;	// calculated by hand for now
-
-	private static final int ATTR_BLACK = 0;
-	private static final int ATTR_BLUE = 1;
-	private static final int ATTR_GRAY = 2;
-	private static final int ATTR_RED = 3;
 
 	private Core core;
 	private Document doc;
 	private CentralProcessingUnit cpu;
+
 	private int workingProgramCounter;
-	private int nextProgramCounter = -1;
+	private int nextProgramCounter;
 
 	private int linesToDisplay;
 	private int linesToTrail;
@@ -35,151 +27,176 @@ public class Disassembler implements Runnable {
 	HashMap<Byte, OperationStructure> opcodeMap;
 
 	SimpleAttributeSet[] attrs;
+	SimpleAttributeSet[] attrsForCategory;
 
 	@Override
 	public void run() {
 
 		this.workingProgramCounter = cpu.getProgramCounter();
-		if (workingProgramCounter != nextProgramCounter) {  // fresh listing
+		if (currentLine == -1) { // fresh listing
 			try {
+				// displayLine = 0;
 				currentLine = 0;
 				doc.remove(0, doc.getLength());
 			} catch (BadLocationException e) {
 				e.printStackTrace();
 			}// try
+			attrsForCategory = makeAttrsForCategory(1); // current line
 			for (int i = 0; i < linesToDisplay; i++) {
-				workingProgramCounter += showCode();
+				workingProgramCounter += showCode(i);
 				nextProgramCounter = (i == 0) ? workingProgramCounter : nextProgramCounter;
+				attrsForCategory = makeAttrsForCategory(2); // future
 			}// for
-		} else {	// next instruction
+		} else { // next instruction
 			String oldLine;
-			int startLine = LINE_WIDTH * currentLine++;
+			int startLine = LINE_WIDTH * currentLine++; //
 			try {
-			oldLine = doc.getText(startLine, LINE_WIDTH);
-				doc.remove(startLine, LINE_WIDTH);
+				// Gray out history
+				oldLine = doc.getText(startLine, LINE_WIDTH);
+				doc.remove(startLine, doc.getLength() - startLine);
 				doc.insertString(startLine, oldLine, attrs[ATTR_GRAY]);
+				attrsForCategory = makeAttrsForCategory(1); // current line
+				for (int i = currentLine; i < linesToDisplay; i++) {
+					workingProgramCounter += showCode(i);
+					nextProgramCounter = (i == 0) ? workingProgramCounter : nextProgramCounter;
+					attrsForCategory = makeAttrsForCategory(2); // future
+				}// for
+
+				// now see if we need to drop the first line and add a line at the end
+				if (currentLine >= linesToTrail) {
+					doc.remove(0, LINE_WIDTH);
+					currentLine--;
+				}// if
+
 			} catch (BadLocationException e) {
 				e.printStackTrace();
-			}//try	
-			OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
-			nextProgramCounter +=currentOpCode.getSize();
-			
-			// now see if we need to drop the first line and add a line at the end
-			
-			if (currentLine >= linesToTrail){
-				try {
-					doc.remove(0, LINE_WIDTH);
-				} catch (BadLocationException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-			}
+			}// try
 
-		}//run
+		}// if
 
 	}// run
 
-	private int showCode() {
+	private int showCode(int thisLineNumber) {
+		int workingPosition = thisLineNumber * LINE_WIDTH;
+		// attrsForCategory = makeAttrsForCategory(thisLineNumber);
 		OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
 		int opCodeSize = currentOpCode.getSize();
 		byte currentValue0 = core.read(workingProgramCounter);
 		byte currentValue1 = core.read(workingProgramCounter + 1);
 		byte currentValue2 = core.read(workingProgramCounter + 2);
-		int lastDocumentEnd = doc.getLength();
+		String linePart1, linePart2, linePart3;
 		try {
-			doc.insertString(doc.getLength(), String.format("%04X%4s", workingProgramCounter, ""), attrs[ATTR_GRAY]);
+			linePart1 = String.format("%04X%4s", workingProgramCounter, "");
+			doc.insertString(workingPosition, linePart1, attrsForCategory[LC_ATTR_ADDRESS]);
+			workingPosition += linePart1.length();
 			switch (opCodeSize) {
 			case 1:
-				doc.insertString(doc.getLength(), String.format("%02X%8s", currentValue0, ""), attrs[ATTR_RED]);
-				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(), null);
+				linePart2 = String.format("%02X%8s", currentValue0, "");
+				doc.insertString(workingPosition, linePart2, attrsForCategory[LC_ATTR_OPCODE]);
+				workingPosition += linePart2.length();
+				linePart3 = currentOpCode.getAssemblerCode();
+				doc.insertString(doc.getLength(), linePart3, attrsForCategory[LC_ATTR_INSTRUCTION]);
+				workingPosition += linePart3.length();
 				break;
 			case 2:
-				doc.insertString(doc.getLength(), String.format("%02X%02X%6s", currentValue0, currentValue1, ""),
-						attrs[ATTR_RED]);
-				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(currentValue1), null);
+				linePart2 = String.format("%02X%02X%6s", currentValue0, currentValue1, "");
+				doc.insertString(workingPosition, linePart2, attrsForCategory[LC_ATTR_OPCODE]);
+				workingPosition += linePart2.length();
+				linePart3 = currentOpCode.getAssemblerCode(currentValue1);
+				doc.insertString(workingPosition, linePart3, attrsForCategory[LC_ATTR_INSTRUCTION]);
+				workingPosition += linePart3.length();
 				break;
 			case 3:
-				doc.insertString(doc.getLength(), String.format("%02X%02X%02X%4s",
-						currentValue0, currentValue1, currentValue2, ""), attrs[ATTR_RED]);
-
-				doc.insertString(
-						doc.getLength(),
-						currentOpCode.getAssemblerCode(core.read(workingProgramCounter + 1),
-								core.read(workingProgramCounter + 2)),
-						null);
+				linePart2 = String.format("%02X%02X%02X%4s", currentValue0, currentValue1, currentValue2, "");
+				doc.insertString(workingPosition, linePart2, attrsForCategory[LC_ATTR_OPCODE]);
+				workingPosition += linePart2.length();
+				linePart3 = currentOpCode.getAssemblerCode(core.read(workingProgramCounter + 1),
+						core.read(workingProgramCounter + 2));
+				doc.insertString(workingPosition, linePart3, attrsForCategory[LC_ATTR_INSTRUCTION]);
+				workingPosition += linePart3.length();
 				break;
 			default:
 			}// switch
-			int columnPosition = 32 - (doc.getLength() - lastDocumentEnd);
-			String formatString = "%" + columnPosition + "s";
-			doc.insertString(doc.getLength(), String.format(formatString, ""), null);
-			doc.insertString(doc.getLength(), String.format("%-20s%n", currentOpCode.getFunction()), attrs[ATTR_GRAY]);
-			System.out.printf("address: %04X, EOL: %03d%n", workingProgramCounter, doc.getLength());
 
-			// doc.insertString(doc.getLength(), currentOpCode.getFunction() +"\n", attrs[ATTR_GRAY]);
+			int columnPosition = 32 - (workingPosition % LINE_WIDTH);
+			String formatString = "%" + columnPosition + "s";
+			String padding = String.format(formatString, "");
+			doc.insertString(workingPosition, padding, null);
+			workingPosition += padding.length();
+			doc.insertString(workingPosition, String.format("%-20s%n", currentOpCode.getFunction()), attrs[ATTR_GRAY]);
+
 		} catch (BadLocationException e) {
 			e.printStackTrace();
 		}// try
 		return opCodeSize;
 	}// showCode
 
-	private int showCode0() {
-		OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
-		int opCodeSize = currentOpCode.getSize();
-		byte currentValue0 = core.read(workingProgramCounter);
-		byte currentValue1 = core.read(workingProgramCounter + 1);
-		byte currentValue2 = core.read(workingProgramCounter + 2);
+	private SimpleAttributeSet[] makeAttrsForCategory(int set) {
+		SimpleAttributeSet[] afc = new SimpleAttributeSet[4];
 
-		int lastDocumentEnd = doc.getLength();
-		try {
-			// doc.remove(0, doc.getLength());
-			doc.insertString(doc.getLength(), String.format("%04X%4s", workingProgramCounter, ""), attrs[ATTR_GRAY]);
-			switch (opCodeSize) {
-			case 1:
-				doc.insertString(doc.getLength(), String.format("%02X%8s", currentValue0, ""), attrs[ATTR_RED]);
-				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(), null);
-				break;
-			case 2:
-				doc.insertString(doc.getLength(), String.format("%02X%02X%6s", currentValue0, currentValue1, ""),
-						attrs[ATTR_RED]);
-				doc.insertString(doc.getLength(), currentOpCode.getAssemblerCode(currentValue1), null);
-				break;
-			case 3:
-				doc.insertString(doc.getLength(), String.format("%02X%02X%02X%4s",
-						currentValue0, currentValue1, currentValue2, ""), attrs[ATTR_RED]);
+		switch (set) {
+		case 0: // History
+			afc[LC_ATTR_ADDRESS] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_OPCODE] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_INSTRUCTION] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_DESCRIPTION] = attrs[ATTR_GRAY];
+			break;
+		case 1: // Present
+			afc[LC_ATTR_ADDRESS] = attrs[ATTR_GRAY_BOLD];
+			afc[LC_ATTR_OPCODE] = attrs[ATTR_RED_BOLD];
+			afc[LC_ATTR_INSTRUCTION] = attrs[ATTR_BLACK_BOLD];
+			afc[LC_ATTR_DESCRIPTION] = attrs[ATTR_BLACK_BOLD];
+			break;
+		case 2: // Future
+			afc[LC_ATTR_ADDRESS] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_OPCODE] = attrs[ATTR_RED];
+			afc[LC_ATTR_INSTRUCTION] = attrs[ATTR_BLACK];
+			afc[LC_ATTR_DESCRIPTION] = attrs[ATTR_GRAY];
+			break;
+		default:
+			afc[LC_ATTR_ADDRESS] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_OPCODE] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_INSTRUCTION] = attrs[ATTR_GRAY];
+			afc[LC_ATTR_DESCRIPTION] = attrs[ATTR_GRAY];
+		}// switch
 
-				doc.insertString(
-						doc.getLength(),
-						currentOpCode.getAssemblerCode(core.read(workingProgramCounter + 1),
-								core.read(workingProgramCounter + 2)),
-						null);
-				break;
-			default:
-			}// switch
-			int columnPosition = 32 - (doc.getLength() - lastDocumentEnd);
-			String formatString = "%" + columnPosition + "s";
-			doc.insertString(doc.getLength(), String.format(formatString, ""), null);
-			doc.insertString(doc.getLength(), currentOpCode.getFunction() + "\n", attrs[ATTR_GRAY]);
-		} catch (BadLocationException e) {
-			e.printStackTrace();
-		}// try
-		return opCodeSize;
-	}// showCode
+		return afc;
+	}// makeAttrsForCategory
 
 	private SimpleAttributeSet[] makeAttributes() {
-		SimpleAttributeSet[] a = new SimpleAttributeSet[4];
+		SimpleAttributeSet baseAttribute = new SimpleAttributeSet();
+		StyleConstants.setFontFamily(baseAttribute, "Courier New");
+		StyleConstants.setFontSize(baseAttribute, 16);
+
+		SimpleAttributeSet[] a = new SimpleAttributeSet[8]; // hand calculated value - fix it
 		a[ATTR_BLACK] = new SimpleAttributeSet();
 		a[ATTR_BLUE] = new SimpleAttributeSet();
 		a[ATTR_GRAY] = new SimpleAttributeSet();
 		a[ATTR_RED] = new SimpleAttributeSet();
-
 		StyleConstants.setForeground(a[ATTR_BLACK], Color.BLACK);
 		StyleConstants.setForeground(a[ATTR_BLUE], Color.BLUE);
 		StyleConstants.setForeground(a[ATTR_GRAY], Color.GRAY);
 		StyleConstants.setForeground(a[ATTR_RED], Color.RED);
+
+		SimpleAttributeSet boldAttribute = new SimpleAttributeSet(baseAttribute);
+		StyleConstants.setFontSize(boldAttribute, 17);
+		StyleConstants.setBold(boldAttribute, true);
+
+		a[ATTR_BLACK_BOLD] = new SimpleAttributeSet(boldAttribute);
+		a[ATTR_BLUE_BOLD] = new SimpleAttributeSet(boldAttribute);
+		a[ATTR_GRAY_BOLD] = new SimpleAttributeSet(boldAttribute);
+		a[ATTR_RED_BOLD] = new SimpleAttributeSet(boldAttribute);
+		StyleConstants.setForeground(a[ATTR_BLACK_BOLD], Color.BLACK);
+		StyleConstants.setForeground(a[ATTR_BLUE_BOLD], Color.BLUE);
+		StyleConstants.setForeground(a[ATTR_GRAY_BOLD], Color.GRAY);
+		StyleConstants.setForeground(a[ATTR_RED_BOLD], Color.RED);
+
 		return a;
-	}
+	}// SimpleAttributeSet
+
+	public void resetDisplay() {
+		currentLine = -1;
+	}// resetDisplay
 
 	public Disassembler(Core core, Document doc, CentralProcessingUnit cpu) {
 		this.core = core;
@@ -188,11 +205,12 @@ public class Disassembler implements Runnable {
 		// this.programCounter = cpu.getProgramCounter();
 		linesToDisplay = LTD;
 		linesToTrail = LTT;
-		currentLine = 0;
+		currentLine = -1;
+		nextProgramCounter = -1;
 
 		makeOpcodeMap();
 		attrs = makeAttributes();
-
+		attrsForCategory = new SimpleAttributeSet[4]; // hand calculated - fix
 	}//
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -560,5 +578,24 @@ public class Disassembler implements Runnable {
 		}
 
 	}// class operationStructure
+
+	private final static int LTD = 20; // LTD-> Lines To Display
+	private final static int LTT = 4; // LTT-> Lines to Trail
+
+	private final static int LINE_WIDTH = 54; // calculated by hand for now
+
+	private static final int ATTR_BLACK = 0;
+	private static final int ATTR_BLUE = 1;
+	private static final int ATTR_GRAY = 2;
+	private static final int ATTR_RED = 3;
+	private static final int ATTR_BLACK_BOLD = 4;
+	private static final int ATTR_BLUE_BOLD = 5;
+	private static final int ATTR_GRAY_BOLD = 6;
+	private static final int ATTR_RED_BOLD = 7;
+
+	private static final int LC_ATTR_ADDRESS = 0; // LC -> Line category
+	private static final int LC_ATTR_OPCODE = 1;
+	private static final int LC_ATTR_INSTRUCTION = 2;
+	private static final int LC_ATTR_DESCRIPTION = 3;
 
 }// class Disassembler

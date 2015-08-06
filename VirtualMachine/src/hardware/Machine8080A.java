@@ -104,7 +104,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private DiskControlUnit dcu;
 	private ShowCoreMemory scm;
 	private Disassembler disassembler;
-	
+
 	private JScrollPane scrollAssembler;
 	private MaskFormatter format2HexDigits;
 	private MaskFormatter format4HexDigits;
@@ -196,7 +196,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			wrs = new WorkingRegisterSet();
 		}// try
 		mm = new MainMemory(core);
-//		loadTheDisplay();
+		// loadTheDisplay();
 	}// restoreMachineState
 
 	private void loadTheDisplay() {
@@ -213,13 +213,13 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		showRegM();
 		wrs.setProgramCounter(cpu.getProgramCounter());
 		ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
-//		disassembler.run();
+		// disassembler.run();
 
-//		if (cpu != null) { // use the current value, not the initial value from the restore file
-//			wrs.setProgramCounter(cpu.getProgramCounter());
-//			Disassembler d = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
-//			d.run();
-//		}//
+		// if (cpu != null) { // use the current value, not the initial value from the restore file
+		// wrs.setProgramCounter(cpu.getProgramCounter());
+		// Disassembler d = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+		// d.run();
+		// }//
 		ckbSign.setSelected(ccr.isSignFlagSet());
 		ckbZero.setSelected(ccr.isZeroFlagSet());
 		ckbAuxCarry.setSelected(ccr.isAuxilaryCarryFlagSet());
@@ -398,10 +398,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			loadTheDisplay();
 			break;
 		case AC_BTN_STOP:
-//			scrollAssembler.getVerticalScrollBar().setValue(0);
-//			System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
+			// scrollAssembler.getVerticalScrollBar().setValue(0);
+			// System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
 
-			
 			showRun(true);
 			cpu.setRunning(false);
 			// loadTheDisplay();
@@ -475,8 +474,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			if (scm != null) {
 				scm.refresh();
 			}
-				disassembler.run();
-				scrollAssembler.getVerticalScrollBar().setValue(0);
+			disassembler.run();
+			scrollAssembler.getVerticalScrollBar().setValue(0);
 			break;
 
 		}// switch - actionCommand
@@ -487,8 +486,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	public void propertyChange(PropertyChangeEvent pce) {
 		if ("value".equals(pce.getPropertyName())) {
 			if (pce.getNewValue() != pce.getOldValue()) {
-				JFormattedTextField ftf = (JFormattedTextField) pce.getSource();
-				modifyRegister(ftf.getName(), (String) pce.getNewValue());
+				String ftfName = ((JFormattedTextField) pce.getSource()).getName();
+				modifyRegister(ftfName, (String) pce.getNewValue());
 			}// inner if - really changed
 		}// outer if - "value"
 	}// propertyChange
@@ -508,6 +507,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	public void focusLost(FocusEvent fe) {
 		JFormattedTextField ftf = (JFormattedTextField) fe.getSource();
 		ftf.setEditable(false);
+		if (ftf.getName().equals(NAME_REG_PC)) {
+			disassembler.resetDisplay();
+		}
+
 	}// focusLost
 
 	@Override
@@ -517,7 +520,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 				: false;
 		updateConditionCode(flagName, state);
 	}// itemStateChanged
-	
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -529,7 +531,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
 		cpu.setProgramCounter(wrs.getProgramCounter());
 		dcu = new DiskControlUnit(core);
-		disassembler  = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
 		loadTheDisplay();
 	}
 
@@ -788,7 +790,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		pnlReg_M.add(ftfReg_M, BorderLayout.CENTER);
 
 		JPanel pnlStatus = new JPanel();
-		pnlStatus.setBounds(24,152,555,79);
+		pnlStatus.setBounds(24, 152, 555, 79);
 		pnlStatus.setBorder(new CompoundBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0)), "Condition Codes",
 				TitledBorder.LEADING, TitledBorder.TOP, null, new Color(255, 0, 0)), null));
 		pnlRegistersAndStatus.add(pnlStatus);
@@ -876,7 +878,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		scrollAssembler = new JScrollPane();
 		scrollAssembler.setPreferredSize(new Dimension(0, 0));
 		scrollAssembler.setBorder(new LineBorder(Color.BLUE, 2, true));
-		
+
 		GridBagConstraints gbc_scrollAssembler = new GridBagConstraints();
 		gbc_scrollAssembler.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollAssembler.fill = GridBagConstraints.BOTH;
@@ -885,8 +887,8 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		frame.getContentPane().add(scrollAssembler, gbc_scrollAssembler);
 
 		txtAssemblerCode = new JTextPane();
-//		txtAssemblerCode.getDocument().putProperty(PlainDocument.tabSizeAttribute, 35);
-		txtAssemblerCode.setFont(new Font("Courier New", Font.BOLD, 14));
+		// txtAssemblerCode.getDocument().putProperty(PlainDocument.tabSizeAttribute, 35);
+		txtAssemblerCode.setFont(new Font("Courier New", Font.PLAIN, 16));
 		scrollAssembler.setViewportView(txtAssemblerCode);
 
 		JPanel panel = new JPanel();

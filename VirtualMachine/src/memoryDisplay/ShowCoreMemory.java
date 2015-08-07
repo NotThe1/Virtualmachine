@@ -179,6 +179,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 	 * Create the dialog.
 	 */
 	public ShowCoreMemory(Core core) {
+		setTitle("Main Memory");
 		this.core = core;
 		try {
 			format16HexDigits = new MaskFormatter("HH HH HH HH HH HH HH HH  HH HH HH HH HH HH HH HH");
@@ -413,6 +414,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 			buttonPane.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 			{
 				JButton btnOk = new JButton("OK");
+				btnOk.setVisible(false);
 				btnOk.setHorizontalAlignment(SwingConstants.RIGHT);
 				btnOk.setActionCommand("OK");
 				buttonPane.add(btnOk);
@@ -420,6 +422,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 			}
 			{
 				JButton btnCancel = new JButton("Cancel");
+				btnCancel.setVisible(false);
 				btnCancel.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent arg0) {
 						// TODO Cancel

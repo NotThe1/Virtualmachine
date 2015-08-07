@@ -55,7 +55,6 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 	private final static String NO_FILENAME = "<slot empty>";
 	private final static String NO_SIZE = "<0 KB>";
 
-
 	private JButton btnMakeNewDisk;
 
 	/**
@@ -73,42 +72,36 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-//		DriveLetter selectedDriveLetter;
+		// DriveLetter selectedDriveLetter;
+		JButton jb = (JButton) ae.getSource();
+		int diskNumber = 0;
+
 		switch (ae.getActionCommand()) {
 		case "btnMountA":
-			if (btnMountA.getText().equals(MOUNT)) {
-				mountDisk(0);
-			} else {
-				dismountDisk(0);
-			}// if
+			diskNumber = 0;
 			break;
 		case "btnMountB":
-			if (btnMountB.getText().equals(MOUNT)) {
-				mountDisk(1);
-			} else {
-				dismountDisk(1);
-			}// if
+			diskNumber = 1;
 			break;
 		case "btnMountC":
-			if (btnMountC.getText().equals(MOUNT)) {
-				mountDisk(2);
-			} else {
-				dismountDisk(2);
-			}// if
+			diskNumber = 2;
 			break;
 		case "btnMountD":
-			if (btnMountD.getText().equals(MOUNT)) {
-				mountDisk(3);
-			} else {
-				dismountDisk(3);
-			}// if
+			diskNumber = 3;
 			break;
 		case "btnClose":
-			this.dispose();
-			break;
-		default:
-			break;
+			dcu.close();
+			showTheDisks();
+			dispose();
+			return;
+
 		}// switch
+
+		if (jb.getText().equals(MOUNT)) {
+			mountDisk(diskNumber);
+		} else {
+			dismountDisk(diskNumber);
+		}// if
 
 	}// actionPerformed
 
@@ -118,6 +111,9 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 			JOptionPane.showMessageDialog(null, "No Disk to unmounted", "Unmount disk",
 					JOptionPane.WARNING_MESSAGE);
 			return;
+		} else {
+			dcu.removeDiskDrive(index);
+			showTheDisks();
 		}// if
 
 	}// dismountDisk
@@ -163,7 +159,20 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 					JOptionPane.WARNING_MESSAGE);
 			return null;
 		}// if
-		return chooser.getSelectedFile().getAbsolutePath().toString();
+
+		String selectedAbsolutePath = chooser.getSelectedFile().getAbsolutePath().toString();
+		DiskDrive[] drives = dcu.getDrives();
+		for (int i = 0; i < drives.length; i++) {
+			if (drives[i] != null) {
+				if (drives[i].getFileAbsoluteName().equals(selectedAbsolutePath)) {
+					JOptionPane.showMessageDialog(null, "Disk Already Mounted!", "Adding disk",
+							JOptionPane.WARNING_MESSAGE);
+					return null;
+				}// if
+			}// outer if
+		}// for
+
+		return selectedAbsolutePath;
 
 	}// getDisk
 
@@ -278,7 +287,8 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 
 		JPanel pnlCD = new JPanel();
 		pnlCD.setLayout(null);
-		pnlCD.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 2, true), "8 \" Drives", TitledBorder.LEFT, TitledBorder.TOP, null, new Color(0, 0, 0)));
+		pnlCD.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 2, true), "8 \" Drives", TitledBorder.LEFT,
+				TitledBorder.TOP, null, new Color(0, 0, 0)));
 		pnlCD.setBounds(36, 187, 673, 121);
 		contentPanel.add(pnlCD);
 
@@ -336,7 +346,7 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 			buttonPane.setBounds(0, 350, 740, 33);
 			getContentPane().add(buttonPane);
 			buttonPane.setLayout(null);
-			
+
 			btnMakeNewDisk = new JButton("Make a new Disk");
 			btnMakeNewDisk.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent arg0) {

@@ -51,6 +51,13 @@ public class DiskDrive {
 		writeSector = ByteBuffer.allocate(bytesPerSector);
 
 	}// Constructor
+	
+	public void dismount(){
+		if(disk != null)
+			disk = null;
+		if (fileChannel != null)
+			fileChannel = null;
+	}// close();
 
 	private void resolveDiskType(String drive) {
 		String[] fileNameComponents = drive.split("\\.");

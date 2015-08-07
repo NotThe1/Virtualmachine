@@ -48,7 +48,14 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 		core.removeMemoryAccessErrorListener(this);
 		core.removeTrapLocation(DISK_CONTROL_BYTE_5, TRAP.IO);
 		core.removeTrapLocation(DISK_CONTROL_BYTE_8, TRAP.IO);
-	}//
+
+		for (int i = 0; i < drives.length; i++) {
+			if (drives[i]!=null){
+				drives[i].removeVDiskErroListener(this);
+				removeDiskDrive(i);
+			}//if
+		}//for
+	}//close
 
 	public void addDiskDrive(int index, String fileName) {
 		if (drives[index] != null) {
@@ -60,6 +67,17 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 		drives[index].addVDiskErroListener(this);
 		return;
 	}// addDiskDrive
+
+	public void removeDiskDrive(int index) {
+		if (drives[index] == null) {
+			JOptionPane.showMessageDialog(null, "Already Dismounted", "removeDiskDrive",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}// if
+		drives[index].removeVDiskErroListener(this);
+		drives[index].dismount();
+		drives[index] = null;
+	}// removeDiskDrive
 
 	public int getMaxNumberOfDrives() {
 		return maxNumberOfDrives;
@@ -94,11 +112,11 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	@Override
 	public void memoryTrap(MemoryTrapEvent mte) {
 		currentDiskControlByte = mte.getLocation(); // 0X0040 for 8" / 0X0045 for 5.25"
-		
-		if (( core.readForIO(currentDiskControlByte) & 0X80) == 0){
+
+		if ((core.readForIO(currentDiskControlByte) & 0X80) == 0) {
 			return; // not a disk activation command
-		}//if
-		
+		}// if
+
 		goodOperation = true; // assume all goes well
 
 		System.out.printf("DCU: Location: %04X, Value: %02X%n", mte.getLocation(), core.read(mte.getLocation()));
@@ -152,14 +170,14 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 			core.writeDMA(currentDMAAddress, readBuffer);
 			System.out.printf("DCU:Value: %02X, length = %d%n", readBuffer[1], readBuffer.length);
 		} else { // its a COMMAND_WRITE
-		// byte[] writeBuffer = core.readDMA(currentDMAAddress, currentSectorSize);
-		// drives[currentDrive].write(writeBuffer);
+			// byte[] writeBuffer = core.readDMA(currentDMAAddress, currentSectorSize);
+			// drives[currentDrive].write(writeBuffer);
 
 			byte[] writeSector = new byte[currentSectorSize];
 			byte[] readFromCore = core.readDMA(currentDMAAddress, currentByteCount);
-			
-			ByteBuffer writeByteBuffer= ByteBuffer.wrap(readFromCore);
-//			ByteBuffer writeSectorBuffer = ByteBuffer.allocate(currentSectorSize);
+
+			ByteBuffer writeByteBuffer = ByteBuffer.wrap(readFromCore);
+			// ByteBuffer writeSectorBuffer = ByteBuffer.allocate(currentSectorSize);
 			writeByteBuffer.get(writeSector);
 			drives[currentDrive].write(writeSector);
 			for (int i = 0; i < numberOfSectorsToMove - 1; i++) {
@@ -167,7 +185,6 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 				drives[currentDrive].writeNext(writeSector);
 			}// for
 
-	
 		}//
 		if (goodOperation) {
 			reportStatus((byte) 00, (byte) 00); // reset - operation is over

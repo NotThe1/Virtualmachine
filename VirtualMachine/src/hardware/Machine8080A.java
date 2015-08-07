@@ -196,6 +196,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			wrs = new WorkingRegisterSet();
 		}// try
 		mm = new MainMemory(core);
+//		ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
 		// loadTheDisplay();
 	}// restoreMachineState
 
@@ -419,7 +420,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			mm = null;
 			mm = new MainMemory(core);
 			wrs.initialize();
-			disassembler.run();
+			disassembler.resetDisplay();;
 			loadTheDisplay();
 			break;
 
@@ -430,6 +431,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 				// need to strip the file suffix off (will replace later)
 				absolutePath = stripSuffix(absolutePath);
 				restoreMachineState(absolutePath);
+				cpu.setProgramCounter(wrs.getProgramCounter());
+				disassembler.resetDisplay();
+				//disassembler.run();
+				loadTheDisplay();
 			} else {
 				System.out.printf("You cancelled the Open...%n", "");
 			}// if - returnValue

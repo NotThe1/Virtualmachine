@@ -1,5 +1,7 @@
 package hardware;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.swing.JOptionPane;
 
 import device.DeviceController;
@@ -77,12 +79,26 @@ public class CentralProcessingUnit implements MemoryListener {
 	public void startRunMode() {
 		int opCodeLength = 0;
 		setRunning(true);
+		int counter = 0;
 		while (running) {
 			opCode = mm.getByte(programCounter);
 			opCodeLength = execute8080Instruction(opCode);
+			try {
+				System.out.printf("count: %s%n",counter++);
+				TimeUnit.SECONDS.sleep(3);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			incrementProgramCounter(opCodeLength);
 		}// while
 	}// startRunMode
+	
+	public void runNextInstruction(){
+		byte opCode = mm.getByte(programCounter);
+		int opCodeLength = execute8080Instruction(opCode);
+		incrementProgramCounter(opCodeLength);
+	}
 
 	public boolean isRunning() {
 		return running;

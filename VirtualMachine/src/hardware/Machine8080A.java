@@ -114,18 +114,32 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	/**
 	 * Launch the application.
 	 */
+//	public static void main(String[] args) {
+//		EventQueue.invokeLater(new Runnable() {
+//			public void run() {
+//				try {
+//					Machine8080A window = new Machine8080A();
+//					window.frame.setVisible(true);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		});
+//	}
+
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Machine8080A window = new Machine8080A();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+	javax.swing.SwingUtilities.invokeLater(new Runnable() {
+		public void run() {
+			try {
+				Machine8080A window = new Machine8080A();
+				window.frame.setVisible(true);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-		});
-	}
+		}
+	});
+}
+	
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -394,7 +408,20 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		switch (actionCommand) {
 		case AC_BTN_RUN:
 			showRun(false);
-			cpu.startRunMode();
+//			cpu.startRunMode();
+			int counter = 0;
+			cpu.setRunning(true);
+			
+			while(cpu.isRunning()){
+				try {
+					System.out.printf("count: %s%n",counter++);
+					TimeUnit.SECONDS.sleep(3);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				cpu.runNextInstruction();
+			}
 			showRun(true);
 			loadTheDisplay();
 			break;
@@ -402,12 +429,18 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			// scrollAssembler.getVerticalScrollBar().setValue(0);
 			// System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
 
-			showRun(true);
 			cpu.setRunning(false);
+			showRun(true);
 			// loadTheDisplay();
 			break;
 		case AC_BTN_STEP:
-			cpu.startStepMode((int) spinnerStepCount.getValue());
+//			cpu.startStepMode((int) spinnerStepCount.getValue());
+			for (int count = (int) spinnerStepCount.getValue(); count > 0; count--) {
+				cpu.runNextInstruction();
+				if (!cpu.isRunning()) {
+					break;
+				}//
+			}// for
 			loadTheDisplay();
 			break;
 
@@ -1048,7 +1081,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private final static String DEFAULT_STATE_FILE = "defaultMachineState";
 	public final static String FILE_LOCATION = ".";
 	private final static String SETTINGS = "Settings";
-	private final static String MEMORY = "Memory";
+	public final static String MEMORY = "Memory";
 	private final static String DISKS = "Disks";
 
 	public final static String MEMORY_SUFFIX = "mem";

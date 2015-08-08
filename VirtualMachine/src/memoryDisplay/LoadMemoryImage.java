@@ -1,6 +1,6 @@
 package memoryDisplay;
 
-import hardware.Machine8080;
+import hardware.Machine8080A;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,18 +40,18 @@ public class LoadMemoryImage {
 
 	public void doIt() {
 		memoryImage = new HashMap<Integer, Byte>();
-		Path sourcePath = Paths.get(Machine8080.FILE_LOCATION,Machine8080.MEMORY);
-		String fp = sourcePath.resolve(Machine8080.FILE_LOCATION).toString();
+		Path sourcePath = Paths.get(Machine8080A.FILE_LOCATION, Machine8080A.MEMORY);
+		String fp = sourcePath.resolve(Machine8080A.FILE_LOCATION).toString();
 		JFileChooser chooser = new JFileChooser(fp);
 		chooser.setMultiSelectionEnabled(false);
-		
-//		FileNameExtensionFilter filter = new FileNameExtensionFilter(
-//				"Saved State Files", ".txt", "TXT","mem");
-//		chooser.setFileFilter(filter);
-		chooser.addChoosableFileFilter(new FileNameExtensionFilter("Memory file",Machine8080.MEMORY_SUFFIX));
+
+		// FileNameExtensionFilter filter = new FileNameExtensionFilter(
+		// "Saved State Files", ".txt", "TXT","mem");
+		// chooser.setFileFilter(filter);
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter("Memory file", Machine8080A.MEMORY_SUFFIX));
 		chooser.setAcceptAllFileFilterUsed(false);
 
-//		int returnValue = chooser.showOpenDialog(jc);
+		// int returnValue = chooser.showOpenDialog(jc);
 		if (chooser.showOpenDialog(jc) == JFileChooser.APPROVE_OPTION) {
 			File sourceFile = chooser.getSelectedFile();
 
@@ -78,9 +78,9 @@ public class LoadMemoryImage {
 	}// doIt()
 
 	private void parseAndLoadImage(String line) {
-		if (line.length() == 0){
-			return;		//skip the line
-		}//if empty line
+		if (line.length() == 0) {
+			return; // skip the line
+		}// if empty line
 		scanner = new Scanner(line);
 		String strAddress = scanner.next();
 		strAddress = strAddress.replace(":", "");

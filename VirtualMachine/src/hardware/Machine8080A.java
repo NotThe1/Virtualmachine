@@ -408,39 +408,21 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		switch (actionCommand) {
 		case AC_BTN_RUN:
 			showRun(false);
-//			cpu.startRunMode();
-			int counter = 0;
-			cpu.setRunning(true);
-			
-			while(cpu.isRunning()){
-				try {
-					System.out.printf("count: %s%n",counter++);
-					TimeUnit.SECONDS.sleep(3);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				cpu.runNextInstruction();
-			}
+			cpu.startRunMode();
 			showRun(true);
 			loadTheDisplay();
 			break;
 		case AC_BTN_STOP:
-			// scrollAssembler.getVerticalScrollBar().setValue(0);
-			// System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
+//			scrollAssembler.getVerticalScrollBar().setValue(0);
+//			System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
 
-			cpu.setRunning(false);
+			
 			showRun(true);
+			cpu.setRunning(false);
 			// loadTheDisplay();
 			break;
 		case AC_BTN_STEP:
-//			cpu.startStepMode((int) spinnerStepCount.getValue());
-			for (int count = (int) spinnerStepCount.getValue(); count > 0; count--) {
-				cpu.runNextInstruction();
-				if (!cpu.isRunning()) {
-					break;
-				}//
-			}// for
+			cpu.startStepMode((int) spinnerStepCount.getValue());
 			loadTheDisplay();
 			break;
 

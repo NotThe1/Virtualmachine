@@ -164,9 +164,10 @@ public class Disassembler implements Runnable {
 	}// makeAttrsForCategory
 
 	private SimpleAttributeSet[] makeAttributes() {
+		int baseFontSize = 16;
 		SimpleAttributeSet baseAttribute = new SimpleAttributeSet();
 		StyleConstants.setFontFamily(baseAttribute, "Courier New");
-		StyleConstants.setFontSize(baseAttribute, 16);
+		StyleConstants.setFontSize(baseAttribute, baseFontSize);
 
 		SimpleAttributeSet[] a = new SimpleAttributeSet[8]; // hand calculated value - fix it
 		a[ATTR_BLACK] = new SimpleAttributeSet();
@@ -179,7 +180,7 @@ public class Disassembler implements Runnable {
 		StyleConstants.setForeground(a[ATTR_RED], Color.RED);
 
 		SimpleAttributeSet boldAttribute = new SimpleAttributeSet(baseAttribute);
-		StyleConstants.setFontSize(boldAttribute, 17);
+		StyleConstants.setFontSize(boldAttribute, baseFontSize + 1);
 		StyleConstants.setBold(boldAttribute, true);
 
 		a[ATTR_BLACK_BOLD] = new SimpleAttributeSet(boldAttribute);
@@ -217,7 +218,7 @@ public class Disassembler implements Runnable {
 	private void makeOpcodeMap() {
 		opcodeMap = new HashMap<Byte, OperationStructure>();
 		opcodeMap.put((byte) 0X00, new OperationStructure((byte) 0X00, 1, "NOP", "", "", ""));
-		opcodeMap.put((byte) 0X01, new OperationStructure((byte) 0X01, 3, "LXI", "B", "D16", "B<- byte3, C<- byte2"));
+		opcodeMap.put((byte) 0X01, new OperationStructure((byte) 0X01, 3, "LXI", "B", "D16", "B<- byte3,C<- byte2"));
 		opcodeMap.put((byte) 0X02, new OperationStructure((byte) 0X02, 1, "STAX", "B", "", "(BC)<-A"));
 		opcodeMap.put((byte) 0X03, new OperationStructure((byte) 0X03, 1, "INX", "B", "", "BC<-BC+1"));
 		opcodeMap.put((byte) 0X04, new OperationStructure((byte) 0X04, 1, "INR", "B", "", "B<-B+1"));
@@ -270,8 +271,7 @@ public class Disassembler implements Runnable {
 		opcodeMap.put((byte) 0X2F, new OperationStructure((byte) 0X2F, 1, "CMA", "", "", "A = !A"));
 
 		opcodeMap.put((byte) 0X30, new OperationStructure((byte) 0X30, 1, "Alt", "", "", "Alt NOP(SIM)")); // special
-		opcodeMap.put((byte) 0X31, new OperationStructure((byte) 0X31, 3, "LXI", "SP", "D16",
-				"SP.hi<-byte3;SP.lo<-byte2"));
+		opcodeMap.put((byte) 0X31, new OperationStructure((byte) 0X31, 3, "LXI", "SP", "D16","SP-data"));
 		opcodeMap.put((byte) 0X32, new OperationStructure((byte) 0X32, 3, "STA", "addr", "", "(addr)<-A"));
 		opcodeMap.put((byte) 0X33, new OperationStructure((byte) 0X33, 1, "INX", "SP", "", "SP<-SP + 1"));
 		opcodeMap.put((byte) 0X34, new OperationStructure((byte) 0X34, 1, "INR", "M", "", "(HL)<-(HL)+1"));

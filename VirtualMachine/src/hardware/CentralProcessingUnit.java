@@ -83,13 +83,13 @@ public class CentralProcessingUnit implements MemoryListener {
 		while (running) {
 			opCode = mm.getByte(programCounter);
 			opCodeLength = execute8080Instruction(opCode);
-			try {
-				System.out.printf("count: %s%n",counter++);
-				TimeUnit.SECONDS.sleep(3);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+//			try {
+//				System.out.printf("count: %s%n",counter++);
+//				TimeUnit.SECONDS.sleep(3);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
 			incrementProgramCounter(opCodeLength);
 		}// while
 	}// startRunMode

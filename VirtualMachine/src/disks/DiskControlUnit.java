@@ -187,7 +187,7 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 
 		}//
 		if (goodOperation) {
-			reportStatus((byte) 00, (byte) 00); // reset - operation is over
+			reportStatus((byte) 0X80, (byte) 00); // reset - operation is over
 		}//
 
 	}// memoryTrap

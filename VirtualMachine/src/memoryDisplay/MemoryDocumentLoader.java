@@ -1,9 +1,9 @@
 package memoryDisplay;
 
-import hardware.Core;
-
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
+
+import memory.Core;
 
 public class MemoryDocumentLoader implements Runnable {
 

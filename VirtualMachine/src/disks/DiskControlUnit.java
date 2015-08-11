@@ -3,14 +3,14 @@ package disks;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-import hardware.Core;
-import hardware.Core.TRAP;
-import hardware.MemoryAccessErrorEvent;
-import hardware.MemoryAccessErrorListener;
-import hardware.MemoryTrapEvent;
-import hardware.MemoryTrapListener;
-
 import javax.swing.JOptionPane;
+
+import memory.Core;
+import memory.MemoryAccessErrorEvent;
+import memory.MemoryAccessErrorListener;
+import memory.MemoryTrapEvent;
+import memory.MemoryTrapListener;
+import memory.Core.TRAP;
 
 public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorListener, VDiskErrorListener {
 

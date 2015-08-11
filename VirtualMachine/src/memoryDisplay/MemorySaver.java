@@ -1,7 +1,5 @@
 package memoryDisplay;
 
-import hardware.Core;
-
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
@@ -14,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.JLabel;
 
+import memory.Core;
 import myComponents.Hex64KSpinner16;
 
 import java.awt.Font;

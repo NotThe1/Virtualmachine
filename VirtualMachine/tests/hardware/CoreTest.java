@@ -5,6 +5,8 @@ import static org.hamcrest.CoreMatchers.*;
 
 import java.util.Random;
 
+import memory.Core;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

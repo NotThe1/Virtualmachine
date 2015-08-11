@@ -1,7 +1,5 @@
 package memoryDisplay;
 
-import hardware.Core;
-
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -41,6 +39,7 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Set;
 
+import memory.Core;
 import myComponents.Hex64KSpinner;
 import myComponents.Hex64KSpinner16;
 

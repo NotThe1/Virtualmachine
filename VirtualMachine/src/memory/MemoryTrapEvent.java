@@ -1,8 +1,8 @@
-package hardware;
+package memory;
 
 import java.util.EventObject;
 
-import hardware.Core.TRAP;
+import memory.Core.TRAP;
 
 public class MemoryTrapEvent extends EventObject {
 	

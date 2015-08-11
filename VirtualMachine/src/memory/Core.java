@@ -1,4 +1,4 @@
-package hardware;
+package memory;
 
 import java.util.HashMap;
 import java.util.Vector;

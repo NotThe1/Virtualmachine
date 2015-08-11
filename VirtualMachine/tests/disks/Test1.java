@@ -1,13 +1,13 @@
 package disks;
 
-import hardware.Core;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFileChooser;
+
+import memory.Core;
 
 public class Test1 {
 	private Core core;

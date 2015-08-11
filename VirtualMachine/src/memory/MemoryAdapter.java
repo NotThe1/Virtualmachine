@@ -1,4 +1,5 @@
-package hardware;
+package memory;
+
 
 public class MemoryAdapter implements MemoryListener {
 

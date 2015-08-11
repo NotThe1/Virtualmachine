@@ -8,8 +8,8 @@ import javax.swing.text.Document;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
+import memory.Core;
 import hardware.CentralProcessingUnit;
-import hardware.Core;
 
 public class Disassembler implements Runnable {
 

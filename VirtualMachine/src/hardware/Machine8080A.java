@@ -76,6 +76,9 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import codeSupport.Disassembler;
+import memory.Core;
+import memory.MainMemory;
+import memory.MemoryLimitVerifier;
 import memoryDisplay.MemorySaver;
 import memoryDisplay.ShowCoreMemory;
 import device.DeviceController;

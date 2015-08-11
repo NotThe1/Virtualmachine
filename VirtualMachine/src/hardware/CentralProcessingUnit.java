@@ -4,6 +4,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.JOptionPane;
 
+import memory.Core;
+import memory.MainMemory;
+import memory.MemoryEvent;
+import memory.MemoryListener;
 import device.DeviceController;
 
 

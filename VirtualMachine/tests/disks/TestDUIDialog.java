@@ -1,8 +1,8 @@
 package disks;
 
-import hardware.Core;
-
 import javax.swing.JDialog;
+
+import memory.Core;
 
 public class TestDUIDialog {
 	

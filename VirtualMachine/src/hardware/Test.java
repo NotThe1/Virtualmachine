@@ -10,6 +10,11 @@ import java.nio.file.Paths;
 
 import javax.swing.JOptionPane;
 
+import memory.Core;
+import memory.MemoryAccessErrorEvent;
+import memory.MemoryAccessErrorListener;
+import memory.MemoryTrapEvent;
+import memory.MemoryTrapListener;
 import disks.DiskControlUnit;
 
 public class Test implements MemoryTrapListener, MemoryAccessErrorListener{

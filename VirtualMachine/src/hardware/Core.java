@@ -60,7 +60,7 @@ public class Core implements Serializable {
 			storage[location] = value;
 		}// if
 	}// setContent- for MM
-	
+
 	public void writeForIO(int location, byte value) {
 		// writeValue = value; // save for IO trap
 		if (checkAddress(location) == true) {
@@ -83,7 +83,7 @@ public class Core implements Serializable {
 		}// if
 		return 00;
 	}// getContent- for MM
-	
+
 	public byte readForIO(int location) {
 		if (checkAddress(location) == true) { // send dummy argument
 			return storage[location];
@@ -179,44 +179,9 @@ public class Core implements Serializable {
 		return checkAddressAndTraps;
 	}
 
-//	private boolean XcheckAddress(int location, byte value) { // used for writes
-//		if (trapLocations.containsKey(location)) {
-//			if (trapLocations.get(location).equals(Core.TRAP.IO)) {
-//				storage[location] = value; // write so DCU has access to it
-//				fireMemoryTrap(location, Core.TRAP.IO);
-//				// System.out.printf("Core.java - checkAddress line 153%n");
-//				return true;
-//			}// inner if
-//		}// if
-//		return checkAddress(location);
-//	}// checkAddress
-//
-//	private boolean XcheckAddress(int location) { // used for reads
-//		boolean checkAddress = true;
-//		if (location < protectedBoundary) {
-//			// protection violation
-//			checkAddress = false;
-//			fireAccessError(location, "Protected memory access");
-//		} else if (location > maximumAddress) {
-//			// out of bounds error
-//			checkAddress = false;
-//			fireAccessError(location, "Invalid memory location");
-//		} else if (trapLocations.containsKey(location)) {
-//			switch (trapLocations.get(location)) {
-//			case DEBUG:
-//				if (trapEnabled) {
-//					fireMemoryTrap(location, trapLocations.get(location));
-//				}// if (trapEnabled);
-//			default:
-//				// ignore switch set up for later enhancements
-//			}// switch
-//		}// if
-//		return checkAddress; // true if all is good or a Trap
-//	}// checkAddress
-
 	private boolean checkAddressDMA(int location, int length) {
 		boolean checkAddressDMA = true;
-		if ((location < protectedBoundary) | ((location + length) > maximumAddress)) {
+		if ((location < protectedBoundary) | ((location + (length - 1)) > maximumAddress)) {
 			checkAddressDMA = false;
 			fireAccessError(location, "Invalid DMA memory location");
 		}// if

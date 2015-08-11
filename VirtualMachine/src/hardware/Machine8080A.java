@@ -484,7 +484,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 
 		case AC_MNU_MEMORY_SHOW:
 			scm = new ShowCoreMemory(core);
-			scm.run();
+			Thread scmThread = new Thread(scm);
+			scmThread.start();
+			//scm.run();
 			break;
 		case AC_MNU_MEMORY_SAVE:
 			new MemorySaver().show(core);

@@ -671,9 +671,11 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("XCHG %n", "");
 				break;
 			case 6:// yyy = 110
+				opCodeSize = 1;
 					// System.out.printf("DI %n", "");
 				break;
 			case 7:// yyy = 111
+				opCodeSize = 1;
 					// System.out.printf("EI %n", "");
 				break;
 			default:

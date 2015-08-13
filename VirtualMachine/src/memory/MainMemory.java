@@ -70,8 +70,10 @@ public class MainMemory implements Serializable, MemoryAccessErrorListener{ //,	
 	}// pushWord used for stack work
 
 	public int popWord(int location) {
-		return (int) ((core.read(location)) + ((int) core.read(location+1) <<8));
-		//return (int) ((memory[location] & 0XFF) + ((int) memory[location + 1] << 8));
+//		return (int) ((core.read(location)) + ((int) core.read(location+1) <<8));
+		int loByte  = (int)core.read(location) & 0X00FF;
+		int hiByte = (int)(core.read(location+1) <<8) & 0XFF00;
+		return 0XFFFF & (hiByte + loByte);
 	}// popWord
 
 	

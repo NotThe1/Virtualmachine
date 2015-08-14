@@ -10,7 +10,6 @@ import memory.MemoryEvent;
 import memory.MemoryListener;
 import device.DeviceController;
 
-
 public class CentralProcessingUnit implements MemoryListener {
 
 	private boolean running = false;
@@ -88,11 +87,11 @@ public class CentralProcessingUnit implements MemoryListener {
 			opCode = mm.getByte(programCounter);
 			opCodeLength = execute8080Instruction(opCode);
 			incrementProgramCounter(opCodeLength);
-//			System.out.printf("in startRunMode. count: %4d%n",counter++);
+			// System.out.printf("in startRunMode. count: %4d%n",counter++);
 		}// while
 	}// startRunMode
-	
-	public void runNextInstruction(){
+
+	public void runNextInstruction() {
 		byte opCode = mm.getByte(programCounter);
 		int opCodeLength = execute8080Instruction(opCode);
 		incrementProgramCounter(opCodeLength);
@@ -156,10 +155,12 @@ public class CentralProcessingUnit implements MemoryListener {
 		int opCodeSize = 0;
 
 		switch (zzz) {
-		case 0: // zzz = 000 : 08,10,18,20,28,30,38 - not implemented
-			if (yyy == 0) {// its a NOP OO len =1, cycles = 4
+		case 0: // zzz = 000
+			if (yyy == 0) {// its a NOP OO length =1, cycles = 4
+				// 00 real NOP
 				// System.out.printf("NOP %s%n", "");
 			} else {// treat as if it is a NOP
+				// 08,10,18,20,28,30,38 - not implemented
 				// System.out.printf("*NOP %s%n", "");
 			}//
 			opCodeSize = 1;
@@ -599,8 +600,10 @@ public class CentralProcessingUnit implements MemoryListener {
 					opCodeSize = 0; // don't adjust PC
 					// System.out.printf("RET %n", "");
 					break;
-				case 3:// yyy = 011
-						// System.out.printf("*RET %n", "");
+				case 3:// yyy = 011 (D9- treat as a RET)
+					opCode_Return();
+					opCodeSize = 0; // don't adjust PC
+					// System.out.printf("RET %n", "");
 					break;
 				case 5:// yyy = 101
 					programCounter = wrs.getDoubleReg(Reg.HL);
@@ -632,8 +635,10 @@ public class CentralProcessingUnit implements MemoryListener {
 				opCodeSize = 0;
 				// System.out.printf("JMP %n", "");
 				break;
-			case 1:// yyy = 001
-					// System.out.printf("*JMP %n", "");
+			case 1:// yyy = 001 Opcode = CB - treat as JMP
+				opCode_Jump();
+				opCodeSize = 0;
+				// System.out.printf("*JMP %n", "");
 				break;
 			case 2:// yyy = 010
 				valueByte = wrs.getReg(Reg.A);
@@ -672,11 +677,11 @@ public class CentralProcessingUnit implements MemoryListener {
 				break;
 			case 6:// yyy = 110
 				opCodeSize = 1;
-					// System.out.printf("DI %n", "");
+				// System.out.printf("DI %n", "");
 				break;
 			case 7:// yyy = 111
 				opCodeSize = 1;
-					// System.out.printf("EI %n", "");
+				// System.out.printf("EI %n", "");
 				break;
 			default:
 				// ignore
@@ -707,21 +712,25 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("PUSH %s%n", regPair.toString());
 			} else
 				switch (yyy) {
-				case 1:// yyy = 001
+				case 1:// yyy = 001 - CD real Call
 					opCode_Call();
 					opCodeSize = 0;
-					// System.out.printf("CALL %n", ""); // use next 16 bits
-					// for
-					// destination
+					// System.out.printf("CALL %n", ""); // use next 16 bits for destination
 					break;
-				case 3:// yyy = 011
-						// System.out.printf("*CALL %n", "");
+				case 3:// yyy = 011 - DD treat as Call
+					opCode_Call();
+					opCodeSize = 0;
+					// System.out.printf("*CALL %n", "");
 					break;
-				case 5:// yyy = 101
-						// System.out.printf("*CALL %n", "");
+				case 5:// yyy = 101 - ED treat as Call
+					opCode_Call();
+					opCodeSize = 0;
+					// System.out.printf("*CALL %n", "");
 					break;
-				case 7:// yyy = 111
-						// System.out.printf("*CALL%n", "");
+				case 7:// yyy = 111 - FD treat as Call
+					opCode_Call();
+					opCodeSize = 0;
+					// System.out.printf("*CALL%n", "");
 					break;
 				default:
 					// ignore
@@ -904,6 +913,7 @@ public class CentralProcessingUnit implements MemoryListener {
 
 	}// valueToBinaryString
 		// private byte getByteImmediate() {
+
 	// return mm.getByte(programCounter++);
 	// }// getImmediateByte
 	//

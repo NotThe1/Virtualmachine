@@ -54,21 +54,21 @@ public class Core implements Serializable {
 		this(MAXIMUM_MEMORY, 0);
 	}// Constructor
 
-	public void write(int location, byte value) {
+	public  synchronized void write(int location, byte value) {
 		// writeValue = value; // save for IO trap
 		if (checkAddressAndTraps(location, value) == true) {
 			storage[location] = value;
 		}// if
 	}// setContent- for MM
 
-	public void writeForIO(int location, byte value) {
+	public synchronized void writeForIO(int location, byte value) {
 		// writeValue = value; // save for IO trap
 		if (checkAddress(location) == true) {
 			storage[location] = value;
 		}// if
 	}// setContent- for IO devices
 
-	public void writeDMA(int location, byte[] values) {
+	public synchronized void writeDMA(int location, byte[] values) {
 		int numberOfBytes = values.length;
 		if (checkAddressDMA(location, numberOfBytes) == true) {
 			for (int i = 0; i < numberOfBytes; i++) {
@@ -77,21 +77,21 @@ public class Core implements Serializable {
 		}// if
 	}// writeDMA
 
-	public byte read(int location) {
+	public synchronized  byte read(int location) {
 		if (checkAddressAndTraps(location) == true) { // send dummy argument
 			return storage[location];
 		}// if
 		return 00;
 	}// getContent- for MM
 
-	public byte readForIO(int location) {
+	public synchronized  byte readForIO(int location) {
 		if (checkAddress(location) == true) { // send dummy argument
 			return storage[location];
 		}// if
 		return 00;
 	}// getContent - for IO devices
 
-	public byte[] readDMA(int location, int length) {
+	public synchronized  byte[] readDMA(int location, int length) {
 		byte[] readDMA = new byte[length];
 		if (checkAddressDMA(location, length) == true) {
 			for (int i = 0; i < length; i++) {

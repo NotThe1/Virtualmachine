@@ -236,7 +236,7 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 		pnlAB.setLayout(null);
 
 		JLabel lblDriveA = new JLabel("A:");
-		lblDriveA.setFont(new Font("Courier New", Font.PLAIN, 20));
+		lblDriveA.setFont(new Font("Courier New", Font.PLAIN, 16));
 		lblDriveA.setHorizontalAlignment(SwingConstants.CENTER);
 		lblDriveA.setBounds(10, 23, 30, 30);
 		pnlAB.add(lblDriveA);
@@ -244,45 +244,45 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 		lblFileNameA = new JLabel("New label");
 		lblFileNameA.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		lblFileNameA.setHorizontalAlignment(SwingConstants.CENTER);
-		lblFileNameA.setFont(new Font("Courier New", Font.BOLD, 20));
-		lblFileNameA.setBounds(80, 23, 300, 30);
+		lblFileNameA.setFont(new Font("Courier New", Font.BOLD, 16));
+		lblFileNameA.setBounds(80, 23, 300, 20);
 		pnlAB.add(lblFileNameA);
 
 		lblSizeA = new JLabel("1.44MB");
 		lblSizeA.setHorizontalAlignment(SwingConstants.CENTER);
-		lblSizeA.setFont(new Font("Courier New", Font.PLAIN, 20));
-		lblSizeA.setBounds(550, 23, 95, 30);
+		lblSizeA.setFont(new Font("Courier New", Font.PLAIN, 14));
+		lblSizeA.setBounds(550, 23, 95, 20);
 		pnlAB.add(lblSizeA);
 
 		btnMountA = new JButton(MOUNT);
 		btnMountA.setActionCommand("btnMountA");
 		btnMountA.addActionListener(this);
-		btnMountA.setBounds(420, 23, 90, 30);
+		btnMountA.setBounds(420, 23, 90, 20);
 		pnlAB.add(btnMountA);
 
 		JLabel lblDriveB = new JLabel("B:");
 		lblDriveB.setHorizontalAlignment(SwingConstants.CENTER);
-		lblDriveB.setFont(new Font("Courier New", Font.PLAIN, 20));
+		lblDriveB.setFont(new Font("Courier New", Font.PLAIN, 16));
 		lblDriveB.setBounds(10, 69, 30, 30);
 		pnlAB.add(lblDriveB);
 
 		lblFileNameB = new JLabel("New label");
 		lblFileNameB.setHorizontalAlignment(SwingConstants.CENTER);
-		lblFileNameB.setFont(new Font("Courier New", Font.BOLD, 20));
+		lblFileNameB.setFont(new Font("Courier New", Font.BOLD, 16));
 		lblFileNameB.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		lblFileNameB.setBounds(80, 69, 300, 30);
+		lblFileNameB.setBounds(80, 69, 300, 20);
 		pnlAB.add(lblFileNameB);
 
 		btnMountB = new JButton(MOUNT);
 		btnMountB.setActionCommand("btnMountB");
 		btnMountB.addActionListener(this);
-		btnMountB.setBounds(420, 69, 90, 30);
+		btnMountB.setBounds(420, 69, 90, 20);
 		pnlAB.add(btnMountB);
 
 		lblSizeB = new JLabel("1.44MB");
 		lblSizeB.setHorizontalAlignment(SwingConstants.CENTER);
-		lblSizeB.setFont(new Font("Courier New", Font.PLAIN, 20));
-		lblSizeB.setBounds(550, 69, 95, 30);
+		lblSizeB.setFont(new Font("Courier New", Font.PLAIN, 14));
+		lblSizeB.setBounds(550, 69, 95, 20);
 		pnlAB.add(lblSizeB);
 
 		JPanel pnlCD = new JPanel();
@@ -294,52 +294,52 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 
 		JLabel lblDriveC = new JLabel("C:");
 		lblDriveC.setHorizontalAlignment(SwingConstants.CENTER);
-		lblDriveC.setFont(new Font("Courier New", Font.PLAIN, 20));
+		lblDriveC.setFont(new Font("Courier New", Font.PLAIN, 16));
 		lblDriveC.setBounds(10, 23, 30, 30);
 		pnlCD.add(lblDriveC);
 
 		lblFileNameC = new JLabel("New label");
 		lblFileNameC.setHorizontalAlignment(SwingConstants.CENTER);
-		lblFileNameC.setFont(new Font("Courier New", Font.BOLD, 20));
+		lblFileNameC.setFont(new Font("Courier New", Font.BOLD, 16));
 		lblFileNameC.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		lblFileNameC.setBounds(80, 23, 300, 30);
+		lblFileNameC.setBounds(80, 23, 300, 20);
 		pnlCD.add(lblFileNameC);
 
 		lblSizeC = new JLabel("1.44MB");
 		lblSizeC.setHorizontalAlignment(SwingConstants.CENTER);
-		lblSizeC.setFont(new Font("Courier New", Font.PLAIN, 20));
-		lblSizeC.setBounds(550, 23, 95, 30);
+		lblSizeC.setFont(new Font("Courier New", Font.PLAIN, 14));
+		lblSizeC.setBounds(550, 23, 95, 20);
 		pnlCD.add(lblSizeC);
 
 		btnMountC = new JButton(MOUNT);
 		btnMountC.setActionCommand("btnMountC");
 		btnMountC.addActionListener(this);
-		btnMountC.setBounds(420, 23, 90, 30);
+		btnMountC.setBounds(420, 23, 90, 20);
 		pnlCD.add(btnMountC);
 
 		JLabel lblDriveD = new JLabel("D:");
 		lblDriveD.setHorizontalAlignment(SwingConstants.CENTER);
-		lblDriveD.setFont(new Font("Courier New", Font.PLAIN, 20));
+		lblDriveD.setFont(new Font("Courier New", Font.PLAIN, 16));
 		lblDriveD.setBounds(10, 69, 30, 30);
 		pnlCD.add(lblDriveD);
 
 		lblFileNameD = new JLabel("New label");
 		lblFileNameD.setHorizontalAlignment(SwingConstants.CENTER);
-		lblFileNameD.setFont(new Font("Courier New", Font.BOLD, 20));
+		lblFileNameD.setFont(new Font("Courier New", Font.BOLD, 16));
 		lblFileNameD.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		lblFileNameD.setBounds(80, 69, 300, 30);
+		lblFileNameD.setBounds(80, 69, 300, 20);
 		pnlCD.add(lblFileNameD);
 
 		btnMountD = new JButton(MOUNT);
 		btnMountD.setActionCommand("btnMountD");
 		btnMountD.addActionListener(this);
-		btnMountD.setBounds(420, 69, 90, 30);
+		btnMountD.setBounds(420, 69, 90, 20);
 		pnlCD.add(btnMountD);
 
 		lblSizeD = new JLabel("1.44MB");
 		lblSizeD.setHorizontalAlignment(SwingConstants.CENTER);
-		lblSizeD.setFont(new Font("Courier New", Font.PLAIN, 20));
-		lblSizeD.setBounds(550, 69, 95, 30);
+		lblSizeD.setFont(new Font("Courier New", Font.PLAIN, 14));
+		lblSizeD.setBounds(550, 69, 95, 20);
 		pnlCD.add(lblSizeD);
 		{
 			JPanel buttonPane = new JPanel();

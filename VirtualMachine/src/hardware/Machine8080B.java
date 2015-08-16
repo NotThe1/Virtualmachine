@@ -1,6 +1,6 @@
 package hardware;
 
-import java.awt.EventQueue;
+//import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 
@@ -26,9 +26,9 @@ import java.awt.BorderLayout;
 
 import javax.swing.border.CompoundBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.JTextComponent;
+//import javax.swing.text.JTextComponent;
 import javax.swing.text.MaskFormatter;
-import javax.swing.text.PlainDocument;
+//import javax.swing.text.PlainDocument;
 import javax.swing.JCheckBox;
 
 import java.awt.Font;
@@ -58,9 +58,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
+//import java.util.concurrent.TimeUnit;
+
 
 import javax.swing.AbstractButton;
+//import javax.swing.AbstractButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -70,7 +72,7 @@ import javax.swing.JTextPane;
 //import javax.swing.JFormattedTextField$AbstractFormatter;
 import javax.swing.SwingConstants;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+//import javax.swing.JTextArea;
 import javax.swing.JButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
@@ -83,18 +85,20 @@ import memoryDisplay.MemorySaver;
 import memoryDisplay.ShowCoreMemory;
 import device.DeviceController;
 import disks.DiskControlUnit;
+import disks.DiskDrive;
+import disks.DiskLayout;
 import disks.DiskUserInterface;
 import disks.MakeNewDisk;
 
-import javax.swing.ScrollPaneConstants;
-import javax.swing.BoxLayout;
+//import javax.swing.ScrollPaneConstants;
+//import javax.swing.BoxLayout;
 
-import java.awt.FlowLayout;
+//import java.awt.FlowLayout;
 
-public class Machine8080A implements PropertyChangeListener, MouseListener,
+public class Machine8080B implements PropertyChangeListener, MouseListener,
 		FocusListener, ItemListener, ActionListener {
 
-	private JFrame frame;
+	private JFrame frmMachineb;
 
 	private Core core;
 	private MainMemory mm;
@@ -117,32 +121,31 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	/**
 	 * Launch the application.
 	 */
-//	public static void main(String[] args) {
-//		EventQueue.invokeLater(new Runnable() {
-//			public void run() {
-//				try {
-//					Machine8080A window = new Machine8080A();
-//					window.frame.setVisible(true);
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		});
-//	}
+	// public static void main(String[] args) {
+	// EventQueue.invokeLater(new Runnable() {
+	// public void run() {
+	// try {
+	// Machine8080A window = new Machine8080A();
+	// window.frame.setVisible(true);
+	// } catch (Exception e) {
+	// e.printStackTrace();
+	// }
+	// }
+	// });
+	// }
 
 	public static void main(String[] args) {
-	javax.swing.SwingUtilities.invokeLater(new Runnable() {
-		public void run() {
-			try {
-				Machine8080A window = new Machine8080A();
-				window.frame.setVisible(true);
-			} catch (Exception e) {
-				e.printStackTrace();
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Machine8080B window = new Machine8080B();
+					window.frmMachineb.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-		}
-	});
-}
-	
+		});
+	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -203,7 +206,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			wrs = (WorkingRegisterSet) ois.readObject();
 			core = (Core) ois.readObject();
 			currentMachineName = fileName;
-			frame.setTitle(fileName);
+			frmMachineb.setTitle(fileName);
 			ois.close();
 		} catch (Exception e) {
 			System.err.printf(
@@ -213,7 +216,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			wrs = new WorkingRegisterSet();
 		}// try
 		mm = new MainMemory(core);
-//		ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
+		// ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
 		// loadTheDisplay();
 	}// restoreMachineState
 
@@ -348,7 +351,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 
 	private void loadMemoryImage() {
 		JFileChooser chooserLMI = getFileChooser(MEMORY, "Memory files", MEMORY_SUFFIX);
-		if (chooserLMI.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
+		if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
 			File sourceFile = chooserLMI.getSelectedFile();
@@ -390,23 +393,25 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 					"Address out of current memory on address line: "
 							+ strAddress, "Out of bounds",
 					JOptionPane.ERROR_MESSAGE);
+			scanner.close();
 			return;
 		}// if max memeory test
 
-		byte value;
+		// byte value;
 		byte[] values = new byte[SIXTEEN];
 		for (int i = 0; i < SIXTEEN; i++) {
 			values[i] = (byte) ((int) Integer.valueOf(scanner.next(), 16));
 		}// for values
 
 		core.writeDMA(address, values); // avoid setting off memory traps
-
+		scanner.close();
 	}// parseAndLoadImage
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
+		
 		String actionCommand = ae.getActionCommand();
 		switch (actionCommand) {
 		case AC_BTN_RUN:
@@ -416,10 +421,9 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			loadTheDisplay();
 			break;
 		case AC_BTN_STOP:
-//			scrollAssembler.getVerticalScrollBar().setValue(0);
-//			System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
+			// scrollAssembler.getVerticalScrollBar().setValue(0);
+			// System.out.printf("Scroll Bar value: %d%n",scrollAssembler.getVerticalScrollBar().getValue());
 
-			
 			showRun(true);
 			cpu.setRunning(false);
 			// loadTheDisplay();
@@ -429,6 +433,18 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			loadTheDisplay();
 			break;
 
+		case AC_BTN_MOUNT_A:
+			addRmoveDisk(0, ((AbstractButton) ae.getSource()).getText());
+			break;
+		case AC_BTN_MOUNT_B:
+			addRmoveDisk(1, ((AbstractButton) ae.getSource()).getText());
+			break;
+		case AC_BTN_MOUNT_C:
+			addRmoveDisk(2, ((AbstractButton) ae.getSource()).getText());
+			break;
+		case AC_BTN_MOUNT_D:
+			addRmoveDisk(3,((AbstractButton) ae.getSource()).getText());
+			break;
 		case AC_MNU_FILE_NEW:
 			cpu = null;
 			cpu = new CentralProcessingUnit();
@@ -438,20 +454,21 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			mm = null;
 			mm = new MainMemory(core);
 			wrs.initialize();
-			disassembler.resetDisplay();;
+			disassembler.resetDisplay();
+			;
 			loadTheDisplay();
 			break;
 
 		case AC_MNU_FILE_OPEN:
 			JFileChooser chooserOpen = getFileChooser(SETTINGS, "Saved Machine State", FILE_SUFFIX);
-			if (chooserOpen.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+			if (chooserOpen.showOpenDialog(frmMachineb) == JFileChooser.APPROVE_OPTION) {
 				String absolutePath = chooserOpen.getSelectedFile().getAbsolutePath();
 				// need to strip the file suffix off (will replace later)
 				absolutePath = stripSuffix(absolutePath);
 				restoreMachineState(absolutePath);
 				cpu.setProgramCounter(wrs.getProgramCounter());
 				disassembler.resetDisplay();
-				//disassembler.run();
+				// disassembler.run();
 				loadTheDisplay();
 			} else {
 				System.out.printf("You cancelled the Open...%n", "");
@@ -462,7 +479,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 			break;
 		case AC_MNU_FILE_SAVEAS:
 			JFileChooser chooserSaveAs = getFileChooser(SETTINGS, "Saved Machine State", FILE_SUFFIX);
-			if (chooserSaveAs.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
+			if (chooserSaveAs.showSaveDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 				System.out.printf("You cancelled the Save as...%n", "");
 			} else {
 				String absolutePath = chooserSaveAs.getSelectedFile().getAbsolutePath();
@@ -544,6 +561,122 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		updateConditionCode(flagName, state);
 	}// itemStateChanged
 
+	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+	private void addRmoveDisk(int diskNumber, String action) {
+		if (action.equals(MOUNT)) {
+			mountDisk(diskNumber);
+		} else {
+			dismountDisk(diskNumber);
+		}// if
+	}
+
+	private void dismountDisk(int index) {
+		DiskDrive[] drives = dcu.getDrives();
+		if (drives[index] == null) {
+			JOptionPane.showMessageDialog(null, "No Disk to unmounted", "Unmount disk",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		} else {
+			dcu.removeDiskDrive(index);
+			showTheDisks();
+		}// if
+
+	}// dismountDisk
+
+	private void mountDisk(int index) {
+		DiskDrive[] drives = dcu.getDrives();
+		if (drives[index] != null) {
+			JOptionPane.showMessageDialog(null, "Already Mounted", "Mount disk",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}// if
+		String diskType = (index < 2) ? "F5" : "F8";
+		String diskAbsoluteName = getDisk(diskType);
+		if (diskAbsoluteName == null) {
+			return;
+		}
+		dcu.addDiskDrive(index, diskAbsoluteName);
+		showTheDisks();
+	}// mountDisk
+
+	private String getDisk(String diskType) {
+		String fileLocation = ".";
+		Path sourcePath = Paths.get(fileLocation, "Disks");
+		JFileChooser chooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
+		chooser.setMultiSelectionEnabled(false);
+		//
+		for (DiskLayout diskLayout : DiskLayout.values()) {
+			if (diskLayout.fileExtension.startsWith(diskType)) {
+				chooser.addChoosableFileFilter(
+						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
+			}// if - correct type
+		}// for
+
+		chooser.setAcceptAllFileFilterUsed(false);
+		if (chooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {
+			return null;
+		}// if
+		File selectedFile = chooser.getSelectedFile();
+		javax.swing.filechooser.FileFilter chooserFilter = chooser.getFileFilter();
+
+		if ((!chooserFilter.accept(selectedFile)) | (!selectedFile.exists())) {
+			JOptionPane.showMessageDialog(null, "Not valid file, try again", "Adding disk",
+					JOptionPane.WARNING_MESSAGE);
+			return null;
+		}// if
+
+		String selectedAbsolutePath = chooser.getSelectedFile().getAbsolutePath().toString();
+		DiskDrive[] drives = dcu.getDrives();
+		for (int i = 0; i < drives.length; i++) {
+			if (drives[i] != null) {
+				if (drives[i].getFileAbsoluteName().equals(selectedAbsolutePath)) {
+					JOptionPane.showMessageDialog(null, "Disk Already Mounted!", "Adding disk",
+							JOptionPane.WARNING_MESSAGE);
+					return null;
+				}// if
+			}// outer if
+		}// for
+
+		return selectedAbsolutePath;
+
+	}// getDisk
+
+	private void showTheDisks() {
+		DiskDrive[] drives = dcu.getDrives();
+		boolean diskHere = false;
+		for (int i = 0; i < dcu.getMaxNumberOfDrives(); i++) {
+			diskHere = (drives[i] != null) ? true : false;
+			lblFileNames[i].setText((diskHere) ? drives[i].getFileLocalName() : NO_FILENAME);
+			lblFileNames[i].setForeground((diskHere) ? Color.BLUE : Color.BLACK);
+
+			lblFileNames[i].setToolTipText((diskHere) ? drives[i].getFileAbsoluteName() : NO_FILENAME);
+			if (diskHere) {
+				long size = drives[i].getTotalBytes();
+				if (size > 1024000) {
+					lblSizes[i].setText(String.format("%1.2f MB", (float) (size / 1024000)));
+				} else {
+					lblSizes[i].setText(String.format("%.0f KB", (float) (size / 1024)));
+				}// if - KB v MB
+			} else {
+				lblSizes[i].setText(NO_SIZE);
+			}// lblSize
+
+			btnMounts[i].setText((diskHere) ? DISMOUNT : MOUNT);
+		}// for - all disks
+
+	}// showTheDisks
+
+	private void setupDisks() {
+		lblFileNames = new JLabel[] { lblFileNameA, lblFileNameB, lblFileNameC, lblFileNameD };
+		lblSizes = new JLabel[] { lblSizeA, lblSizeB, lblSizeC, lblSizeD };
+		btnMounts = new JButton[] { btnMountA, btnMountB, btnMountC, btnMountD };
+
+		showTheDisks();
+	}// setupDisks
+
+	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	public void appInit() {
@@ -556,9 +689,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		dcu = new DiskControlUnit(core);
 		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
 		loadTheDisplay();
+		setupDisks();
 	}
 
-	public Machine8080A() {
+	public Machine8080B() {
 		try {
 			format2HexDigits = new MaskFormatter("HH");
 			format4HexDigits = new MaskFormatter("HHHH");
@@ -576,23 +710,156 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		frame = new JFrame();
-		frame.addWindowListener(new WindowAdapter() {
+		frmMachineb = new JFrame();
+		frmMachineb.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent arg0) {
 				saveMachineState(); // use DEFAULT_STATE_FILE
 			}
 		});
-		frame.setTitle("Machine8080A");
-		frame.setBounds(100, 100, 693, 774);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frmMachineb.setTitle("Machine8080B");
+		frmMachineb.setBounds(100, 100, 693, 1000);
+		frmMachineb.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 20, 610, 20, 0 };
-		gridBagLayout.rowHeights = new int[] { 20, 257, 96, 1, 105, 74, 0 };
-		gridBagLayout.columnWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowHeights = new int[] { 185, 257, 96, 1, 105, 74, 0 };
+		gridBagLayout.columnWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
-		frame.getContentPane().setLayout(gridBagLayout);
+		frmMachineb.getContentPane().setLayout(gridBagLayout);
+
+		JPanel pnlDisks = new JPanel();
+		pnlDisks.setMinimumSize(new Dimension(610, 290));
+		pnlDisks.setPreferredSize(new Dimension(0, 0));
+		pnlDisks.setMaximumSize(new Dimension(610, 290));
+		pnlDisks.setBorder(new LineBorder(new Color(0, 0, 0), 2, true));
+		pnlDisks.setLayout(null);
+		GridBagConstraints gbc_pnlDisks = new GridBagConstraints();
+		gbc_pnlDisks.insets = new Insets(0, 0, 5, 5);
+		gbc_pnlDisks.fill = GridBagConstraints.BOTH;
+		gbc_pnlDisks.gridx = 1;
+		gbc_pnlDisks.gridy = 0;
+		frmMachineb.getContentPane().add(pnlDisks, gbc_pnlDisks);
+
+		JPanel pnlAB = new JPanel();
+		pnlAB.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 1, true), "5.25\" Disketts",
+				TitledBorder.CENTER, TitledBorder.ABOVE_TOP, null, Color.RED));
+		pnlAB.setMinimumSize(new Dimension(673, 121));
+		pnlAB.setMaximumSize(new Dimension(673, 121));
+		pnlAB.setBounds(24, 10, 550, 75);
+		pnlDisks.add(pnlAB);
+		pnlAB.setLayout(null);
+
+		JLabel lblA = new JLabel("A:");
+		lblA.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblA.setHorizontalAlignment(SwingConstants.CENTER);
+		lblA.setBounds(10, 21, 20, 14);
+		pnlAB.add(lblA);
+
+		lblFileNameA = new JLabel("Empty Disk Slot");
+		lblFileNameA.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		lblFileNameA.setHorizontalAlignment(SwingConstants.CENTER);
+		lblFileNameA.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblFileNameA.setBounds(35, 21, 340, 14);
+		pnlAB.add(lblFileNameA);
+
+		lblSizeA = new JLabel("1.44 MB");
+		lblSizeA.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSizeA.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblSizeA.setBounds(478, 21, 62, 14);
+		pnlAB.add(lblSizeA);
+
+		btnMountA = new JButton(MOUNT);
+		btnMountA.setActionCommand(AC_BTN_MOUNT_A);
+		btnMountA.addActionListener(this);
+		btnMountA.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		btnMountA.setBounds(387, 20, 90, 14);
+		pnlAB.add(btnMountA);
+
+		JLabel lblB = new JLabel("B:");
+		lblB.setHorizontalAlignment(SwingConstants.CENTER);
+		lblB.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblB.setBounds(10, 46, 20, 14);
+		pnlAB.add(lblB);
+
+		lblFileNameB = new JLabel("Empty Disk Slot");
+		lblFileNameB.setHorizontalAlignment(SwingConstants.CENTER);
+		lblFileNameB.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblFileNameB.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		lblFileNameB.setBounds(35, 45, 340, 14);
+		pnlAB.add(lblFileNameB);
+
+		btnMountB = new JButton(MOUNT);
+		btnMountB.setActionCommand(AC_BTN_MOUNT_B);
+		btnMountB.addActionListener(this);
+		btnMountB.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		btnMountB.setBounds(387, 41, 90, 14);
+		pnlAB.add(btnMountB);
+
+		lblSizeB = new JLabel("1.44 MB");
+		lblSizeB.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSizeB.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblSizeB.setBounds(478, 41, 62, 14);
+		pnlAB.add(lblSizeB);
+
+		JPanel panel_1 = new JPanel();
+		panel_1.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 1, true), "8\" Floppies",
+				TitledBorder.CENTER, TitledBorder.ABOVE_TOP, null, Color.RED));
+		panel_1.setBounds(24, 85, 550, 75);
+		pnlDisks.add(panel_1);
+		panel_1.setLayout(null);
+
+		JLabel lblC = new JLabel("C:");
+		lblC.setHorizontalAlignment(SwingConstants.CENTER);
+		lblC.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblC.setBounds(10, 20, 20, 14);
+		panel_1.add(lblC);
+
+		lblFileNameC = new JLabel("Empty Disk Slot");
+		lblFileNameC.setHorizontalAlignment(SwingConstants.CENTER);
+		lblFileNameC.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblFileNameC.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		lblFileNameC.setBounds(35, 21, 340, 14);
+		panel_1.add(lblFileNameC);
+
+		btnMountC = new JButton(MOUNT);
+		btnMountC.setActionCommand(AC_BTN_MOUNT_C);
+		btnMountC.addActionListener(this);
+		btnMountC.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		btnMountC.setBounds(387, 20, 90, 14);
+		panel_1.add(btnMountC);
+
+		lblSizeC = new JLabel("1.44 MB");
+		lblSizeC.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSizeC.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblSizeC.setBounds(478, 21, 62, 14);
+		panel_1.add(lblSizeC);
+
+		JLabel lblD = new JLabel("D:");
+		lblD.setHorizontalAlignment(SwingConstants.CENTER);
+		lblD.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblD.setBounds(10, 46, 20, 14);
+		panel_1.add(lblD);
+
+		lblFileNameD = new JLabel("Empty Disk Slot");
+		lblFileNameD.setHorizontalAlignment(SwingConstants.CENTER);
+		lblFileNameD.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblFileNameD.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		lblFileNameD.setBounds(35, 45, 340, 14);
+		panel_1.add(lblFileNameD);
+
+		btnMountD = new JButton(MOUNT);
+		btnMountD.setActionCommand(AC_BTN_MOUNT_D);
+		btnMountD.addActionListener(this);
+		btnMountD.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		btnMountD.setBounds(387, 41, 90, 14);
+		panel_1.add(btnMountD);
+
+		lblSizeD = new JLabel("1.44 MB");
+		lblSizeD.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSizeD.setFont(new Font("Courier New", Font.PLAIN, 12));
+		lblSizeD.setBounds(478, 41, 62, 14);
+		panel_1.add(lblSizeD);
 
 		JPanel pnlRegistersAndStatus = new JPanel();
 		pnlRegistersAndStatus.setPreferredSize(new Dimension(610, 257));
@@ -605,7 +872,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		gbc_pnlRegistersAndStatus.fill = GridBagConstraints.BOTH;
 		gbc_pnlRegistersAndStatus.gridx = 1;
 		gbc_pnlRegistersAndStatus.gridy = 1;
-		frame.getContentPane().add(pnlRegistersAndStatus, gbc_pnlRegistersAndStatus);
+		frmMachineb.getContentPane().add(pnlRegistersAndStatus, gbc_pnlRegistersAndStatus);
 
 		JPanel pnlRegisters = new JPanel();
 		pnlRegisters.setBounds(24, 11, 555, 130);
@@ -862,7 +1129,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		gbc_pnlProgramCounter.fill = GridBagConstraints.BOTH;
 		gbc_pnlProgramCounter.gridx = 1;
 		gbc_pnlProgramCounter.gridy = 2;
-		frame.getContentPane().add(pnlProgramCounter, gbc_pnlProgramCounter);
+		frmMachineb.getContentPane().add(pnlProgramCounter, gbc_pnlProgramCounter);
 
 		JLabel lblReg_SP = new JLabel("SP");
 		lblReg_SP.setFont(new Font("Tahoma", Font.PLAIN, 22));
@@ -907,41 +1174,41 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		gbc_scrollAssembler.fill = GridBagConstraints.BOTH;
 		gbc_scrollAssembler.gridx = 1;
 		gbc_scrollAssembler.gridy = 4;
-		frame.getContentPane().add(scrollAssembler, gbc_scrollAssembler);
+		frmMachineb.getContentPane().add(scrollAssembler, gbc_scrollAssembler);
 
 		txtAssemblerCode = new JTextPane();
 		// txtAssemblerCode.getDocument().putProperty(PlainDocument.tabSizeAttribute, 35);
 		txtAssemblerCode.setFont(new Font("Courier New", Font.PLAIN, 16));
 		scrollAssembler.setViewportView(txtAssemblerCode);
 
-		JPanel panel = new JPanel();
-		panel.setLayout(null);
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(0, 0, 0, 5);
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 1;
-		gbc_panel.gridy = 5;
-		frame.getContentPane().add(panel, gbc_panel);
+		JPanel pnlRun = new JPanel();
+		pnlRun.setLayout(null);
+		GridBagConstraints gbc_pnlRun = new GridBagConstraints();
+		gbc_pnlRun.insets = new Insets(0, 0, 0, 5);
+		gbc_pnlRun.fill = GridBagConstraints.BOTH;
+		gbc_pnlRun.gridx = 1;
+		gbc_pnlRun.gridy = 5;
+		frmMachineb.getContentPane().add(pnlRun, gbc_pnlRun);
 
 		btnRun = new JButton("RUN");
 		btnRun.setActionCommand(AC_BTN_RUN);
 		btnRun.addActionListener(this);
 		btnRun.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnRun.setBounds(491, 17, 90, 42);
-		panel.add(btnRun);
+		pnlRun.add(btnRun);
 
 		JButton btnStep = new JButton("STEP");
 		btnStep.setActionCommand(AC_BTN_STEP);
 		btnStep.addActionListener(this);
 		btnStep.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnStep.setBounds(145, 17, 90, 42);
-		panel.add(btnStep);
+		pnlRun.add(btnStep);
 
 		spinnerStepCount = new JSpinner();
 		spinnerStepCount.setModel(new SpinnerNumberModel(new Integer(1), new Integer(1), null, new Integer(1)));
 		spinnerStepCount.setFont(new Font("Tahoma", Font.PLAIN, 30));
 		spinnerStepCount.setBounds(31, 17, 90, 42);
-		panel.add(spinnerStepCount);
+		pnlRun.add(spinnerStepCount);
 
 		btnStop = new JButton("STOP");
 		btnStop.setActionCommand(AC_BTN_STOP);
@@ -949,10 +1216,10 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		btnStop.setForeground(Color.RED);
 		btnStop.setFont(new Font("Tahoma", Font.BOLD, 16));
 		btnStop.setBounds(391, 17, 90, 42);
-		panel.add(btnStop);
+		pnlRun.add(btnStop);
 
 		JMenuBar menuBar = new JMenuBar();
-		frame.setJMenuBar(menuBar);
+		frmMachineb.setJMenuBar(menuBar);
 
 		JMenu mnuFile = new JMenu("File");
 		menuBar.add(mnuFile);
@@ -991,11 +1258,6 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 		JMenu mnuDisks = new JMenu("Disks");
 		menuBar.add(mnuDisks);
 
-		JMenuItem mnuDisksMount = new JMenuItem("Mount/Dismout disks...");
-		mnuDisksMount.setActionCommand(AC_MNU_DISKS_MOUNT);
-		mnuDisksMount.addActionListener(this);
-		mnuDisks.add(mnuDisksMount);
-
 		JMenuItem mnuDisksNew = new JMenuItem("Make a New Disk...");
 		mnuDisksNew.setActionCommand(AC_MNU_DISKS_NEW);
 		mnuDisksNew.addActionListener(this);
@@ -1031,6 +1293,11 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private final static String AC_BTN_STEP = "btnStep";
 	private final static String AC_BTN_RUN = "btnRun";
 	private final static String AC_BTN_STOP = "btnStop";
+
+	private final static String AC_BTN_MOUNT_A = "btnMountA";
+	private final static String AC_BTN_MOUNT_B = "btnMountB";
+	private final static String AC_BTN_MOUNT_C = "btnMountC";
+	private final static String AC_BTN_MOUNT_D = "btnMountD";
 
 	private final static String AC_MNU_FILE_NEW = "mnuFileNew";
 	private final static String AC_MNU_FILE_RESET = "mnuFileReset";
@@ -1070,6 +1337,7 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private final static String DISKS = "Disks";
 
 	public final static String MEMORY_SUFFIX = "mem";
+	public final static String DISK_SUFFIX = "mem";
 	private final static String FILE_SUFFIX = "sms";
 	private final static String FILE_SUFFIX_PERIOD = "." + FILE_SUFFIX;
 	private JFormattedTextField ftfReg_A;
@@ -1092,6 +1360,28 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	private JButton btnRun;
 	private JButton btnStop;
 
+	private JLabel lblFileNameA;
+	private JLabel lblFileNameB;
+	private JLabel lblFileNameC;
+	private JLabel lblFileNameD;
+	private JButton btnMountA;
+	private JButton btnMountB;
+	private JButton btnMountC;
+	private JButton btnMountD;
+	private JLabel lblSizeA;
+	private JLabel lblSizeB;
+	private JLabel lblSizeC;
+	private JLabel lblSizeD;
+
+	private JLabel[] lblFileNames;
+	private JLabel[] lblSizes;
+	private JButton[] btnMounts;
+
+	private final static String MOUNT = "Mount";
+	private final static String DISMOUNT = "Dismount";
+	private final static String NO_FILENAME = "<slot empty>";
+	private final static String NO_SIZE = "<0 KB>";
+
 	// -----------------------------------------------------------
 
 	@Override
@@ -1113,6 +1403,4 @@ public class Machine8080A implements PropertyChangeListener, MouseListener,
 	@Override
 	public void mouseReleased(MouseEvent e) {
 	}
-
-	// end of classs
 }

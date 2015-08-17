@@ -19,7 +19,7 @@ import jssc.SerialPortException;
 import device.Device8080;
 import terminal.TerminalSettings;
 import terminal.PortSetupDetails;
-import terminal.Terminal.SerialPortReader;
+//import terminal.Terminal.SerialPortReader;
 
 public class Console extends Device8080 {
 	private TerminalSettings terminalSettings;
@@ -176,14 +176,14 @@ public class Console extends Device8080 {
 		return terminalSettings;
 	}//getTerminalSettings
 	
-	private String stripSuffix(String fileName) {
-		String result = fileName;
-		int periodLocation = fileName.indexOf(".");
-		if (periodLocation != -1) {// this selection has a suffix
-			result = fileName.substring(0, periodLocation); // removed suffix
-		}// inner if
-		return result;
-	}//stripSuffix
+//	private String stripSuffix(String fileName) {
+//		String result = fileName;
+//		int periodLocation = fileName.indexOf(".");
+//		if (periodLocation != -1) {// this selection has a suffix
+//			result = fileName.substring(0, periodLocation); // removed suffix
+//		}// inner if
+//		return result;
+//	}//stripSuffix
 	
 	private String getConsoleSettingsFile(){
 		Path sourcePath = Paths.get(FILE_LOCATION, CONSOLE,DEFAULT_STATE_FILE).toAbsolutePath().normalize();
@@ -244,26 +244,26 @@ public class Console extends Device8080 {
 	// }// while
 	// }//readInputBuffer
 
-	private void sendOutput(Byte value) {
-		if (serialPort == null) {
-			String msg = String.format("Serial Port %s is not opened",
-					terminalSettings.getPortName());
-			JOptionPane.showMessageDialog(null, "Keyboard In", msg,
-					JOptionPane.WARNING_MESSAGE);
-		} else {
-			try {
-				serialPort.writeByte(value);
-			} catch (SerialPortException e) {
-				String msg = String
-						.format("Failed to write byte %02d to port %s with exception %s",
-								value, terminalSettings.getPortName(),
-								e.getExceptionType());
-				JOptionPane.showMessageDialog(null, msg, "Keyboard In",
-						JOptionPane.WARNING_MESSAGE);
-				// e.printStackTrace();
-			}
-		}
-	}// sendOutput
+//	private void sendOutput(Byte value) {
+//		if (serialPort == null) {
+//			String msg = String.format("Serial Port %s is not opened",
+//					terminalSettings.getPortName());
+//			JOptionPane.showMessageDialog(null, "Keyboard In", msg,
+//					JOptionPane.WARNING_MESSAGE);
+//		} else {
+//			try {
+//				serialPort.writeByte(value);
+//			} catch (SerialPortException e) {
+//				String msg = String
+//						.format("Failed to write byte %02d to port %s with exception %s",
+//								value, terminalSettings.getPortName(),
+//								e.getExceptionType());
+//				JOptionPane.showMessageDialog(null, msg, "Keyboard In",
+//						JOptionPane.WARNING_MESSAGE);
+//				// e.printStackTrace();
+//			}
+//		}
+//	}// sendOutput
 
 	public class SerialPortReader implements SerialPortEventListener {
 

@@ -1,6 +1,5 @@
 package hardware;
 
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JOptionPane;
 
@@ -82,12 +81,10 @@ public class CentralProcessingUnit implements MemoryListener {
 	public void startRunMode() {
 		int opCodeLength = 0;
 		setRunning(true);
-		int counter = 0;
 		while (running) {
 			opCode = mm.getByte(programCounter);
 			opCodeLength = execute8080Instruction(opCode);
 			incrementProgramCounter(opCodeLength);
-			// System.out.printf("in startRunMode. count: %4d%n",counter++);
 		}// while
 	}// startRunMode
 

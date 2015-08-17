@@ -40,7 +40,6 @@ import java.util.Scanner;
 import java.util.Set;
 
 import memory.Core;
-import myComponents.Hex64KSpinner;
 import myComponents.Hex64KSpinner16;
 
 import java.awt.event.ActionListener;
@@ -59,7 +58,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 	private int lineHeight;
 	private Document doc;
 	private StringBuilder lineBuilder;
-	private int maxMemory;
+//	private int maxMemory;
 	private HashMap<Integer, Byte> changeStagingArea;
 
 	private MaskFormatter format16HexDigits;
@@ -92,10 +91,10 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 //		return lineNumber * SIXTEEN;
 //	}// lineNumberToStartingLocation
 
-	private int locationToLineNumber(int location) {
-		int loc = location & 0XFFF0;
-		return loc / SIXTEEN;
-	}// locationToLineNumber
+//	private int locationToLineNumber(int location) {
+//		int loc = location & 0XFFF0;
+//		return loc / SIXTEEN;
+//	}// locationToLineNumber
 
 //	private int startDocIndex(int lineNumber) {
 //		return lineNumber * LINE_SIZE;
@@ -160,7 +159,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 	private void appInit() {
 		changeStagingArea = new HashMap<Integer, Byte>();
 
-		maxMemory = core.getSize() - 1;
+//		maxMemory = core.getSize() - 1;
 //		maxLineNumber = locationToLineNumber(maxMemory);
 		doc = new PlainDocument();
 
@@ -436,7 +435,7 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 	}
 
 	private static final int SIXTEEN = 16; // or 0X10;
-	private static final int LINE_SIZE = 67;
+//	private static final int LINE_SIZE = 67;
 	private JPanel panelEdit;
 	private Hex64KSpinner16 spinnerEdit;
 	private JButton btnCommit;

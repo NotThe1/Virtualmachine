@@ -1,8 +1,6 @@
 package hardware;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +13,7 @@ import memory.MemoryAccessErrorEvent;
 import memory.MemoryAccessErrorListener;
 import memory.MemoryTrapEvent;
 import memory.MemoryTrapListener;
-import disks.DiskControlUnit;
+//import disks.DiskControlUnit;
 
 public class Test implements MemoryTrapListener, MemoryAccessErrorListener{
 
@@ -31,13 +29,12 @@ public class Test implements MemoryTrapListener, MemoryAccessErrorListener{
 		core.addMemoryAccessErrorListener(this);
 
 		core.addMemoryTrapListener(this);
-		byte value = (byte) 0XFF;
+
 		int loc = memSize - 3;
 		core.addTrapLocation(loc, Core.TRAP.IO);
-		//core.setTrapEnabled(true);
-//		core.write(loc,value );
+
 		
-		DiskControlUnit dcu = new DiskControlUnit(core);
+//		DiskControlUnit dcu = new DiskControlUnit(core);
 		String fileLocation = ".";
 		Path sourcePath = Paths.get(fileLocation, "Settings", "test.dat");
 		core.removeMemoryAccessErrorListener(this);

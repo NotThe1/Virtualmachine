@@ -2,7 +2,6 @@ package memory;
 
 import java.io.Serializable;
 
-import javax.swing.JOptionPane;
 
 //need to throw address out of bounds error, protection violation
 public class MainMemory implements Serializable, MemoryAccessErrorListener{ //,	MemoryTrapListener

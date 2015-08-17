@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 
 public class MemorySaver extends JDialog {
 
+	private static final long serialVersionUID = 1L;
 	private final JPanel contentPanel = new JPanel();
 	private Hex64KSpinner16 firstAddress;
 	private Hex64KSpinner16 lastAddress;
@@ -90,8 +91,6 @@ public class MemorySaver extends JDialog {
 		memoryStart = memoryStart & 0XFFF0; // start at xxx0
 		memoryEnd = memoryEnd | 0X000F; // end at yyyF
 
-		char thisChar;
-		byte thisByte;
 		StringBuilder sb = new StringBuilder();
 		char[] printables = new char[SIXTEEN];
 		try {

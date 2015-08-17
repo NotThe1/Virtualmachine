@@ -5,7 +5,6 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
-import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.text.MaskFormatter;
@@ -31,7 +30,7 @@ import java.awt.event.WindowEvent;
 public class TestDeviceController {
 
 	private JFrame frmTestDeviceController;
-	private JTextArea txtLog;
+//	private JTextArea txtLog;
 	DeviceController deviceController;
 	private JFormattedTextField ftfByteToSend;
 	private JTextField txtCharactersToSend;

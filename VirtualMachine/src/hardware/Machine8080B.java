@@ -1300,7 +1300,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_BTN_MOUNT_D = "btnMountD";
 
 	private final static String AC_MNU_FILE_NEW = "mnuFileNew";
-	private final static String AC_MNU_FILE_RESET = "mnuFileReset";
+//	private final static String AC_MNU_FILE_RESET = "mnuFileReset";
 	private final static String AC_MNU_FILE_OPEN = "mnuFileOpen";
 	private final static String AC_MNU_FILE_SAVE = "mnuFileSave";
 	private final static String AC_MNU_FILE_SAVEAS = "mnuFileSaveAs";
@@ -1334,7 +1334,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	public final static String FILE_LOCATION = ".";
 	private final static String SETTINGS = "Settings";
 	public final static String MEMORY = "Memory";
-	private final static String DISKS = "Disks";
+//	private final static String DISKS = "Disks";
 
 	public final static String MEMORY_SUFFIX = "mem";
 	public final static String DISK_SUFFIX = "mem";

@@ -5,7 +5,6 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
-import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.text.MaskFormatter;
@@ -69,7 +68,7 @@ public class TestConsole {
 
 	private void initApplication() {
 		console = new Console((byte) 01, (byte) 01, (byte) 02);
-		TerminalSettings termininalSettings = console.getTerminalSettings();
+//		TerminalSettings termininalSettings = console.getTerminalSettings();
 		showConnectionString();
 
 	}// initApplication
@@ -254,8 +253,7 @@ public class TestConsole {
 		btnSetConnectionValues.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				console.setSerialConnection();
-				TerminalSettings termininalSettings = console
-						.getTerminalSettings();
+//				TerminalSettings termininalSettings = console.getTerminalSettings();
 				showConnectionString();
 			}
 		});

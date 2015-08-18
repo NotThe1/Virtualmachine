@@ -47,6 +47,7 @@ public class CentralProcessingUnit implements MemoryListener {
 			CodeConditional.M };
 
 	public CentralProcessingUnit() {
+		System.out.printf("in default CPU constructor. not what we want!!%n");
 		mm = new MainMemory(new Core(MEMORY_SIZE));
 		this.memorySizeInBytes = mm.getMemorySizeInBytes();
 		ccr = new ConditionCodeRegister();

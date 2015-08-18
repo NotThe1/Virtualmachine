@@ -101,16 +101,17 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private JFrame frmMachineb;
 
 	private Core core;
-	private MainMemory mm;
 	private ConditionCodeRegister ccr;
 	private WorkingRegisterSet wrs;
-	private ArithmeticUnit au;
-	private CentralProcessingUnit cpu;
+	private MainMemory mm;				//(core)
 	private DeviceController dc;
+	private ArithmeticUnit au;			// (ccr)
+	private CentralProcessingUnit cpu;	// (mm,ccr,au,wrs,dc)
+	private DiskControlUnit dcu;		// (core)
+	
+	private Disassembler disassembler;	// (core,txtBox,cpu)
+	private ShowCoreMemory scm;	
 
-	private DiskControlUnit dcu;
-	private ShowCoreMemory scm;
-	private Disassembler disassembler;
 
 	private JScrollPane scrollAssembler;
 	private MaskFormatter format2HexDigits;
@@ -218,6 +219,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mm = new MainMemory(core);
 		// ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
 		// loadTheDisplay();
+		System.out.printf("In restoreMachineState wrs = %s%n",wrs.toString());
 	}// restoreMachineState
 
 	private void loadTheDisplay() {
@@ -334,6 +336,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		case NAME_REG_PC:
 			if (cpu != null) {
 				cpu.setProgramCounter((int) intValue);
+				wrs.setProgramCounter((int) intValue);
 				disassembler.run();
 				txtAssemblerCode.setCaretPosition(0);
 				scrollAssembler.getVerticalScrollBar().setValue(0);
@@ -489,7 +492,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}// if - returnValue
 			break;
 		case AC_MNU_FILE_CLOSE:
-			saveMachineState();
+			appClose();
 			System.exit(-1);
 			break;
 
@@ -679,7 +682,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	public void appInit() {
+	private void appInit() {
 		currentMachineName = getDefaultMachineStateFile();
 		restoreMachineState();
 		dc = new DeviceController();
@@ -690,6 +693,24 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
 		loadTheDisplay();
 		setupDisks();
+	}
+	
+	private void appClose(){
+		saveMachineState();
+		closeIt(disassembler);
+		closeIt(dcu);
+		closeIt(cpu);
+		closeIt(au);
+		closeIt(dc);
+		closeIt(mm);
+		closeIt(wrs);
+		closeIt(ccr);
+		closeIt(core);		
+	}
+	private void closeIt(Object obj){
+		if ( obj != null){
+			obj = null;
+		}
 	}
 
 	public Machine8080B() {

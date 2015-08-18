@@ -12,6 +12,7 @@ public class WorkingRegisterSet implements Serializable {
 	private HashMap<Reg, Byte> registers;
 
 	public WorkingRegisterSet() {
+		System.out.printf("Just into the wrs%n");
 		registers = new HashMap<Reg,Byte>();
 		initialize();
 	}// Constructor - Register()
@@ -76,6 +77,8 @@ public class WorkingRegisterSet implements Serializable {
 		case SP:
 			setStackPointer(value);
 			break;
+		case PC:
+			setProgramCounter(value);
 		default:
 			break;
 		}// switch
@@ -103,6 +106,9 @@ public class WorkingRegisterSet implements Serializable {
 		case SP:
 			return this.getStackPointer();
 			// exits here for SP
+		case PC:
+			return this.getProgramCounter();
+			// exits here for PC
 		default:
 			// just use 0;
 		}// switch

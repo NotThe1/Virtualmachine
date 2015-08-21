@@ -1,6 +1,5 @@
 package hardware;
 
-
 import javax.swing.JOptionPane;
 
 import memory.Core;
@@ -80,10 +79,14 @@ public class CentralProcessingUnit implements MemoryListener {
 	}// startStepMode
 
 	public void startRunMode() {
+		int counter = 0;
 		int opCodeLength = 0;
 		setRunning(true);
 		while (running) {
 			opCode = mm.getByte(programCounter);
+
+			System.out.printf("Count:  %6d, ProgramCounter : %04X,  Opcode: %02X%n", counter++, programCounter, opCode);
+
 			opCodeLength = execute8080Instruction(opCode);
 			incrementProgramCounter(opCodeLength);
 		}// while
@@ -108,11 +111,11 @@ public class CentralProcessingUnit implements MemoryListener {
 	}// getProgramCounter
 
 	public void setProgramCounter(int value) {
-		this.programCounter = value;
+		this.programCounter = value & 0XFFFF;
 	}// setProgramCounter
 
 	public void incrementProgramCounter(int count) {
-		this.programCounter += count;
+		setProgramCounter(this.programCounter += count);
 	}// incrementProgramCounter
 
 	private int execute8080Instruction(byte opCode) {
@@ -604,7 +607,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					// System.out.printf("RET %n", "");
 					break;
 				case 5:// yyy = 101
-					programCounter = wrs.getDoubleReg(Reg.HL);
+					this.setProgramCounter(wrs.getDoubleReg(Reg.HL));
 					opCodeSize = 0; // don't adjust PC
 					// System.out.printf("PCHL %n", "");
 					break;
@@ -809,7 +812,7 @@ public class CentralProcessingUnit implements MemoryListener {
 		if (!isValidMemoryLocation(newAddress)) {
 			reportInvalidMemoryReference(newAddress);
 		} else {
-			programCounter = newAddress;
+			this.setProgramCounter(newAddress);
 		}// if memory check
 	}
 
@@ -820,7 +823,7 @@ public class CentralProcessingUnit implements MemoryListener {
 			reportInvalidMemoryReference(oldPC);
 			return; //
 		}// if memory check
-		programCounter = oldPC;
+		this.setProgramCounter(oldPC);
 		wrs.setStackPointer(stackPointer + 2);
 	}// opCode_Return
 

@@ -39,6 +39,10 @@ public class DeviceController {
 			
 	}// Constructor DeviceController()
 	
+	public void close(){
+		console.close();
+	}
+	
 	public void setSerialConnection(){
 		console.setSerialConnection();
 	}//setSerialConnection

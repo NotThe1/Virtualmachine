@@ -195,12 +195,33 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			ioe.printStackTrace();
 		}// try - write objects
 	}// saveMachineState(String fileName)
+	
+	private void makeNewMachine(){
+		closeAllObjects();
+		core = new Core(MEMORY_SIZE_BYTES);
+		ccr = new ConditionCodeRegister();
+		wrs = new WorkingRegisterSet();
+		
+		mm = new MainMemory(core);
+		
+		dc = new DeviceController();
+		au = new ArithmeticUnit(ccr);
+		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
+		cpu.setProgramCounter(wrs.getProgramCounter());
+		dcu = new DiskControlUnit(core);
+//		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+		disassembler = new Disassembler(core, txtAssemblerCode.getDocument());
+		disassembler.upDateDisplay(wrs.getProgramCounter());
+		loadTheDisplay();
+		setupDisks();		
+	}
 
 	private void restoreMachineState() {
 		restoreMachineState(currentMachineName);// getDefaultMachineStateFile()
 	}// restoreMachineState
 
 	private void restoreMachineState(String fileName) {
+		makeNewMachine();
 		try {
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName + FILE_SUFFIX_PERIOD));
 			ccr = (ConditionCodeRegister) ois.readObject();
@@ -216,10 +237,16 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			ccr = new ConditionCodeRegister();
 			wrs = new WorkingRegisterSet();
 		}// try
+		
 		mm = new MainMemory(core);
-		// ftfReg_PC.setValue(getWordDisplayValue(wrs.getProgramCounter()));
-		// loadTheDisplay();
-		System.out.printf("In restoreMachineState wrs = %s%n",wrs.toString());
+
+//		dc = new DeviceController();
+		au = new ArithmeticUnit(ccr);
+		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
+		cpu.setProgramCounter(wrs.getProgramCounter());
+		dcu = new DiskControlUnit(core);
+		disassembler = new Disassembler(core, txtAssemblerCode.getDocument());
+
 	}// restoreMachineState
 
 	private void loadTheDisplay() {
@@ -337,7 +364,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			if (cpu != null) {
 				cpu.setProgramCounter((int) intValue);
 				wrs.setProgramCounter((int) intValue);
-				disassembler.run();
+//				disassembler.run();
+				disassembler.upDateDisplay((int) intValue);
 				txtAssemblerCode.setCaretPosition(0);
 				scrollAssembler.getVerticalScrollBar().setValue(0);
 			}
@@ -449,17 +477,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			addRmoveDisk(3,((AbstractButton) ae.getSource()).getText());
 			break;
 		case AC_MNU_FILE_NEW:
-			cpu = null;
-			cpu = new CentralProcessingUnit();
-			cpu.setProgramCounter((int) 0X0000);
-			core = null;
-			core = new Core(MEMORY_SIZE_BYTES);
-			mm = null;
-			mm = new MainMemory(core);
-			wrs.initialize();
-			disassembler.resetDisplay();
-			;
-			loadTheDisplay();
+			makeNewMachine();
+			disassembler.upDateDisplay(wrs.getProgramCounter());
 			break;
 
 		case AC_MNU_FILE_OPEN:
@@ -469,10 +488,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 				// need to strip the file suffix off (will replace later)
 				absolutePath = stripSuffix(absolutePath);
 				restoreMachineState(absolutePath);
-				cpu.setProgramCounter(wrs.getProgramCounter());
 				disassembler.resetDisplay();
-				// disassembler.run();
 				loadTheDisplay();
+				disassembler.upDateDisplay(wrs.getProgramCounter());
 			} else {
 				System.out.printf("You cancelled the Open...%n", "");
 			}// if - returnValue
@@ -517,8 +535,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			if (scm != null) {
 				scm.refresh();
 			}
-			disassembler.run();
-			scrollAssembler.getVerticalScrollBar().setValue(0);
+			disassembler.resetDisplay();
+			disassembler.upDateDisplay(wrs.getProgramCounter());
+			
+//			scrollAssembler.getVerticalScrollBar().setValue(0);
+
 			break;
 
 		}// switch - actionCommand
@@ -685,33 +706,35 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private void appInit() {
 		currentMachineName = getDefaultMachineStateFile();
 		restoreMachineState();
-		dc = new DeviceController();
-		au = new ArithmeticUnit(ccr);
-		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
-		cpu.setProgramCounter(wrs.getProgramCounter());
-		dcu = new DiskControlUnit(core);
-		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
 		loadTheDisplay();
+		disassembler.upDateDisplay(wrs.getProgramCounter());
 		setupDisks();
 	}
 	
 	private void appClose(){
 		saveMachineState();
+		closeAllObjects();
+	}
+	private void closeAllObjects(){
 		closeIt(disassembler);
 		closeIt(dcu);
 		closeIt(cpu);
 		closeIt(au);
-		closeIt(dc);
+		if (dc!= null){
+			dc.close();
+			dc = null;
+		}
 		closeIt(mm);
 		closeIt(wrs);
 		closeIt(ccr);
-		closeIt(core);		
+		closeIt(core);			
 	}
 	private void closeIt(Object obj){
 		if ( obj != null){
 			obj = null;
 		}
 	}
+
 
 	public Machine8080B() {
 		try {
@@ -1198,6 +1221,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		frmMachineb.getContentPane().add(scrollAssembler, gbc_scrollAssembler);
 
 		txtAssemblerCode = new JTextPane();
+		txtAssemblerCode.setEditable(false);
 		// txtAssemblerCode.getDocument().putProperty(PlainDocument.tabSizeAttribute, 35);
 		txtAssemblerCode.setFont(new Font("Courier New", Font.PLAIN, 16));
 		scrollAssembler.setViewportView(txtAssemblerCode);

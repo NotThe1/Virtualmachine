@@ -12,7 +12,6 @@ public class WorkingRegisterSet implements Serializable {
 	private HashMap<Reg, Byte> registers;
 
 	public WorkingRegisterSet() {
-		System.out.printf("Just into the wrs%n");
 		registers = new HashMap<Reg,Byte>();
 		initialize();
 	}// Constructor - Register()
@@ -30,7 +29,7 @@ public class WorkingRegisterSet implements Serializable {
 	}// getProgramCounter
 
 	protected void setProgramCounter(int programCounter) {
-		this.programCounter = programCounter;
+		this.programCounter = programCounter & 0XFFFF;
 	}// setProgramCounter
 	
 	protected int getStackPointer() {

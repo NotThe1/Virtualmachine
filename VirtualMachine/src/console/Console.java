@@ -64,6 +64,10 @@ public class Console extends Device8080 {
 //		System.out.println("In finalize\n");
 //		super.finalize();
 //	}
+	
+	public void close(){
+		closeConnection();
+	}
 
 	@Override
 	public void byteFromCPU(Byte address, Byte value) {

@@ -9,13 +9,14 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import memory.Core;
-import hardware.CentralProcessingUnit;
+
+//import hardware.CentralProcessingUnit;
 
 public class Disassembler implements Runnable {
 
 	private Core core;
 	private Document doc;
-	private CentralProcessingUnit cpu;
+	// private CentralProcessingUnit cpu;
 
 	private int workingProgramCounter;
 	private int nextProgramCounter;
@@ -31,8 +32,11 @@ public class Disassembler implements Runnable {
 
 	@Override
 	public void run() {
+	}
 
-		this.workingProgramCounter = cpu.getProgramCounter();
+	public void upDateDisplay(int programCounter) {
+
+		this.workingProgramCounter = programCounter;
 		if (currentLine == -1) { // fresh listing
 			try {
 				// displayLine = 0;
@@ -199,10 +203,9 @@ public class Disassembler implements Runnable {
 		currentLine = -1;
 	}// resetDisplay
 
-	public Disassembler(Core core, Document doc, CentralProcessingUnit cpu) {
+	public Disassembler(Core core, Document doc) {
 		this.core = core;
 		this.doc = doc;
-		this.cpu = cpu;
 		// this.programCounter = cpu.getProgramCounter();
 		linesToDisplay = LTD;
 		linesToTrail = LTT;
@@ -271,7 +274,7 @@ public class Disassembler implements Runnable {
 		opcodeMap.put((byte) 0X2F, new OperationStructure((byte) 0X2F, 1, "CMA", "", "", "A = !A"));
 
 		opcodeMap.put((byte) 0X30, new OperationStructure((byte) 0X30, 1, "Alt", "", "", "Alt NOP(SIM)")); // special
-		opcodeMap.put((byte) 0X31, new OperationStructure((byte) 0X31, 3, "LXI", "SP", "D16","SP-data"));
+		opcodeMap.put((byte) 0X31, new OperationStructure((byte) 0X31, 3, "LXI", "SP", "D16", "SP-data"));
 		opcodeMap.put((byte) 0X32, new OperationStructure((byte) 0X32, 3, "STA", "addr", "", "(addr)<-A"));
 		opcodeMap.put((byte) 0X33, new OperationStructure((byte) 0X33, 1, "INX", "SP", "", "SP<-SP + 1"));
 		opcodeMap.put((byte) 0X34, new OperationStructure((byte) 0X34, 1, "INR", "M", "", "(HL)<-(HL)+1"));

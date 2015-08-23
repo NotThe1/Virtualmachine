@@ -12,6 +12,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JPanel;
 
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 
@@ -61,7 +62,9 @@ import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
 
 
+
 import javax.swing.AbstractButton;
+import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -78,6 +81,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import codeSupport.Disassembler;
+import codeSupport.ShowCode;
 import memory.Core;
 import memory.MainMemory;
 import memory.MemoryLimitVerifier;
@@ -103,15 +107,15 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private Core core;
 	private ConditionCodeRegister ccr;
 	private WorkingRegisterSet wrs;
-	private MainMemory mm;				//(core)
+	private MainMemory mm; // (core)
 	private DeviceController dc;
-	private ArithmeticUnit au;			// (ccr)
-	private CentralProcessingUnit cpu;	// (mm,ccr,au,wrs,dc)
-	private DiskControlUnit dcu;		// (core)
-	
-	private Disassembler disassembler;	// (core,txtBox,cpu)
-	private ShowCoreMemory scm;	
+	private ArithmeticUnit au; // (ccr)
+	private CentralProcessingUnit cpu; // (mm,ccr,au,wrs,dc)
+	private DiskControlUnit dcu; // (core)
 
+	private ShowCode showCode;
+	private Disassembler disassembler; // (core,txtBox,cpu)
+	private ShowCoreMemory scm;
 
 	private JScrollPane scrollAssembler;
 	private MaskFormatter format2HexDigits;
@@ -195,25 +199,25 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			ioe.printStackTrace();
 		}// try - write objects
 	}// saveMachineState(String fileName)
-	
-	private void makeNewMachine(){
+
+	private void makeNewMachine() {
 		closeAllObjects();
 		core = new Core(MEMORY_SIZE_BYTES);
 		ccr = new ConditionCodeRegister();
 		wrs = new WorkingRegisterSet();
-		
+
 		mm = new MainMemory(core);
-		
+
 		dc = new DeviceController();
 		au = new ArithmeticUnit(ccr);
 		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
 		cpu.setProgramCounter(wrs.getProgramCounter());
 		dcu = new DiskControlUnit(core);
-//		disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
+		// disassembler = new Disassembler(core, txtAssemblerCode.getDocument(), cpu);
 		disassembler = new Disassembler(core, txtAssemblerCode.getDocument());
 		disassembler.upDateDisplay(wrs.getProgramCounter());
 		loadTheDisplay();
-		setupDisks();		
+		setupDisks();
 	}
 
 	private void restoreMachineState() {
@@ -237,10 +241,10 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			ccr = new ConditionCodeRegister();
 			wrs = new WorkingRegisterSet();
 		}// try
-		
+
 		mm = new MainMemory(core);
 
-//		dc = new DeviceController();
+		// dc = new DeviceController();
 		au = new ArithmeticUnit(ccr);
 		cpu = new CentralProcessingUnit(mm, ccr, au, wrs, dc);
 		cpu.setProgramCounter(wrs.getProgramCounter());
@@ -325,7 +329,21 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			ccr.setCarryFlag(state);
 			break;
 		}// switch
+		setCheckBoxFont(ckbSign);
+		setCheckBoxFont(ckbZero);
+		setCheckBoxFont(ckbAuxCarry);
+		setCheckBoxFont(ckbParity);
+		setCheckBoxFont(ckbCarry);
+		
 	}// updateConditionCode
+	
+	private void setCheckBoxFont(JCheckBox ckb){
+		if (ckb.isSelected()){
+			ckb.setForeground(Color.RED);
+		}else {
+			ckb.setForeground(Color.GRAY);
+		}//if
+	}//setCheckBoxFont
 
 	private void modifyRegister(String regName, String strValue) {
 		int intValue = Integer.valueOf(strValue, 16);
@@ -333,26 +351,33 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		switch (regName) {
 		case NAME_REG_A:
 			wrs.setReg(Reg.A, (byte) intValue);
+			
 			break;
 		case NAME_REG_B:
 			wrs.setReg(Reg.B, (byte) intValue);
+			
 			break;
 		case NAME_REG_C:
 			wrs.setReg(Reg.C, (byte) intValue);
+			
 			break;
 		case NAME_REG_D:
 			wrs.setReg(Reg.D, (byte) intValue);
+			
 			break;
 		case NAME_REG_E:
 			wrs.setReg(Reg.E, (byte) intValue);
+			
 			break;
 		case NAME_REG_H:
 			wrs.setReg(Reg.H, (byte) intValue);
 			showRegM();
+			
 			break;
 		case NAME_REG_L:
 			wrs.setReg(Reg.L, (byte) intValue);
 			showRegM();
+			
 			break;
 		case NAME_REG_M:
 			// not yet implemented
@@ -362,13 +387,17 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			break;
 		case NAME_REG_PC:
 			if (cpu != null) {
-				cpu.setProgramCounter((int) intValue);
-				wrs.setProgramCounter((int) intValue);
-//				disassembler.run();
-				disassembler.upDateDisplay((int) intValue);
+				int thisIntValue = ((int) intValue) & 0XFFFF;
+				cpu.setProgramCounter(thisIntValue);
+				wrs.setProgramCounter(thisIntValue);
+				// disassembler.run();
+				disassembler.upDateDisplay(thisIntValue);
 				txtAssemblerCode.setCaretPosition(0);
-				scrollAssembler.getVerticalScrollBar().setValue(0);
-			}
+				// scrollAssembler.getVerticalScrollBar().setValue(0);
+				if (showCode != null) {
+					showCode.setProgramCounter(thisIntValue);
+				}// if
+			}// if - cpu!=null
 			break;
 
 		default:
@@ -442,7 +471,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-		
+
 		String actionCommand = ae.getActionCommand();
 		switch (actionCommand) {
 		case AC_BTN_RUN:
@@ -474,7 +503,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			addRmoveDisk(2, ((AbstractButton) ae.getSource()).getText());
 			break;
 		case AC_BTN_MOUNT_D:
-			addRmoveDisk(3,((AbstractButton) ae.getSource()).getText());
+			addRmoveDisk(3, ((AbstractButton) ae.getSource()).getText());
 			break;
 		case AC_MNU_FILE_NEW:
 			makeNewMachine();
@@ -537,10 +566,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}
 			disassembler.resetDisplay();
 			disassembler.upDateDisplay(wrs.getProgramCounter());
-			
-//			scrollAssembler.getVerticalScrollBar().setValue(0);
-
+			txtAssemblerCode.setCaretPosition(0);
 			break;
+
+		case AC_MNU_TOOLS_SHOW_CODE:
+			showCode = new ShowCode();
 
 		}// switch - actionCommand
 
@@ -710,31 +740,32 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		disassembler.upDateDisplay(wrs.getProgramCounter());
 		setupDisks();
 	}
-	
-	private void appClose(){
+
+	private void appClose() {
 		saveMachineState();
 		closeAllObjects();
 	}
-	private void closeAllObjects(){
+
+	private void closeAllObjects() {
 		closeIt(disassembler);
 		closeIt(dcu);
 		closeIt(cpu);
 		closeIt(au);
-		if (dc!= null){
+		if (dc != null) {
 			dc.close();
 			dc = null;
 		}
 		closeIt(mm);
 		closeIt(wrs);
 		closeIt(ccr);
-		closeIt(core);			
+		closeIt(core);
 	}
-	private void closeIt(Object obj){
-		if ( obj != null){
+
+	private void closeIt(Object obj) {
+		if (obj != null) {
 			obj = null;
 		}
 	}
-
 
 	public Machine8080B() {
 		try {
@@ -942,6 +973,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		pnlReg_A.add(lblReg_A, BorderLayout.NORTH);
 
 		ftfReg_A = new JFormattedTextField(format2HexDigits);
+		ftfReg_A.setForeground(Color.BLACK);
+		ftfReg_A.setText("");
 		// ftfReg_A.setText("");
 		ftfReg_A.setName(NAME_REG_A);
 		ftfReg_A.addPropertyChangeListener(this);
@@ -1328,6 +1361,15 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuMemoryLoad.setActionCommand(AC_MNU_MEMORY_LOAD);
 		mnuMemoryLoad.addActionListener(this);
 		mnuMemory.add(mnuMemoryLoad);
+
+		JMenu mnuTools = new JMenu("Tools");
+		menuBar.add(mnuTools);
+
+		JMenuItem mnuToolsShowCode = new JMenuItem("Show Code");
+		mnuToolsShowCode.setName(AC_MNU_TOOLS_SHOW_CODE);
+		mnuToolsShowCode.setActionCommand(AC_MNU_TOOLS_SHOW_CODE);
+		mnuToolsShowCode.addActionListener(this);
+		mnuTools.add(mnuToolsShowCode);
 	}
 
 	public static final int MEMORY_SIZE_K = 64; // in K
@@ -1345,7 +1387,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_BTN_MOUNT_D = "btnMountD";
 
 	private final static String AC_MNU_FILE_NEW = "mnuFileNew";
-//	private final static String AC_MNU_FILE_RESET = "mnuFileReset";
+	// private final static String AC_MNU_FILE_RESET = "mnuFileReset";
 	private final static String AC_MNU_FILE_OPEN = "mnuFileOpen";
 	private final static String AC_MNU_FILE_SAVE = "mnuFileSave";
 	private final static String AC_MNU_FILE_SAVEAS = "mnuFileSaveAs";
@@ -1357,6 +1399,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_SHOW = "mnuMemoryShow";
 	private final static String AC_MNU_MEMORY_SAVE = "mnuMemorySave";
 	private final static String AC_MNU_MEMORY_LOAD = "mnuMemoryLoad";
+
+	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
 
 	private final static String NAME_REG_A = "Reg_A";
 	private final static String NAME_REG_B = "Reg_B";
@@ -1379,7 +1423,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	public final static String FILE_LOCATION = ".";
 	private final static String SETTINGS = "Settings";
 	public final static String MEMORY = "Memory";
-//	private final static String DISKS = "Disks";
+	// private final static String DISKS = "Disks";
 
 	public final static String MEMORY_SUFFIX = "mem";
 	public final static String DISK_SUFFIX = "mem";

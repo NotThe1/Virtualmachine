@@ -44,6 +44,7 @@ import java.awt.event.ActionEvent;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.SwingConstants;
 
 public class ShowCode extends JFrame {
 	class Limits {
@@ -73,7 +74,7 @@ public class ShowCode extends JFrame {
 	private JLabel lblHeader;
 	private final static String NO_FILE = "No Active File";
 	private final static String SOURCE_FILE = "SourceFile";
-//	private final static String SPACE = " ";
+	// private final static String SPACE = " ";
 	private File currentFile;
 	private JEditorPane txtDisplay;
 	private Document doc;
@@ -106,23 +107,21 @@ public class ShowCode extends JFrame {
 		boolean notTheTargetLine = true;
 		try {
 			while (notTheTargetLine) {
-				posStart = doc.getText(0, doc.getLength()).indexOf(taregetAddress,posStart+1);
+				posStart = doc.getText(0, doc.getLength()).indexOf(taregetAddress, posStart + 1);
 				posEnd = doc.getText(posStart, doc.getLength() - posStart).indexOf("\n");
-				
-//			System.out.println(doc.getText(posStart+9,2));
-//				System.out.printf("Start: %d,  End: %d, Start + End: %d%n",posStart,posEnd,posStart + posEnd);	
-			
-				if (!doc.getText(posStart+9,2).equals("  ")){
+
+				if (!doc.getText(posStart - 1, 1).equals("\n")) {
+					posStart = posStart + posEnd;
+					continue;
+				}//
+
+				if (!doc.getText(posStart + 9, 2).equals("  ")) {
 					notTheTargetLine = false;
 				}// if we have the line!
-						
-					
-			}//while
+
+			}// while
 		} catch (BadLocationException e) {
 			System.out.printf("Instruction at %04X not found in Targeted Files%n", programCounter);
-//			JOptionPane.showMessageDialog(null,
-//					String.format("Instruction at %04X not found in Targeted Files", programCounter), "unable to locate",
-//					JOptionPane.ERROR_MESSAGE);
 			return;
 		}// try
 
@@ -158,7 +157,7 @@ public class ShowCode extends JFrame {
 			return; // everything is in place
 		}//
 
-//		Limits thisFilesLimit = new Limits();
+		// Limits thisFilesLimit = new Limits();
 		boolean weHaveAFile = false;
 
 		Set<File> files = fileList.keySet();
@@ -175,11 +174,11 @@ public class ShowCode extends JFrame {
 
 		if (!weHaveAFile) {
 			clearCurrentIndicaters();
-			System.out.printf("Target line: %04X Not File in Currently Loaded Files%n",lineNumber);
-//			JOptionPane.showMessageDialog(null,
-//					"Target line Not File in Currently Loaded Files : "
-//							+ lineNumber, "Not here",
-//					JOptionPane.ERROR_MESSAGE);
+			System.out.printf("Target line: %04X Not File in Currently Loaded Files%n", lineNumber);
+			// JOptionPane.showMessageDialog(null,
+			// "Target line Not File in Currently Loaded Files : "
+			// + lineNumber, "Not here",
+			// JOptionPane.ERROR_MESSAGE);
 		}// if file not found
 		return;
 	}// getFileToShow
@@ -201,7 +200,7 @@ public class ShowCode extends JFrame {
 			restructureLine = null; // force something
 		} else {
 			restructureLine = String.format("%s%n", line.substring(6));
-			//System.out.printf("%s%n", line.substring(6));
+			// System.out.printf("%s%n", line.substring(6));
 		}// if
 
 		return restructureLine;
@@ -240,7 +239,7 @@ public class ShowCode extends JFrame {
 			FileReader fileReader = new FileReader((newFile));
 			BufferedReader reader = new BufferedReader(fileReader);
 			String line, adjustedLine;
-			//int lineNumber = 0;
+			// int lineNumber = 0;
 			doc.putProperty(PlainDocument.tabSizeAttribute, 4);
 			try { // clear it out);
 				doc.remove(0, doc.getLength());
@@ -298,6 +297,7 @@ public class ShowCode extends JFrame {
 		fileList = new HashMap<File, Limits>();
 		listings = new HashMap<File, String>();
 		lblHeader = new JLabel(NO_FILE);
+		lblHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		lblHeader.setFont(new Font("Courier New", Font.BOLD, 16));
 		lblHeader.setForeground(Color.BLUE);
 		scrollPane.setColumnHeaderView(lblHeader);
@@ -319,7 +319,7 @@ public class ShowCode extends JFrame {
 	}
 
 	private void initialize() {
-	//	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 668, 674);
 
 		JMenuBar menuBar = new JMenuBar();
@@ -388,7 +388,7 @@ public class ShowCode extends JFrame {
 		txtDisplay.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent me) {
-				if (me.getClickCount() >=2){
+				if (me.getClickCount() >= 2) {
 					selectTheCorrectLine();
 				}
 			}

@@ -85,7 +85,7 @@ public class CentralProcessingUnit implements MemoryListener {
 		while (running) {
 			opCode = mm.getByte(programCounter);
 
-			System.out.printf("Count:  %6d, ProgramCounter : %04X,  Opcode: %02X%n", counter++, programCounter, opCode);
+//			System.out.printf("Count:  %6d, ProgramCounter : %04X,  Opcode: %02X%n", counter++, programCounter, opCode);
 
 			opCodeLength = execute8080Instruction(opCode);
 			incrementProgramCounter(opCodeLength);

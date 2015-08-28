@@ -252,7 +252,7 @@ public class Disassembler implements Runnable {
 		opcodeMap.put((byte) 0X1C, new OperationStructure((byte) 0X1C, 1, "INR", "E", "", "E <-E+1"));
 		opcodeMap.put((byte) 0X1D, new OperationStructure((byte) 0X1D, 1, "DCR", "E", "", "E <-E-1"));
 		opcodeMap.put((byte) 0X1E, new OperationStructure((byte) 0X1E, 2, "MVI", "E", "D8", "E,-byte2"));
-		opcodeMap.put((byte) 0X1F, new OperationStructure((byte) 0X1F, 1, "RAR", "", "", "A = A>> not thru carry"));
+		opcodeMap.put((byte) 0X1F, new OperationStructure((byte) 0X1F, 1, "RAR", "", "", "A = A>>  thru carry"));
 
 		opcodeMap.put((byte) 0X20, new OperationStructure((byte) 0X20, 1, "NOP*", "", "", "Alt NOP (RIM)"));// special
 		opcodeMap.put((byte) 0X21, new OperationStructure((byte) 0X21, 3, "LXI", "H", "D16", "H<-byte3,L<-byte2"));

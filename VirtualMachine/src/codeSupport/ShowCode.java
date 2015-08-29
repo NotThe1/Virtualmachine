@@ -18,9 +18,11 @@ import javax.swing.JScrollPane;
 
 import java.awt.GridBagConstraints;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +32,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -44,6 +47,7 @@ import java.awt.event.ActionEvent;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+
 import javax.swing.SwingConstants;
 
 public class ShowCode extends JFrame {
@@ -68,32 +72,34 @@ public class ShowCode extends JFrame {
 	Pattern limitEnd = Pattern.compile("CodeEnd:");
 	Pattern pLineNumber = Pattern.compile("^[0-9]{4}:\\s[a-f,A-F,0-9]{4}");
 
-	private HashMap<File, Limits> fileList;
-	private HashMap<File, String> listings;
+	private HashMap<String, Limits> fileList; // HashMap<AbsoluteFIlePath,Limits>
+	private HashMap<String, String> listings; // HashMap<AbsoluteFIlePath,contents>
 	private String defaultDirectory = "'";
 	private JLabel lblHeader;
 	private final static String NO_FILE = "No Active File";
 	private final static String SOURCE_FILE = "SourceFile";
 	// private final static String SPACE = " ";
-	private File currentFile;
+	private String currentFilePath;
 	private JEditorPane txtDisplay;
 	private Document doc;
 	private boolean fileIsCurrent;
 
 	private int currentStart, currentEnd;
 	private JScrollPane scrollPane;
+	private JMenu mnuFiles;
+	private JCheckBoxMenuItem mnuNew;
 
 	public void setProgramCounter(int programCounter) {
 		this.programCounter = programCounter & 0XFFFF;
 		setFileToShow(programCounter);
 
-		if (currentFile == null) {
+		if (currentFilePath == null) {
 			// notified user already.
 			return; // not much do do
 		}// if
 
 		if (!fileIsCurrent) { // file is notcurrent file
-			loadDisplay(currentFile);
+			loadDisplay(currentFilePath);
 		}// if
 
 		selectTheCorrectLine();
@@ -137,11 +143,11 @@ public class ShowCode extends JFrame {
 		return isLineInCurrentFile;
 	}// isLineInCurrentFile
 
-	private boolean isLineInThisFile(int lineNumber, File file) {
+	private boolean isLineInThisFile(int lineNumber, String filePath) {
 		boolean isLineInThisFile = false;
-		Limits thisFilesLimit = fileList.get(file);
+		Limits thisFilesLimit = fileList.get(filePath);
 		if ((lineNumber >= thisFilesLimit.start) && (lineNumber <= thisFilesLimit.end)) {
-			currentFile = file;
+			currentFilePath = filePath;
 			currentStart = thisFilesLimit.start;
 			currentEnd = thisFilesLimit.end;
 			isLineInThisFile = true;
@@ -160,12 +166,12 @@ public class ShowCode extends JFrame {
 		// Limits thisFilesLimit = new Limits();
 		boolean weHaveAFile = false;
 
-		Set<File> files = fileList.keySet();
-		for (File f : files) {
-			if (isLineInThisFile(lineNumber, f)) {
+		Set<String> filePaths = fileList.keySet();
+		for (String filePath : filePaths) {
+			if (isLineInThisFile(lineNumber, filePath)) {
 				weHaveAFile = true;
-				currentFile = f;
-				Limits thisLimits = fileList.get(f);
+				currentFilePath = filePath;
+				Limits thisLimits = fileList.get(filePath);
 				currentStart = thisLimits.start;
 				currentEnd = thisLimits.end;
 				break;
@@ -184,11 +190,17 @@ public class ShowCode extends JFrame {
 	}// getFileToShow
 
 	private JFileChooser getFileChooser(String directory, String filterDescription, String filterExtensions) {
+		return getFileChooser(directory, filterDescription, filterExtensions, false);
+
+	}// getFileChooser - single select
+
+	private JFileChooser getFileChooser(String directory, String filterDescription, String filterExtensions,
+			boolean multiSelect) {
 		// Path sourcePath = Paths.get(directory);
 		// String fp = sourcePath.resolve(defaultDirectory).toString();
 
 		JFileChooser chooser = new JFileChooser(directory);
-		chooser.setMultiSelectionEnabled(false);
+		chooser.setMultiSelectionEnabled(multiSelect);
 		chooser.addChoosableFileFilter(new FileNameExtensionFilter(filterDescription, filterExtensions));
 		chooser.setAcceptAllFileFilterUsed(false);
 		return chooser;
@@ -215,12 +227,12 @@ public class ShowCode extends JFrame {
 		return getLineNumber;
 	}// getLineNumber
 
-	private void loadDisplay(File file) {
+	private void loadDisplay(String filePath) {
 		doc = txtDisplay.getDocument();
 		try {
 			doc.remove(0, doc.getLength());
-			doc.insertString(0, listings.get(file), null);
-			lblHeader.setText(file.getName());
+			doc.insertString(0, listings.get(filePath), null);
+			lblHeader.setText(filePath);
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -228,15 +240,15 @@ public class ShowCode extends JFrame {
 	}// loadDisplay
 
 	private void clearCurrentIndicaters() {
-		currentFile = null;
+		currentFilePath = null;
 		currentStart = -1;
 		currentEnd = -1;
 		fileIsCurrent = false;
 	}
 
-	private boolean addFileToApp(File newFile) {
+	private void addFileToApp(String newFilePath) {
 		try {
-			FileReader fileReader = new FileReader((newFile));
+			FileReader fileReader = new FileReader((newFilePath));
 			BufferedReader reader = new BufferedReader(fileReader);
 			String line, adjustedLine;
 			// int lineNumber = 0;
@@ -271,31 +283,60 @@ public class ShowCode extends JFrame {
 				}// if
 			}// while
 
-			fileList.put(newFile, limits);
-			listings.put(newFile, sb.toString());
-			loadDisplay(newFile);
+			fileList.put(newFilePath, limits);
+			listings.put(newFilePath, sb.toString());
+			loadDisplay(newFilePath);
 			txtDisplay.setCaretPosition(0);
 			reader.close();
 		} catch (FileNotFoundException fnfe) {
-			JOptionPane.showMessageDialog(null, newFile.getAbsolutePath()
+			JOptionPane.showMessageDialog(null, newFilePath
 					+ "not found", "unable to locate",
 					JOptionPane.ERROR_MESSAGE);
-			return false; // exit gracefully
+			return; // exit gracefully
 		} catch (IOException ie) {
-			JOptionPane.showMessageDialog(null, newFile.getAbsolutePath()
+			JOptionPane.showMessageDialog(null, newFilePath
 					+ ie.getMessage(), "IO error",
 					JOptionPane.ERROR_MESSAGE);
-			return false; // exit gracefully
+			return; // exit gracefully
 		}
 		clearCurrentIndicaters();
-		return true;
+		File newFile = new File(newFilePath);
+
+		defaultDirectory = newFile.getParent();
+		setTitle(defaultDirectory);
+		// fileList.put(sourceFile, new Point(0,0));
+		String thisFileName = newFile.getName();
+		mnuNew = new JCheckBoxMenuItem(thisFileName);
+		mnuNew.setName(newFile.getAbsolutePath());
+		mnuNew.setActionCommand(thisFileName);
+		mnuFiles.add(mnuNew);
+
+		return;
 
 	}// addFileToApp
-		// -------------------------------------------------
+
+	private void resetApp() {
+		fileList.clear();
+		listings.clear();
+		lblHeader.setText(NO_FILE);
+		try {
+			doc.remove(0, doc.getLength());
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		fileIsCurrent = false;
+		currentStart = -1;
+		currentEnd = -1;
+		currentFilePath = null;
+
+	}
+
+	// -------------------------------------------------
 
 	private void appInit() {
-		fileList = new HashMap<File, Limits>();
-		listings = new HashMap<File, String>();
+		fileList = new HashMap<String, Limits>();
+		listings = new HashMap<String, String>();
 		lblHeader = new JLabel(NO_FILE);
 		lblHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		lblHeader.setFont(new Font("Courier New", Font.BOLD, 16));
@@ -306,7 +347,7 @@ public class ShowCode extends JFrame {
 		fileIsCurrent = false;
 		currentStart = -1;
 		currentEnd = -1;
-		currentFile = null;
+		currentFilePath = null;
 
 	}
 
@@ -325,28 +366,33 @@ public class ShowCode extends JFrame {
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 
-		JMenu mnuFiles = new JMenu("Files");
+		mnuFiles = new JMenu("Files");
 		menuBar.add(mnuFiles);
 
 		JMenuItem mnuFilesAdd = new JMenuItem("Add Files...");
 		mnuFilesAdd.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Files", "List");
+				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Files", "List", true);
 				if (fc.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
 					System.out.printf("You cancelled the Load File...%n", "");
-				} else {
-					File newFile = fc.getSelectedFile();
-					if (addFileToApp(newFile)) {
-						defaultDirectory = newFile.getParent();
-						setTitle(defaultDirectory);
-						// fileList.put(sourceFile, new Point(0,0));
-						String thisFileName = newFile.getName();
-						JMenuItem mnuNew = new JMenuItem(thisFileName);
-						mnuNew.setName(thisFileName);
-						mnuNew.setActionCommand(SOURCE_FILE);
-						mnuFiles.add(mnuNew);
-					}// only add if we built the HashMaps ok
-				}// if
+					return;
+				} // if
+
+				File[] newFiles = fc.getSelectedFiles();
+				for (File newFile : newFiles) {
+					addFileToApp(newFile.getAbsolutePath());
+					// if (addFileToApp(newFile.getAbsolutePath())) {
+					// defaultDirectory = newFile.getParent();
+					// setTitle(defaultDirectory);
+					// // fileList.put(sourceFile, new Point(0,0));
+					// String thisFileName = newFile.getName();
+					// JCheckBoxMenuItem mnuNew = new JCheckBoxMenuItem(thisFileName);
+					// mnuNew.setName(newFile.getAbsolutePath());
+					// mnuNew.setActionCommand(thisFileName);
+					// mnuFiles.add(mnuNew);
+					// }// only add if we built the HashMaps ok
+				}// for each
+
 			}// actionPerformed
 		});
 		mnuFilesAdd.setActionCommand("mnuFilesAdd");
@@ -355,15 +401,118 @@ public class ShowCode extends JFrame {
 		JMenuItem mnuFilesRemove = new JMenuItem("Remove All  File ...");
 		mnuFilesRemove.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				int numberOfMenuItems = mnuFiles.getItemCount();
-				for (int i = numberOfMenuItems - 1; i > 2; i--) {
-					mnuFiles.remove(i);
-					fileList.clear();
+
+				int itemCount = mnuFiles.getItemCount();
+				for (int i = itemCount - 1; i > 0; i--) {
+					if (mnuFiles.getItem(i) instanceof JCheckBoxMenuItem) {
+						JCheckBoxMenuItem mi = (JCheckBoxMenuItem) mnuFiles.getItem(i);
+						mnuFiles.remove(mi);
+					}// outer if
 				}// for
+				resetApp();
+
 			}// actionPerformed
 		});
+
+		JMenuItem mnuFileAddList = new JMenuItem("Add Files from List");
+		mnuFileAddList.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Files", "ListSet");
+				if (fc.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
+					System.out.printf("You cancelled the Add Files from List...%n", "");
+					return;
+				}// if
+				FileReader fileReader;
+				try {
+					fileReader = new FileReader((fc.getSelectedFile().getAbsolutePath()));
+					BufferedReader reader = new BufferedReader(fileReader);
+					String filePathName;
+					while ((filePathName = reader.readLine()) != null) {
+						addFileToApp(filePathName);
+					}// for each
+					reader.close();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+			}// actionPerformed
+		});
+		mnuFiles.add(mnuFileAddList);
+
+		JSeparator separator_1 = new JSeparator();
+		mnuFiles.add(separator_1);
 		mnuFilesRemove.setActionCommand("mnuFilesRemove");
 		mnuFiles.add(mnuFilesRemove);
+
+		JMenuItem mnuFilesRemoveSelected = new JMenuItem("Remove Selected Files");
+		mnuFilesRemoveSelected.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+
+				int itemCount = mnuFiles.getItemCount();
+				for (int i = itemCount - 1; i > 0; i--) {
+					if (mnuFiles.getItem(i) instanceof JCheckBoxMenuItem) {
+						JCheckBoxMenuItem mi = (JCheckBoxMenuItem) mnuFiles.getItem(i);
+						if (mi.getState()) {
+							listings.remove(mi.getName());
+							fileList.remove(mi.getName());
+							mnuFiles.remove(mi);
+						}// inner if - selected = true
+					}// outer if
+				}// for
+
+				lblHeader.setText(NO_FILE);
+				try {
+					doc.remove(0, doc.getLength());
+				} catch (BadLocationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				fileIsCurrent = false;
+				currentStart = -1;
+				currentEnd = -1;
+				currentFilePath = null;
+			}
+		});
+		mnuFiles.add(mnuFilesRemoveSelected);
+
+		JSeparator separator_2 = new JSeparator();
+		mnuFiles.add(separator_2);
+
+		JMenuItem mnuFilesSaveSelected = new JMenuItem("Save Selected as List");
+		mnuFilesSaveSelected.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Set Files", "ListSet");
+				if (fc.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) {
+					System.out.printf("You cancelled theSave Selected as List...%n", "");
+					return;
+				}// if
+				String destinationPath = fc.getSelectedFile().getAbsolutePath();
+
+				try {
+					FileWriter fileWriter = new FileWriter(destinationPath + ".ListSet");
+					BufferedWriter writer = new BufferedWriter(fileWriter);
+
+					int itemCount = mnuFiles.getItemCount();
+					for (int i = itemCount - 1; i > 0; i--) {
+
+						if (mnuFiles.getItem(i) instanceof JCheckBoxMenuItem) {
+							JCheckBoxMenuItem mi = (JCheckBoxMenuItem) mnuFiles.getItem(i);
+							if (mi.getState()) {
+								writer.write(mi.getName() + "\n");
+							}// inner if - selected = true
+						}// outer if
+					}// for
+
+					writer.close();
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					return;
+				}// try
+
+			}
+		});
+		mnuFiles.add(mnuFilesSaveSelected);
 
 		JSeparator separator = new JSeparator();
 		mnuFiles.add(separator);

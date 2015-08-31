@@ -83,11 +83,11 @@ public class Disassembler implements Runnable {
 	private int showCode(int thisLineNumber) {
 		int workingPosition = thisLineNumber * LINE_WIDTH;
 		// attrsForCategory = makeAttrsForCategory(thisLineNumber);
-		OperationStructure currentOpCode = opcodeMap.get(core.read(workingProgramCounter));
+		OperationStructure currentOpCode = opcodeMap.get(core.readForIO(workingProgramCounter));
 		int opCodeSize = currentOpCode.getSize();
-		byte currentValue0 = core.read(workingProgramCounter);
-		byte currentValue1 = core.read(workingProgramCounter + 1);
-		byte currentValue2 = core.read(workingProgramCounter + 2);
+		byte currentValue0 = core.readForIO(workingProgramCounter);
+		byte currentValue1 = core.readForIO(workingProgramCounter + 1);
+		byte currentValue2 = core.readForIO(workingProgramCounter + 2);
 		String linePart1, linePart2, linePart3;
 		try {
 			linePart1 = String.format("%04X%4s", workingProgramCounter, "");
@@ -114,8 +114,8 @@ public class Disassembler implements Runnable {
 				linePart2 = String.format("%02X%02X%02X%4s", currentValue0, currentValue1, currentValue2, "");
 				doc.insertString(workingPosition, linePart2, attrsForCategory[LC_ATTR_OPCODE]);
 				workingPosition += linePart2.length();
-				linePart3 = currentOpCode.getAssemblerCode(core.read(workingProgramCounter + 1),
-						core.read(workingProgramCounter + 2));
+				linePart3 = currentOpCode.getAssemblerCode(core.readForIO(workingProgramCounter + 1),
+						core.readForIO(workingProgramCounter + 2));
 				doc.insertString(workingPosition, linePart3, attrsForCategory[LC_ATTR_INSTRUCTION]);
 				workingPosition += linePart3.length();
 				break;

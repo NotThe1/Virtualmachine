@@ -46,18 +46,18 @@ public class MemoryDocumentLoader implements Runnable {
 
 		char[] printables = new char[SIXTEEN];		
 		for (int i = 0; i < SIXTEEN; i++) {
-			printables[i] = ((core.read(startLocation + i) >= 0X20) && core.read(startLocation + i) <= 0X7F) ?
-					(char) core.read(startLocation + i) : '.';
+			printables[i] = ((core.readForIO(startLocation + i) >= 0X20) && core.readForIO(startLocation + i) <= 0X7F) ?
+					(char) core.readForIO(startLocation + i) : '.';
 		}//
 		lineBuilder.append(String.format(
 				"%04X: %02X %02X %02X %02X %02X %02X %02X %02X  %02X %02X %02X %02X %02X %02X %02X %02X ",
 				startLocation,
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++)
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++)
 				));
 
 		lineBuilder.append(printables);

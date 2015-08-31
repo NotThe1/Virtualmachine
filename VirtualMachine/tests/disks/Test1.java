@@ -58,8 +58,8 @@ public class Test1 {
 //		core.write(0X0042, (byte) 01); // point at the controlTable
 //		core.write(controlByteLocation8, (byte) 0X80); // Set the Control byte to start IO
 //		
-		System.out.printf("Test1: Status: %02X - %02X%n",core.read(0X0043), core.read(0X0044));
-		System.out.printf("Test1: Value:  %02X, + 128: = %02X%n", core.read(0X0200),core.read(0X027F));
+		System.out.printf("Test1: Status: %02X - %02X%n",core.readForIO(0X0043), core.readForIO(0X0044));
+		System.out.printf("Test1: Value:  %02X, + 128: = %02X%n", core.readForIO(0X0200),core.readForIO(0X027F));
 
 		dcu = null;
 	}// doIt5()

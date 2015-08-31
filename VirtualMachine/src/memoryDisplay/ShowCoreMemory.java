@@ -77,12 +77,12 @@ public class ShowCoreMemory extends JDialog implements PropertyChangeListener, R
 
 		lineBuilder.append(String.format(
 				"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++), core.read(startLocation++), core.read(startLocation++),
-				core.read(startLocation++)
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++), core.readForIO(startLocation++), core.readForIO(startLocation++),
+				core.readForIO(startLocation++)
 				));
 		return lineBuilder.toString();
 	}// getDisplayForValues

@@ -1,6 +1,8 @@
 package memory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Vector;
 import java.io.Serializable;
 
@@ -14,9 +16,11 @@ public class Core implements Serializable {
 	private byte[] storage;
 	private int maximumAddress; // maximum address
 	private int protectedBoundary; // highest location in protected area
-	private boolean trapEnabled;
-	private HashMap<Integer, TRAP> trapLocations; // locations that can be
-													// trapped duh!
+	private boolean debugTrapEnabled;
+	public boolean isDebugLocation; // set when reading a debug tagged location
+	private boolean fatso;
+	private  boolean oldIsDebugLocation;		
+	private HashMap<Integer, TRAP> trapLocations; // locations that can be trapped duh!
 
 	// private byte writeValue; // used for IO trap
 
@@ -25,7 +29,8 @@ public class Core implements Serializable {
 	}// Constructor
 
 	public Core(Integer size, Integer protectedBoundary) {
-		this.trapEnabled = false;
+		this.debugTrapEnabled = false;
+		this.isDebugLocation = false;
 		trapLocations = new HashMap<Integer, TRAP>();
 
 		if (size <= 0) {
@@ -54,7 +59,7 @@ public class Core implements Serializable {
 		this(MAXIMUM_MEMORY, 0);
 	}// Constructor
 
-	public  synchronized void write(int location, byte value) {
+	public synchronized void write(int location, byte value) {
 		// writeValue = value; // save for IO trap
 		if (checkAddressAndTraps(location, value) == true) {
 			storage[location] = value;
@@ -77,21 +82,28 @@ public class Core implements Serializable {
 		}// if
 	}// writeDMA
 
-	public synchronized  byte read(int location) {
+	public synchronized byte read(int location) {
 		if (checkAddressAndTraps(location) == true) { // send dummy argument
+			isDebugLocation = false;
 			return storage[location];
 		}// if
-		return 00;
+
+		if (isDebugLocation) {
+			return 0X30; // Return a fake Halt instruction
+		} else {
+			return 00;
+		}//
+
 	}// getContent- for MM
 
-	public synchronized  byte readForIO(int location) {
+	public synchronized byte readForIO(int location) {
 		if (checkAddress(location) == true) { // send dummy argument
 			return storage[location];
 		}// if
 		return 00;
 	}// getContent - for IO devices
 
-	public synchronized  byte[] readDMA(int location, int length) {
+	public synchronized byte[] readDMA(int location, int length) {
 		byte[] readDMA = new byte[length];
 		if (checkAddressDMA(location, length) == true) {
 			for (int i = 0; i < length; i++) {
@@ -111,12 +123,12 @@ public class Core implements Serializable {
 		return protectedBoundary;
 	}// getProtectedBoundary
 
-	public void setTrapEnabled(boolean state) {
-		this.trapEnabled = state;
+	public void setDebugTrapEnabled(boolean state) {
+		this.debugTrapEnabled = state;
 	}// enableTrap
 
-	public boolean isTrapEnabled() {
-		return this.trapEnabled;
+	public boolean isDebugTrapEnabled() {
+		return this.debugTrapEnabled;
 	}
 
 	// public boolean
@@ -127,10 +139,23 @@ public class Core implements Serializable {
 				return; // bad address - get out of here
 			} // inner if
 		}// if
-		trapLocations.put(location, trap);
-
-		// do nothing if bad address
+		trapLocations.put(location, trap); // may be different trap type
 	}// addTrapLocation
+
+	public ArrayList<Integer> getTrapLocations() {
+		return getTrapLocations(TRAP.DEBUG);
+	}// getTrapLocations - DEBUG
+
+	public ArrayList<Integer> getTrapLocations(TRAP trap) {
+		ArrayList<Integer> getTrapLocations = new ArrayList<Integer>();
+		Set<Integer> locations = trapLocations.keySet();
+		for (Integer location : locations) {
+			if (trapLocations.get(location).equals(trap)) {
+				getTrapLocations.add(location);
+			}// inner if
+		}// for e
+		return getTrapLocations;
+	}// getTrapLocations
 
 	public void removeTrapLocation(int location, TRAP trap) {
 		// only remove if the trap is the same type
@@ -150,8 +175,7 @@ public class Core implements Serializable {
 			fireAccessError(location, "Invalid memory location");
 		}// if
 		return checkAddress;
-
-	}
+	}// checkAddress
 
 	private boolean checkAddressAndTraps(int location) {
 		// send a dummy value for reads
@@ -160,24 +184,23 @@ public class Core implements Serializable {
 
 	private boolean checkAddressAndTraps(int location, byte value) {
 		boolean checkAddressAndTraps = checkAddress(location);
+		
 		if (trapLocations.containsKey(location)) {
-			switch (trapLocations.get(location)) {
-			case DEBUG:
-				if (trapEnabled) {
-					fireMemoryTrap(location, trapLocations.get(location));
-				}// if (trapEnabled);
-				break;
-			case IO:
+			TRAP thisTrap = trapLocations.get(location);
+
+			if (thisTrap.equals(TRAP.IO)) {
 				storage[location] = value; // write so DCU has access to it
 				fireMemoryTrap(location, Core.TRAP.IO);
-				// System.out.printf("Core.java - checkAddress line 153%n");
-				break;
-			default:
-				// ignore switch set up for later enhancements
-			}// switch
+			} else if (thisTrap.equals(TRAP.DEBUG) & debugTrapEnabled) {
+				if (!isDebugLocation) { // Is this the first encounter?
+					isDebugLocation = true; // set the flag
+					//checkAddressAndTraps = false; // force return value
+					return false;
+				} // inner if
+			}// outer if
 		}// if
 		return checkAddressAndTraps;
-	}
+	}//checkAddressAndTraps
 
 	private boolean checkAddressDMA(int location, int length) {
 		boolean checkAddressDMA = true;
@@ -192,8 +215,7 @@ public class Core implements Serializable {
 	private void fireAccessError(int location, String errorType) {
 		Vector<MemoryAccessErrorListener> mael;
 		synchronized (this) {
-			mael = (Vector<MemoryAccessErrorListener>) memoryAccessErrorListeners
-					.clone();
+			mael = (Vector<MemoryAccessErrorListener>) memoryAccessErrorListeners.clone();
 		}// sync
 		int size = mael.size();
 		if (0 == size) {

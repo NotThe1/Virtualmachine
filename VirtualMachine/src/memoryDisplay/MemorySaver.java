@@ -96,19 +96,19 @@ public class MemorySaver extends JDialog {
 		try {
 			for (int currentMemory = memoryStart; currentMemory <= memoryEnd;) {
 				for (int i = 0; i < SIXTEEN; i++) {
-					printables[i] = ((core.read(currentMemory + i) >= 0X20) && core.read(currentMemory + i) <= 0X7F) ?
-							(char) core.read(currentMemory + i) : '.';
+					printables[i] = ((core.readForIO(currentMemory + i) >= 0X20) && core.readForIO(currentMemory + i) <= 0X7F) ?
+							(char) core.readForIO(currentMemory + i) : '.';
 				}// for - printables
 
 				sb.append(String.format(
 						"%04X: %02X %02X %02X %02X %02X %02X %02X %02X  %02X %02X %02X %02X %02X %02X %02X %02X ",
 						currentMemory,
-						core.read(currentMemory++), core.read(currentMemory++), core.read(currentMemory++),
-						core.read(currentMemory++), core.read(currentMemory++), core.read(currentMemory++),
-						core.read(currentMemory++), core.read(currentMemory++), core.read(currentMemory++),
-						core.read(currentMemory++), core.read(currentMemory++), core.read(currentMemory++),
-						core.read(currentMemory++), core.read(currentMemory++), core.read(currentMemory++),
-						core.read(currentMemory++)
+						core.readForIO(currentMemory++), core.readForIO(currentMemory++), core.readForIO(currentMemory++),
+						core.readForIO(currentMemory++), core.readForIO(currentMemory++), core.readForIO(currentMemory++),
+						core.readForIO(currentMemory++), core.readForIO(currentMemory++), core.readForIO(currentMemory++),
+						core.readForIO(currentMemory++), core.readForIO(currentMemory++), core.readForIO(currentMemory++),
+						core.readForIO(currentMemory++), core.readForIO(currentMemory++), core.readForIO(currentMemory++),
+						core.readForIO(currentMemory++)
 						));
 				sb.append(printables);
 				sb.append("\n");

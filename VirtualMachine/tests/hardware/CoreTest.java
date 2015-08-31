@@ -44,10 +44,10 @@ public class CoreTest {
 		assertThat("Check size",core.getSize(),equalTo(size));
 		assertThat("Check protected memory boundary",core.getProtectedBoundary(),equalTo(protectedBoundary));
 		
-		core.setTrapEnabled(true);
-		assertThat("Check trap setting",core.isTrapEnabled(),equalTo(true));
-		core.setTrapEnabled(false);
-		assertThat("Check trap setting",core.isTrapEnabled(),equalTo(false));
+		core.setDebugTrapEnabled(true);
+		assertThat("Check trap setting",core.isDebugTrapEnabled(),equalTo(true));
+		core.setDebugTrapEnabled(false);
+		assertThat("Check trap setting",core.isDebugTrapEnabled(),equalTo(false));
 	}//blunt Test
 	
 	@Test
@@ -55,11 +55,11 @@ public class CoreTest {
 		byte value = (byte) 0X55;
 		int location = 0X100;
 		core.write(location, value);
-		assertThat("Simple write/read - 55",core.read(location),equalTo(value));
+		assertThat("Simple write/read - 55",core.readForIO(location),equalTo(value));
 		
 		value = (byte) 0XAA;
 		core.write(location, value);
-		assertThat("Simple write/read - AA",core.read(location),equalTo(value));
+		assertThat("Simple write/read - AA",core.readForIO(location),equalTo(value));
 	
 		value = (byte)0XFF;
 		for (int i = 0; i < 0X100 ; i++){
@@ -68,7 +68,7 @@ public class CoreTest {
 		
 		value = (byte)0XFF;
 		for (int i = 0; i < 0X100 ; i++){
-			assertThat("Simple write/read consecutive location",core.read(location +i),equalTo(value++));				
+			assertThat("Simple write/read consecutive location",core.readForIO(location +i),equalTo(value++));				
 		}//for - write
 	}//readWriteTestsSimple
 	
@@ -86,7 +86,7 @@ public class CoreTest {
 		}// for - write
 		
 		for (int i = 0 ; i < bufferSize; i++){
-				readBuffer[i] = core.read(location +i)	;	
+				readBuffer[i] = core.readForIO(location +i)	;	
 		}// for - read
 		
 		assertThat("Random write/read consecutive location",readBuffer,equalTo(writeBuffer));	

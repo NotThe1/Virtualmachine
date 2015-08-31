@@ -85,7 +85,8 @@ public class CentralProcessingUnit implements MemoryListener {
 		while (running) {
 			opCode = mm.getByte(programCounter);
 
-//			System.out.printf("Count:  %6d, ProgramCounter : %04X,  Opcode: %02X%n", counter++, programCounter, opCode);
+			// System.out.printf("Count:  %6d, ProgramCounter : %04X,  Opcode: %02X%n", counter++, programCounter,
+			// opCode);
 
 			opCodeLength = execute8080Instruction(opCode);
 			incrementProgramCounter(opCodeLength);
@@ -160,11 +161,16 @@ public class CentralProcessingUnit implements MemoryListener {
 			if (yyy == 0) {// its a NOP OO length =1, cycles = 4
 				// 00 real NOP
 				// System.out.printf("NOP %s%n", "");
+				opCodeSize = 1;
+			} else if (yyy == 6) {// Opcode "30" special for debugging **** act like a halt
+				setRunning(false);
+				opCodeSize = 0;
 			} else {// treat as if it is a NOP
 				// 08,10,18,20,28,30,38 - not implemented
 				// System.out.printf("*NOP %s%n", "");
+				opCodeSize = 1;
 			}//
-			opCodeSize = 1;
+			
 			break;
 		case 1: // zzz = 001
 			regPair = registerPairDecodeSet1[yyy >> 1]; // only want the two

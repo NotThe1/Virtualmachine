@@ -119,16 +119,16 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 
 		goodOperation = true; // assume all goes well
 
-		System.out.printf("DCU: Location: %04X, Value: %02X%n", mte.getLocation(), core.read(mte.getLocation()));
+		System.out.printf("DCU: Location: %04X, Value: %02X%n", mte.getLocation(), core.readForIO(mte.getLocation()));
 
 		// TODO - check there is a disk
 		int controlTableLocation = getWordReversed(currentDiskControlByte + 1); // flip order for address
 
-		currentCommand = core.read(controlTableLocation + DCT_COMMAND);
-		currentUnit = core.read(controlTableLocation + DCT_UNIT);
-		currentHead = core.read(controlTableLocation + DCT_HEAD);
-		currentTrack = core.read(controlTableLocation + DCT_TRACK);
-		currentSector = core.read(controlTableLocation + DCT_SECTOR);
+		currentCommand = core.readForIO(controlTableLocation + DCT_COMMAND);
+		currentUnit = core.readForIO(controlTableLocation + DCT_UNIT);
+		currentHead = core.readForIO(controlTableLocation + DCT_HEAD);
+		currentTrack = core.readForIO(controlTableLocation + DCT_TRACK);
+		currentSector = core.readForIO(controlTableLocation + DCT_SECTOR);
 		currentByteCount = getWordReversed(controlTableLocation + DCT_BYTE_COUNT);
 		currentDMAAddress = getWordReversed(controlTableLocation + DCT_DMA_ADDRESS);
 		debugShowControlTable();
@@ -193,8 +193,8 @@ public class DiskControlUnit implements MemoryTrapListener, MemoryAccessErrorLis
 	}// memoryTrap
 
 	private int getWordReversed(int location) {
-		int loByte = (core.read(location + 1) << 8) & 0XFF00;
-		int hiByte = core.read(location) & 0X00FF;
+		int loByte = (core.readForIO(location + 1) << 8) & 0XFF00;
+		int hiByte = core.readForIO(location) & 0X00FF;
 		return 0XFFFF & (hiByte + loByte);
 	}// getWordReversed
 

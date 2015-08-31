@@ -61,8 +61,6 @@ import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
 
-
-
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
@@ -80,6 +78,7 @@ import javax.swing.JButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
+import codeSupport.DebugManager;
 import codeSupport.Disassembler;
 import codeSupport.ShowCode;
 import memory.Core;
@@ -116,6 +115,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private ShowCode showCode;
 	private Disassembler disassembler; // (core,txtBox,cpu)
 	private ShowCoreMemory scm;
+	private DebugManager debugManager;
 
 	private JScrollPane scrollAssembler;
 	private MaskFormatter format2HexDigits;
@@ -295,7 +295,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		Integer mLocation = Integer.valueOf(Reg_HL, 16);
 		byte value = 0X00;
 		try {
-			value = mm.getByte(mLocation);
+			value = core.readForIO(mLocation);
 			ftfReg_M.setForeground(Color.BLACK);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			ftfReg_M.setForeground(Color.lightGray);
@@ -334,16 +334,16 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		setCheckBoxFont(ckbAuxCarry);
 		setCheckBoxFont(ckbParity);
 		setCheckBoxFont(ckbCarry);
-		
+
 	}// updateConditionCode
-	
-	private void setCheckBoxFont(JCheckBox ckb){
-		if (ckb.isSelected()){
+
+	private void setCheckBoxFont(JCheckBox ckb) {
+		if (ckb.isSelected()) {
 			ckb.setForeground(Color.RED);
-		}else {
+		} else {
 			ckb.setForeground(Color.GRAY);
-		}//if
-	}//setCheckBoxFont
+		}// if
+	}// setCheckBoxFont
 
 	private void modifyRegister(String regName, String strValue) {
 		int intValue = Integer.valueOf(strValue, 16);
@@ -351,33 +351,33 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		switch (regName) {
 		case NAME_REG_A:
 			wrs.setReg(Reg.A, (byte) intValue);
-			
+
 			break;
 		case NAME_REG_B:
 			wrs.setReg(Reg.B, (byte) intValue);
-			
+
 			break;
 		case NAME_REG_C:
 			wrs.setReg(Reg.C, (byte) intValue);
-			
+
 			break;
 		case NAME_REG_D:
 			wrs.setReg(Reg.D, (byte) intValue);
-			
+
 			break;
 		case NAME_REG_E:
 			wrs.setReg(Reg.E, (byte) intValue);
-			
+
 			break;
 		case NAME_REG_H:
 			wrs.setReg(Reg.H, (byte) intValue);
 			showRegM();
-			
+
 			break;
 		case NAME_REG_L:
 			wrs.setReg(Reg.L, (byte) intValue);
 			showRegM();
-			
+
 			break;
 		case NAME_REG_M:
 			// not yet implemented
@@ -570,8 +570,17 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			break;
 
 		case AC_MNU_TOOLS_SHOW_CODE:
-			showCode = new ShowCode();
-
+			if (showCode == null) {
+				showCode = new ShowCode();
+			}
+			showCode.setVisible(true);
+			break;
+		case AC_MNU_TOOLS_DEBUG_MANAGER:
+			if (debugManager == null) {
+				debugManager = new DebugManager(core);
+			}// if
+			debugManager.setVisible(true);
+			break;
 		}// switch - actionCommand
 
 	}// actionPerformed
@@ -747,6 +756,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}
 
 	private void closeAllObjects() {
+		closeIt(debugManager);
+		closeIt(showCode);
 		closeIt(disassembler);
 		closeIt(dcu);
 		closeIt(cpu);
@@ -1365,11 +1376,19 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		JMenu mnuTools = new JMenu("Tools");
 		menuBar.add(mnuTools);
 
-		JMenuItem mnuToolsShowCode = new JMenuItem("Show Code");
+		JMenuItem mnuToolsShowCode = new JMenuItem("Show Code ...");
 		mnuToolsShowCode.setName(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.setActionCommand(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.addActionListener(this);
 		mnuTools.add(mnuToolsShowCode);
+
+		JSeparator separator_3 = new JSeparator();
+		mnuTools.add(separator_3);
+
+		JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
+		mnuToolsDebugManager.setActionCommand(AC_MNU_TOOLS_DEBUG_MANAGER);
+		mnuToolsDebugManager.addActionListener(this);
+		mnuTools.add(mnuToolsDebugManager);
 	}
 
 	public static final int MEMORY_SIZE_K = 64; // in K
@@ -1401,6 +1420,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_LOAD = "mnuMemoryLoad";
 
 	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
+	private final static String AC_MNU_TOOLS_DEBUG_MANAGER = "mnuToolsDebugManager";
 
 	private final static String NAME_REG_A = "Reg_A";
 	private final static String NAME_REG_B = "Reg_B";

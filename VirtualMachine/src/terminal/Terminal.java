@@ -64,11 +64,21 @@ public class Terminal implements ActionListener {
 		closeConnection();
 		inputBuffer = new LinkedList<Byte>();
 		keyBoardBuffer = new LinkedList<Byte>();
-		screen.setText("");
+		clearScreen();
 		updateScreenPositionData();
 		patternForPrintableChars = Pattern
 				.compile(allPrintableCharactersPattern);
 	}// initApplicaion
+
+	private void clearScreen() {
+		screen.setText("");
+		for (int r = 0; r < MAX_ROWS; r++) {
+			screen.append(EMPTY_LINE);
+			row = 0;
+			col = 0;
+			screen.setCaretPosition(0);
+		}// for - r
+	}// clearScreen
 
 	/*
 	 * Screen activity - using JTextAre
@@ -99,8 +109,7 @@ public class Terminal implements ActionListener {
 				java.awt.Toolkit.getDefaultToolkit().beep();
 				break;
 			case 0X08: // Backspace \b
-				screen.setCaretPosition(Math.max(screen.getCaretPosition() - 1,
-						0));
+				screen.setCaretPosition(Math.max(screen.getCaretPosition() - 1, 0));
 				break;
 			case 0X09: // Tab \t
 				for (int i = screen.getCaretPosition() % tabWidth; i < tabWidth; i++) {
@@ -108,14 +117,19 @@ public class Terminal implements ActionListener {
 				}// for
 				break;
 			case 0X0A: // Newline \n
-				for (int i = 0; i < MAX_COLUMNS; i++) {
-					keyReceived(SPACE_BYTE);
-				}// for
+				int positionOnNextLine = screen.getCaretPosition() + MAX_COLUMNS;
+				if (positionOnNextLine < MAX_CHARACTERS) { // still on screen
+					screen.setCaretPosition(positionOnNextLine);
+				} else {
+					int thisPosition = screen.getCaretPosition();
+					scrollLine();
+					screen.setCaretPosition(thisPosition);
+				}// if
 				break;
 			case 0X0B: // Vertical Tab \v
 				break;
 			case 0X0C: // Form feed \f
-				screen.setText("");
+				clearScreen();
 				break;
 			case 0X0D: // Carriage return \r
 				screen.setCaretPosition(screen.getCaretPosition()
@@ -137,6 +151,7 @@ public class Terminal implements ActionListener {
 		String screenTemp = screen.getText();
 		screen.setText(screenTemp.substring(0,
 				((MAX_ROWS - 1) * MAX_COLUMNS) - 1));
+		screen.append(EMPTY_LINE);
 		screen.setEnabled(true);
 	}// scrollLine
 
@@ -246,13 +261,13 @@ public class Terminal implements ActionListener {
 	 * Terminal class independent of screen and I/O
 	 */
 
-//	public void establishSettings(TerminalSettings ts) {
-//		this.terminalSettings = ts;
-//		showConnectionString();
-//	}// establishSettings
+	// public void establishSettings(TerminalSettings ts) {
+	// this.terminalSettings = ts;
+	// showConnectionString();
+	// }// establishSettings
 
 	private void doBtnSettings() {
-		PortSetupDetails psd = new PortSetupDetails( terminalSettings);
+		PortSetupDetails psd = new PortSetupDetails(terminalSettings);
 		psd.setVisible(true);
 		showConnectionString();
 	}// doBtnSettings
@@ -761,9 +776,10 @@ public class Terminal implements ActionListener {
 	private static int ROW_23_COLUMN_0 = (MAX_CHARACTERS - MAX_COLUMNS) - 1;
 	private static int DEFAULT_TAB_WIDTH = 10;
 
-	// private static String CR = "\r";
+	private static String CR = "\r";
 	private static String SPACE = " ";
 	private static Byte SPACE_BYTE = 0X20;
+	private static String EMPTY_LINE = String.format("%" + MAX_COLUMNS + "s", SPACE);
 	private static String allPrintableCharactersPattern = "^([a-zA-Z0-9!@#$%^&amp;*()-_=+;:'&quot;|~`&lt;&gt;?/{}]{1,1})$";
 	private Pattern patternForPrintableChars;
 	private Matcher matcher;

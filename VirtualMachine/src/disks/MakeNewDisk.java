@@ -132,7 +132,9 @@ public class MakeNewDisk {
 
 	private static ByteBuffer setUpBuffer(ByteBuffer sector, int value) {
 		sector.clear();
-		Byte byteValue = (byte) (value & 0XFF);
+		// set value to be put into sector
+		Byte byteValue = (byte) (00);	// set tp zeros
+//		Byte byteValue = (byte) (value & 0XFF);
 //		Byte byteValue = (byte) 0X76;		// Halt instruction
 		while (sector.hasRemaining()) {
 			sector.put(byteValue);

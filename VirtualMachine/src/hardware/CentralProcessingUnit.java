@@ -773,19 +773,19 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("SBI%n", "");
 				break;
 			case 4:// yyy = 100
-				ans = (byte) (accumulator & immediateValue);
+				ans = au.logicalAnd(accumulator , immediateValue);
 				wrs.setReg(Reg.A, ans);
 				opCodeSize = 2;
 				// System.out.printf("ANI%n", "");
 				break;
 			case 5:// yyy = 101
-				ans = (byte) (accumulator ^ immediateValue);
+				ans = au.logicalXor(accumulator , immediateValue);
 				wrs.setReg(Reg.A, ans);
 				opCodeSize = 2;
 				// System.out.printf("XRI%n", "");
 				break;
 			case 6:// yyy = 110
-				ans = (byte) (accumulator | immediateValue);
+				ans = au.logicalOr(accumulator , immediateValue);
 				wrs.setReg(Reg.A, ans);
 				opCodeSize = 2;
 				// System.out.printf("ORI%n", "");

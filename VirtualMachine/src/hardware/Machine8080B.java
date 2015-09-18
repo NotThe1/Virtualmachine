@@ -126,19 +126,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	/**
 	 * Launch the application.
 	 */
-	// public static void main(String[] args) {
-	// EventQueue.invokeLater(new Runnable() {
-	// public void run() {
-	// try {
-	// Machine8080A window = new Machine8080A();
-	// window.frame.setVisible(true);
-	// } catch (Exception e) {
-	// e.printStackTrace();
-	// }
-	// }
-	// });
-	// }
-
+	
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {

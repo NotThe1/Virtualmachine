@@ -87,10 +87,13 @@ public class ArithmeticUnit {
 	 * subtraction : minuend - subtrahend = difference
 	 */
 	private int subtract(int minuend, int subtrahend, int wordSize) {
-		int takeAway = ~subtrahend + 1; // twos complement
+		boolean carryFromAddingOne;
+		int takeAway = add(~subtrahend,1,wordSize);
+		carryFromAddingOne = ccr.isCarryFlagSet();
+		
 		int result = add(minuend, takeAway, wordSize);
 		boolean carryFlag = !ccr.isCarryFlagSet();
-		ccr.setCarryFlag(carryFlag);
+		ccr.setCarryFlag(!ccr.isCarryFlagSet() & !carryFromAddingOne); // only set if both are not set
 		return result;
 	}// subtract(int minuend, int subtrahend, int wordSize)
 
@@ -105,25 +108,13 @@ public class ArithmeticUnit {
 	}// subtract(short minuend,short subtrahand)
 
 	public byte subtractWithBorrow(byte minuend, byte subtrahand) {
-		//refactored confirm vs Pass2
-		boolean carryFromIncrement = false;
-		boolean carryFlagIn = ccr.isCarryFlagSet();
-		if (carryFlagIn) {// add carry to the subtrhend, the do the subtraction
-			subtrahand =  (byte) this.add(subtrahand, 1, Byte.SIZE) ;
-			carryFromIncrement = ccr.isCarryFlagSet(); // carry flag from increment
-		}// if carryFlag
-
-		byte result = (byte) subtract((int) minuend, (int) subtrahand,
-				Byte.SIZE);
-		boolean carryFlag = ccr.isCarryFlagSet() | carryFromIncrement; // carry is true if either flag is set
-		ccr.setCarryFlag(carryFlag);
-		ccr.setZSP(result);
-		return result;
-	}// add(byte operand1, byte operand2)
-		// Simple Increment operations
-
+		int carryValue = ccr.isCarryFlagSet()?1:0;		// get carry value
+		subtrahand =  (byte) this.add(subtrahand, carryValue, Byte.SIZE) ;// add to subtrahend
+		return subtract(minuend,subtrahand);
+	}// subtractWithBorrow
+	
 	/*
-	 * Incremet values
+	 * Increment values
 	 */
 	public byte increment(byte value) {
 		byte result =(byte) add((int) value, 1, Byte.SIZE);

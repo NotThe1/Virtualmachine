@@ -556,7 +556,12 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			disassembler.upDateDisplay(wrs.getProgramCounter());
 			txtAssemblerCode.setCaretPosition(0);
 			break;
-
+		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
+			File sourceFile = new File( "C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
+			loadNewSystem(sourceFile);
+			sourceFile = new File( "C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
+			loadNewSystem(sourceFile);
+			break;
 		case AC_MNU_TOOLS_SHOW_CODE:
 			if (showCode == null) {
 				showCode = new ShowCode();
@@ -725,6 +730,29 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 		showTheDisks();
 	}// setupDisks
+	private void loadNewSystem(File sourceFile){
+		try {
+			FileReader fileReader = new FileReader((sourceFile));
+			BufferedReader reader = new BufferedReader(fileReader);
+			String line;
+			while ((line = reader.readLine()) != null) {
+				parseAndLoadImage(line);
+			}// while
+			reader.close();
+		} catch (FileNotFoundException fnfe) {
+			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+					+ "not found", "unable to locate",
+					JOptionPane.ERROR_MESSAGE);
+			return; // exit gracefully
+		} catch (IOException ie) {
+			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+					+ ie.getMessage(), "IO error",
+					JOptionPane.ERROR_MESSAGE);
+			return; // exit gracefully
+		}// try
+	}// if - returnValue
+
+	
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
@@ -1368,6 +1396,15 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuToolsShowCode.setName(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.setActionCommand(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.addActionListener(this);
+		
+		JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
+		mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+		mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+		mnuToolsLoadNewSystem.addActionListener(this);
+		mnuTools.add(mnuToolsLoadNewSystem);
+		
+		JSeparator separator_4 = new JSeparator();
+		mnuTools.add(separator_4);
 		mnuTools.add(mnuToolsShowCode);
 
 		JSeparator separator_3 = new JSeparator();
@@ -1407,6 +1444,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_SAVE = "mnuMemorySave";
 	private final static String AC_MNU_MEMORY_LOAD = "mnuMemoryLoad";
 
+	private final static String AC_MNU_TOOLS_LOAD_NEW_SYSTEM = "mnuToolsLoadNewSystem";
 	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
 	private final static String AC_MNU_TOOLS_DEBUG_MANAGER = "mnuToolsDebugManager";
 

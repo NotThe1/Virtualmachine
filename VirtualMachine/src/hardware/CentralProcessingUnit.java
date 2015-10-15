@@ -659,6 +659,9 @@ public class CentralProcessingUnit implements MemoryListener {
 				byte ans = dc.byteFromDevice(IOaddress);
 				wrs.setReg(Reg.A, ans);
 				opCodeSize = 2;
+				if ((ans == 0X01) & (IOaddress == 0X01)){
+					running = false;
+				}
 				// System.out.printf("IN %n", "");
 				break;
 			case 4:// yyy = 100

@@ -167,11 +167,13 @@ public class ArithmeticUnit {
 		boolean oldFlag = this.getCarryFlag();
 		boolean originalBit0Set = ((source & 0X01) != 0) ? true : false;
 
-		int s = (source >> 1) & 0X7F;
-		this.setCarryFlag(originalBit0Set);
+		this.setCarryFlag(originalBit0Set);			// Set CY = original LSB
+		int s = (source >> 1) & 0X7F;				// shift value 1 position to the right
 		if (thruCarry) { // rotate thru carry
 			s = oldFlag ? (s | 0X80) : s & 0X7F;
-		}// if for thruCarry
+		}else{// not rotate thru carry
+			s = originalBit0Set ? (s | 0X80) : s & 0X7F;
+		}
 		return (byte) (s & (byte) 0XFF);
 	};// rotateRight
 

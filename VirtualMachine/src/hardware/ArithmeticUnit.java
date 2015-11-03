@@ -2,6 +2,7 @@ package hardware;
 
 public class ArithmeticUnit {
 	private ConditionCodeRegister ccr;
+	
 
 	public ArithmeticUnit(ConditionCodeRegister ccr) {
 		this.ccr = ccr;

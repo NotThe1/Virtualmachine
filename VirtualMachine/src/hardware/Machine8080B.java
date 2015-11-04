@@ -126,7 +126,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	/**
 	 * Launch the application.
 	 */
-	
+
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -142,7 +142,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	private JFileChooser getFileChooser(String subDirectory, String filterDescription, String filterExtensions) {
+	private JFileChooser getFileChooser(String subDirectory, String filterDescription, String... filterExtensions) {
 		Path sourcePath = Paths.get(FILE_LOCATION, subDirectory);
 		String fp = sourcePath.resolve(FILE_LOCATION).toString();
 
@@ -398,17 +398,26 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// showRun
 
 	private void loadMemoryImage() {
-		JFileChooser chooserLMI = getFileChooser(MEMORY, "Memory files", MEMORY_SUFFIX);
+		JFileChooser chooserLMI = getFileChooser(MEMORY, "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
 		if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
 			File sourceFile = chooserLMI.getSelectedFile();
+			String memoryFileType = (sourceFile.getName().endsWith(MEMORY_SUFFIX)) ? MEMORY_SUFFIX : MEMORY_SUFFIX1;
 			try {
 				FileReader fileReader = new FileReader((sourceFile));
 				BufferedReader reader = new BufferedReader(fileReader);
 				String line;
 				while ((line = reader.readLine()) != null) {
-					parseAndLoadImage(line);
+					switch (memoryFileType) {
+					case MEMORY_SUFFIX:
+						parseAndLoadImageMem(line);
+						break;
+					case MEMORY_SUFFIX1:
+						parseAndLoadImageHex(line);
+						break;
+					default:
+					}
 				}// while
 				reader.close();
 			} catch (FileNotFoundException fnfe) {
@@ -426,7 +435,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	}// loadMemoryImage
 
-	private void parseAndLoadImage(String line) {
+	private void parseAndLoadImageMem(String line) {
 		if (line.length() == 0) {
 			return; // skip the line
 		}// if
@@ -454,6 +463,61 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		core.writeDMA(address, values); // avoid setting off memory traps
 		scanner.close();
 	}// parseAndLoadImage
+
+	private void parseAndLoadImageHex(String line) {
+		if (line.length() == 0) {
+			return; // skip the line
+		}// if
+		if (line.startsWith(":") == false) {
+			return; // skip the line
+		}// if
+			// first value beyond the colon
+		int byteCount = Integer.valueOf(line.substring(1, 3), 16);
+		int address = Integer.valueOf(line.substring(3, 7), 16);
+		if ((address + byteCount - 1) >= MEMORY_SIZE_BYTES) {
+			String msg = String.format(
+					"Address out of current memory on address line: %s.", line.substring(3, 7));
+			JOptionPane.showMessageDialog(null, msg, "Out of bounds", JOptionPane.ERROR_MESSAGE);
+			return;
+		}// if max memory test
+		byte recordType = (byte)((int)(Integer.valueOf(line.substring(7, 9), 16)));
+		switch (recordType) {
+		case 00:
+			byte[] values = new byte[byteCount];
+			byte value;
+			int checksum = byteCount +recordType +
+					Integer.valueOf(line.substring(3, 5), 16) +
+					Integer.valueOf(line.substring(5, 7), 16) ;
+			for (int i = 0; i < byteCount; i++) {
+				value = (byte) ((int) Integer.valueOf(line.substring((i * 2) + 9, (i * 2) + 11), 16));
+				values[i] = value;
+				checksum += value;
+			}// for
+			int checksumValue = Integer.valueOf(line.substring((byteCount*2) + 9, (byteCount*2) + 11), 16);
+			checksum =checksum + checksumValue;
+			
+			if ((checksum & 0xFF) != 0){
+				String msg = String.format(
+						"checksum error on address line: %s.", line.substring(3, 7));
+				JOptionPane.showMessageDialog(null, msg, "CheckSum error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+
+			break;
+		case 01:
+			break;
+		case 02:
+			break;
+		case 03:
+			break;
+		case 04:
+			break;
+		case 05:
+			break;
+		default:
+		}// switch
+
+	}
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -557,9 +621,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			txtAssemblerCode.setCaretPosition(0);
 			break;
 		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
-			File sourceFile = new File( "C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
+			File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
 			loadNewSystem(sourceFile);
-			sourceFile = new File( "C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
+			sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
 			loadNewSystem(sourceFile);
 			break;
 		case AC_MNU_TOOLS_SHOW_CODE:
@@ -730,13 +794,14 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 		showTheDisks();
 	}// setupDisks
-	private void loadNewSystem(File sourceFile){
+
+	private void loadNewSystem(File sourceFile) {
 		try {
 			FileReader fileReader = new FileReader((sourceFile));
 			BufferedReader reader = new BufferedReader(fileReader);
 			String line;
 			while ((line = reader.readLine()) != null) {
-				parseAndLoadImage(line);
+				parseAndLoadImageMem(line);
 			}// while
 			reader.close();
 		} catch (FileNotFoundException fnfe) {
@@ -751,8 +816,6 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			return; // exit gracefully
 		}// try
 	}// if - returnValue
-
-	
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
@@ -1396,13 +1459,13 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuToolsShowCode.setName(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.setActionCommand(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.addActionListener(this);
-		
+
 		JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
 		mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
 		mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
 		mnuToolsLoadNewSystem.addActionListener(this);
 		mnuTools.add(mnuToolsLoadNewSystem);
-		
+
 		JSeparator separator_4 = new JSeparator();
 		mnuTools.add(separator_4);
 		mnuTools.add(mnuToolsShowCode);
@@ -1471,6 +1534,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	public final static String MEMORY = "Memory";
 	// private final static String DISKS = "Disks";
 
+	public final static String MEMORY_SUFFIX1 = "hex";
 	public final static String MEMORY_SUFFIX = "mem";
 	public final static String DISK_SUFFIX = "mem";
 	private final static String FILE_SUFFIX = "sms";

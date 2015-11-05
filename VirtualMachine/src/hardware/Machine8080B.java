@@ -465,6 +465,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// parseAndLoadImage
 
 	private void parseAndLoadImageHex(String line) {
+		line = line.replace(" ", "");				// remove any spaces
 		if (line.length() == 0) {
 			return; // skip the line
 		}// if
@@ -482,7 +483,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		}// if max memory test
 		byte recordType = (byte)((int)(Integer.valueOf(line.substring(7, 9), 16)));
 		switch (recordType) {
-		case 00:
+		case DATA_RECORD:
 			byte[] values = new byte[byteCount];
 			byte value;
 			int checksum = byteCount +recordType +
@@ -501,23 +502,35 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 						"checksum error on address line: %s.", line.substring(3, 7));
 				JOptionPane.showMessageDialog(null, msg, "CheckSum error", JOptionPane.ERROR_MESSAGE);
 				return;
-			}
+			}// if - checksum test
+			
+			core.writeDMA(address, values); // avoid setting off memory traps
 
 			break;
-		case 01:
+		case END_OF_FILE_RECORD:
+			String msg ="End of File Record found!";
+			JOptionPane.showMessageDialog(null, msg, "Hex memory loader", JOptionPane.INFORMATION_MESSAGE);
 			break;
-		case 02:
+		case EXTENDED_SEGMENT_ADDRESS_RECORD:
 			break;
-		case 03:
+		case START_SEGMENT_ADDRESS_RECORD:
 			break;
-		case 04:
+		case EXTENDED_LINEAR_ADDRESS_RECORD:
 			break;
-		case 05:
+		case START_LINEAR_ADDRESS_RECORD:
 			break;
 		default:
 		}// switch
+		
 
 	}
+	static final byte DATA_RECORD = (byte) 0x00;
+	static final byte END_OF_FILE_RECORD = (byte) 0x01;
+	static final byte EXTENDED_SEGMENT_ADDRESS_RECORD = (byte) 0x02;
+	static final byte START_SEGMENT_ADDRESS_RECORD = (byte) 0x03;
+	static final byte EXTENDED_LINEAR_ADDRESS_RECORD = (byte) 0x04;
+	static final byte START_LINEAR_ADDRESS_RECORD = (byte) 0x05;
+	
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

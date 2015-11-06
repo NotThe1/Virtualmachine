@@ -10,17 +10,17 @@ import java.nio.file.Path;
 import java.util.Vector;
 
 public class DiskDrive {
-	private int heads;
+	protected int heads;
 	private int currentHead;
-	private int tracksPerHead;
+	protected int tracksPerHead;
 	private int currentTrack;
-	private int sectorsPerTrack;
+	protected int sectorsPerTrack;
 	private int currentSector;
 	private int currentAbsoluteSector;
-	private int bytesPerSector;
-	private int sectorsPerHead;
-	private int totalSectorsOnDisk;
-	private long totalBytesOnDisk;
+	protected int bytesPerSector;
+	protected int sectorsPerHead;
+	protected int totalSectorsOnDisk;
+	protected long totalBytesOnDisk;
 	private String fileAbsoluteName;
 	private String fileLocalName;
 

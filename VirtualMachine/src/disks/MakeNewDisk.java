@@ -133,11 +133,12 @@ public class MakeNewDisk {
 	private static ByteBuffer setUpBuffer(ByteBuffer sector, int value) {
 		sector.clear();
 		// set value to be put into sector
-		Byte byteValue = (byte) (00);	// set tp zeros
-//		Byte byteValue = (byte) (value & 0XFF);
-//		Byte byteValue = (byte) 0X76;		// Halt instruction
+		Byte byteValue = (byte) 0x00;		// default to null
+		Byte MTfileVlaue = (byte) 0xE5;		// feleted file value
+		Byte workingValue;
 		while (sector.hasRemaining()) {
-			sector.put(byteValue);
+			workingValue =  ((sector.position() % 0x20) == 0)? MTfileVlaue:byteValue;
+			sector.put(workingValue);
 		}// while
 		sector.flip();
 		return sector;

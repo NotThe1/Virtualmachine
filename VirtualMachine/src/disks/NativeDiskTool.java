@@ -65,13 +65,18 @@ import javax.swing.SwingConstants;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-public class NativeDiskTool implements ActionListener, PropertyChangeListener {
+public class NativeDiskTool implements ActionListener {
 
 	private JFrame frame;
 	RawDiskDrive diskDrive;
+	Document doc;
+
 	byte[] aSector;
 	byte[] dotSector;
 	String geometryString;
+
+	int sectorSize;
+	int linesToDisplay;
 
 	// private final static String AC_BTN;
 
@@ -92,25 +97,33 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		});
 	}
 
-	private void mnuFileOpen() {
-		String selectedAbsolutePath = getDisk("F");
-		if (selectedAbsolutePath == null) {
-			return;
-		}// if
+	// private void mnuFileOpen() {
+	// String selectedAbsolutePath = getDisk();
+	// if (selectedAbsolutePath == null) {
+	// return;
+	// }// if
+	// loadDiskDrive(selectedAbsolutePath);
+	// }
 
+	private void loadDiskDrive(String selectedAbsolutePath) {
 		diskDrive = new RawDiskDrive(selectedAbsolutePath);
+		setFileNameLabel(selectedAbsolutePath);
 		showGeometry(diskDrive);
-		setSpinnerLimits();
+		haveFile(true);
+		diskDrive.setCurrentAbsoluteSector(0);
+		displaySector();
+		// setSpinnerLimits();
+
 	}
 
-	private String getDisk(String diskType) {
+	private String getDisk() {
 		String fileLocation = ".";
 		Path sourcePath = Paths.get(fileLocation, "Disks");
 		JFileChooser chooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
 		chooser.setMultiSelectionEnabled(false);
 		//
 		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (diskLayout.fileExtension.startsWith(diskType)) {
+			if (diskLayout.fileExtension.startsWith("F")) {
 				chooser.addChoosableFileFilter(
 						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
 			}// if - correct type
@@ -128,11 +141,8 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 					JOptionPane.WARNING_MESSAGE);
 			return null;
 		}// if
-		lblFileName.setText(chooser.getSelectedFile().getName());
-		String selectedAbsolutePath = null;
-		selectedAbsolutePath = chooser.getSelectedFile().getAbsolutePath().toString();
-		lblFileName.setToolTipText(selectedAbsolutePath);
-		return selectedAbsolutePath;
+
+		return chooser.getSelectedFile().getAbsolutePath().toString();
 	}// getDisk
 
 	private void showGeometry(RawDiskDrive diskDrive) {
@@ -143,8 +153,14 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		lblTotalTracks.setText(String.format(geometryString, diskDrive.getTotalTracks()));
 		lblTotalSectors.setText(String.format(geometryString, diskDrive.getTotalSectorsOnDisk()));
 		lblTotalBytes.setText(String.format(geometryString, diskDrive.getTotalBytesOnDisk()));
+
+		setSpinnerLimits();
+
+		sectorSize = diskDrive.getBytesPerSector();
+		linesToDisplay = sectorSize / CHARACTERS_PER_LINE;
 	}
-	private void resetGeometry(){
+
+	private void resetGeometry() {
 		lblHeads.setText("<none>");
 		lblTracksPerHead.setText("<none>");
 		lblSectorsPerTrack.setText("<none>");
@@ -152,7 +168,10 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		lblTotalTracks.setText("<none>");
 		lblTotalSectors.setText("<none>");
 		lblTotalBytes.setText("<none>");
-		
+
+		sectorSize = 0;
+		linesToDisplay = 1;
+
 		lblFileName.setText("<none>");
 	}
 
@@ -167,39 +186,61 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		((SpinnerNumberModel) spinnerSectorHex.getModel()).setMaximum(diskDrive.getSectorsPerTrack());
 	}
 
-	private final static int LINES_TO_DISPLAY = 32;
-
 	private void btnDisplayPhysical() {
 
-		diskDrive.setCurrentHead((int) spinnerHeadHex.getValue());
-		diskDrive.setCurrentTrack((int) spinnerTrackHex.getValue());
-		diskDrive.setCurrentSector((int) spinnerSectorHex.getValue());
-		aSector = diskDrive.read();
 
-		Document doc = txtDisplay.getDocument();
-		// String headerString =
-		// "       00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F";
-		JLabel lblHeaderString = new JLabel("      00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F");
-		lblHeaderString.setFont(new Font("Courier New", Font.PLAIN, 15));
-		scrollPane.setColumnHeaderView(lblHeaderString);
+		diskDrive.setCurrentAbsoluteSector(
+				(int)spinnerHeadHex.getValue(),
+				(int)spinnerTrackHex.getValue(),
+				(int)spinnerSectorHex.getValue());
+		
+		displaySector();
+		
+		
+//		aSector = diskDrive.read();
+//		clearSectorDisplay();
+//		doc = txtDisplay.getDocument();
+
+//		try {
+//			for (int i = 0; i < linesToDisplay; i++) {
+//				doc.insertString(doc.getLength(), formatLine(i), null);
+//			}
+//		} catch (BadLocationException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		txtDisplay.setCaretPosition(0);
+
+	}
+	private void displaySector(){
+		spinnerHeadHex.setValue(diskDrive.getCurrentHead());
+		spinnerTrackHex.setValue(diskDrive.getCurrentTrack());
+		spinnerSectorHex.setValue(diskDrive.getCurrentSector());
+		lblLogicalSector.setText(String.format(geometryString,diskDrive.getCurrentAbsoluteSector()));
+		
+		aSector = diskDrive.read();
+		clearSectorDisplay();
+		doc = txtDisplay.getDocument();
+
 		try {
-			doc.remove(0, doc.getLength());
-			for (int i = 0; i < LINES_TO_DISPLAY; i++) {
+			for (int i = 0; i < linesToDisplay; i++) {
 				doc.insertString(doc.getLength(), formatLine(i), null);
 			}
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		txtDisplay.setCaretPosition(0);
+
 	}
 
 	private String formatLine(int lineNumber) {
 		byte target;
 		StringBuilder sbHex = new StringBuilder();
 		StringBuilder sbDot = new StringBuilder();
-		sbHex.append(String.format("%04X: ", lineNumber));
-		for (int i = 0; i < 16; i++) {
-			target = aSector[(lineNumber * 16) + i];
+		sbHex.append(String.format("%04X: ", lineNumber * CHARACTERS_PER_LINE));
+		for (int i = 0; i < CHARACTERS_PER_LINE; i++) {
+			target = aSector[(lineNumber * CHARACTERS_PER_LINE) + i];
 			sbHex.append(String.format("%02X ", target));
 
 			sbDot.append((target >= 0x20 && target <= 0x7F) ? (char) target : ".");
@@ -224,19 +265,50 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		}
 		showHexSpinners(isHex);
 	}
-	private void showHexSpinners(boolean state){
+
+	private void showHexSpinners(boolean state) {
 		spinnerHeadHex.setVisible(state);
 		spinnerTrackHex.setVisible(state);
 		spinnerSectorHex.setVisible(state);
-		
+
 		spinnerHeadDecimal.setVisible(!state);
 		spinnerTrackDecimal.setVisible(!state);
 		spinnerSectorDecimal.setVisible(!state);
-		
+
 	}
-	
-	private void haveFile(boolean state){
+
+	private void haveFile(boolean state) {
 		tabbedPane.setVisible(state);
+
+		mnuFileNewDisk.setEnabled(!state);
+		mnuFileOpenDisk.setEnabled(!state);
+		mnuFileCloseDisk.setEnabled(state);
+		mnuFileSaveDisk.setEnabled(state);
+		mnuFileSaveAsDisk.setEnabled(state);
+
+		if (state == false) {
+			clearSectorDisplay();
+		}
+
+	}
+
+	private void setFileNameLabel(String selectedAbsolutePath) {
+		int index = selectedAbsolutePath.lastIndexOf(File.separator);
+		lblFileName.setText(selectedAbsolutePath.substring(index + 1, selectedAbsolutePath.length()));
+		lblFileName.setToolTipText(selectedAbsolutePath.substring(0, index));
+	}
+
+	private void clearSectorDisplay() {
+		if (doc == null) {
+			return;
+		}
+		try {
+			doc.remove(0, doc.getLength());
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// doc = null;
 	}
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -257,18 +329,20 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 
 	private final static String BTN_LABEL_HEX = "Hex";
 	private final static String BTN_LABEL_DECIMAL = "Decimal";
-	
+
 	private final static int TAB_PHYSICAL = 0;
 	private final static int TAB_DIRECTORY = 1;
 	private final static int TAB_FILE = 2;
-	
+
+	private final static int CHARACTERS_PER_LINE = 16;
+
 	private Hex64KSpinner spinnerHeadHex;
 	private JSpinner spinnerHeadDecimal;
 	private Hex64KSpinner spinnerTrackHex;
 	private JSpinner spinnerTrackDecimal;
 	private Hex64KSpinner spinnerSectorHex;
 	private JSpinner spinnerSectorDecimal;
-	private JFormattedTextField ftfLogicalSector;
+	private JLabel lblLogicalSector;
 	private JLabel lblFileName;
 	private JLabel lblHeads;
 	private JLabel lblTracksPerHead;
@@ -283,20 +357,34 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 	private JTabbedPane tabbedPane;
 	private JPanel panelHTS;
 	private JPanel panelPhysical;
+	private JMenuItem mnuFileNewDisk;
+	private JMenuItem mnuFileOpenDisk;
+	private JMenuItem mnuFileCloseDisk;
+	private JMenuItem mnuFileSaveDisk;
+	private JMenuItem mnuFileSaveAsDisk;
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
+		String selectedAbsolutePath;
+		int sectorNumber;
 		switch (ae.getActionCommand()) {
 		// Menus
 		case AC_MNU_FILE_NEW:
-//			haveFile(true);
+			selectedAbsolutePath = MakeNewDisk.makeNewDisk();
+			if (selectedAbsolutePath == null) {
+				return;
+			}// if
+			loadDiskDrive(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_OPEN:
-			mnuFileOpen();
-			haveFile(true);
+			selectedAbsolutePath = getDisk();
+			if (selectedAbsolutePath == null) {
+				return;
+			}// if
+			loadDiskDrive(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_CLOSE:
-			if (diskDrive!=null){
+			if (diskDrive != null) {
 				diskDrive.dismount();
 				diskDrive = null;
 			}
@@ -328,22 +416,33 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 			break;
 
 		case AC_BTN_FIRST:
+			diskDrive.setCurrentAbsoluteSector(0);
+			displaySector();
 			break;
 		case AC_BTN_PREVIOUS:
+			sectorNumber = diskDrive.getCurrentAbsoluteSector()-1;
+			if(	sectorNumber <=-1){
+				return;		// no more to read
+			}
+			diskDrive.setCurrentAbsoluteSector(sectorNumber);
+			displaySector();
+
 			break;
 		case AC_BTN_NEXT:
+			 sectorNumber = diskDrive.getCurrentAbsoluteSector()+1;
+			if(	sectorNumber >= diskDrive.getTotalSectorsOnDisk()){
+				return;		// no more to read
+			}
+			diskDrive.setCurrentAbsoluteSector(sectorNumber);
+			displaySector();
 			break;
 		case AC_BTN_LAST:
+			diskDrive.setCurrentAbsoluteSector(diskDrive.getTotalSectorsOnDisk()-1);
+			displaySector();
 			break;
 		default:
 		}// switch
 			// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void propertyChange(PropertyChangeEvent evt) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -354,11 +453,15 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		resetGeometry();
 		tabbedPane.setSelectedIndex(TAB_PHYSICAL);
 		haveFile(false);
-		
+
 		spinnerHeadDecimal.setModel(spinnerHeadHex.getModel());
 		spinnerTrackDecimal.setModel(spinnerTrackHex.getModel());
 		spinnerSectorDecimal.setModel(spinnerSectorHex.getModel());
 
+		JLabel lblHeaderString = new JLabel("      00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F");
+		lblHeaderString.setForeground(Color.blue);
+		lblHeaderString.setFont(new Font("Courier New", Font.PLAIN, 15));
+		scrollPane.setColumnHeaderView(lblHeaderString);
 	}
 
 	private void appClose() {
@@ -577,14 +680,13 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 				0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		gbl_panelPhysical.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		panelPhysical.setLayout(gbl_panelPhysical);
-		
+
 		JPanel panelDirectory = new JPanel();
 		tabbedPane.addTab("Directory View", null, panelDirectory, null);
 		panelDirectory.setLayout(new GridLayout(1, 0, 0, 0));
 
 		JPanel panelFile = new JPanel();
 		tabbedPane.addTab("File View", null, panelFile, null);
-
 
 		panelHTS = new JPanel();
 		GridBagConstraints gbc_panelHTS = new GridBagConstraints();
@@ -716,17 +818,17 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		gbl_panelSkipButtons.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		panelSkipButtons.setLayout(gbl_panelSkipButtons);
 
-		ftfLogicalSector = new JFormattedTextField();
-		ftfLogicalSector.setText("0");
-		ftfLogicalSector.setPreferredSize(new Dimension(200, 20));
-		ftfLogicalSector.setHorizontalAlignment(SwingConstants.CENTER);
+		lblLogicalSector = new JLabel();
+		lblLogicalSector.setText("0");
+		lblLogicalSector.setPreferredSize(new Dimension(200, 20));
+		lblLogicalSector.setHorizontalAlignment(SwingConstants.CENTER);
 		GridBagConstraints gbc_ftfLogicalSector = new GridBagConstraints();
 		gbc_ftfLogicalSector.gridwidth = 7;
 		gbc_ftfLogicalSector.insets = new Insets(0, 0, 5, 5);
 		gbc_ftfLogicalSector.fill = GridBagConstraints.HORIZONTAL;
 		gbc_ftfLogicalSector.gridx = 1;
 		gbc_ftfLogicalSector.gridy = 1;
-		panelSkipButtons.add(ftfLogicalSector, gbc_ftfLogicalSector);
+		panelSkipButtons.add(lblLogicalSector, gbc_ftfLogicalSector);
 
 		JButton btnFirst = new JButton("<<");
 		btnFirst.addActionListener(this);
@@ -769,36 +871,36 @@ public class NativeDiskTool implements ActionListener, PropertyChangeListener {
 		JMenu mnuFile = new JMenu("File");
 		menuBar.add(mnuFile);
 
-		JMenuItem mnuFileNew = new JMenuItem("New");
-		mnuFileNew.addActionListener(this);
-		mnuFileNew.setActionCommand(AC_MNU_FILE_NEW);
-		mnuFile.add(mnuFileNew);
+		mnuFileNewDisk = new JMenuItem("New");
+		mnuFileNewDisk.addActionListener(this);
+		mnuFileNewDisk.setActionCommand(AC_MNU_FILE_NEW);
+		mnuFile.add(mnuFileNewDisk);
 
-		JMenuItem mnuFileOpen = new JMenuItem("Open File...");
-		mnuFileOpen.addActionListener(this);
-		mnuFileOpen.setActionCommand(AC_MNU_FILE_OPEN);
-		mnuFile.add(mnuFileOpen);
+		mnuFileOpenDisk = new JMenuItem("Open File...");
+		mnuFileOpenDisk.addActionListener(this);
+		mnuFileOpenDisk.setActionCommand(AC_MNU_FILE_OPEN);
+		mnuFile.add(mnuFileOpenDisk);
 
 		JSeparator separator = new JSeparator();
 		mnuFile.add(separator);
 
-		JMenuItem mnuFileClose = new JMenuItem("Close");
-		mnuFileClose.addActionListener(this);
-		mnuFileClose.setActionCommand(AC_MNU_FILE_CLOSE);
-		mnuFile.add(mnuFileClose);
+		mnuFileCloseDisk = new JMenuItem("Close");
+		mnuFileCloseDisk.addActionListener(this);
+		mnuFileCloseDisk.setActionCommand(AC_MNU_FILE_CLOSE);
+		mnuFile.add(mnuFileCloseDisk);
 
 		JSeparator separator_1 = new JSeparator();
 		mnuFile.add(separator_1);
 
-		JMenuItem mnuFileSave = new JMenuItem("Save");
-		mnuFileSave.addActionListener(this);
-		mnuFileSave.setActionCommand(AC_MNU_FILE_SAVE);
-		mnuFile.add(mnuFileSave);
+		mnuFileSaveDisk = new JMenuItem("Save");
+		mnuFileSaveDisk.addActionListener(this);
+		mnuFileSaveDisk.setActionCommand(AC_MNU_FILE_SAVE);
+		mnuFile.add(mnuFileSaveDisk);
 
-		JMenuItem mnuFileSaveAs = new JMenuItem("Save As...");
-		mnuFileSaveAs.addActionListener(this);
-		mnuFileSaveAs.setActionCommand(AC_MNU_FILE_SAVE_AS);
-		mnuFile.add(mnuFileSaveAs);
+		mnuFileSaveAsDisk = new JMenuItem("Save As...");
+		mnuFileSaveAsDisk.addActionListener(this);
+		mnuFileSaveAsDisk.setActionCommand(AC_MNU_FILE_SAVE_AS);
+		mnuFile.add(mnuFileSaveAsDisk);
 
 		JSeparator separator_2 = new JSeparator();
 		mnuFile.add(separator_2);

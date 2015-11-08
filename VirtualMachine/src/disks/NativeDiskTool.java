@@ -64,10 +64,13 @@ import javax.swing.JViewport;
 import javax.swing.SwingConstants;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
+import myComponents.Hex64KSpinner16;
 
-public class NativeDiskTool implements ActionListener {
+public class NativeDiskTool implements ActionListener, ChangeListener {
 
-	private JFrame frame;
+	private JFrame frmNativeDiskTool;
 	RawDiskDrive diskDrive;
 	Document doc;
 
@@ -89,7 +92,7 @@ public class NativeDiskTool implements ActionListener {
 				try {
 					NativeDiskTool window = new NativeDiskTool();
 
-					window.frame.setVisible(true);
+					window.frmNativeDiskTool.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -97,14 +100,7 @@ public class NativeDiskTool implements ActionListener {
 		});
 	}
 
-	// private void mnuFileOpen() {
-	// String selectedAbsolutePath = getDisk();
-	// if (selectedAbsolutePath == null) {
-	// return;
-	// }// if
-	// loadDiskDrive(selectedAbsolutePath);
-	// }
-
+	// ----------------------------Physical View ----------------------------------------
 	private void loadDiskDrive(String selectedAbsolutePath) {
 		diskDrive = new RawDiskDrive(selectedAbsolutePath);
 		setFileNameLabel(selectedAbsolutePath);
@@ -187,37 +183,19 @@ public class NativeDiskTool implements ActionListener {
 	}
 
 	private void btnDisplayPhysical() {
-
-
 		diskDrive.setCurrentAbsoluteSector(
-				(int)spinnerHeadHex.getValue(),
-				(int)spinnerTrackHex.getValue(),
-				(int)spinnerSectorHex.getValue());
-		
+				(int) spinnerHeadHex.getValue(),
+				(int) spinnerTrackHex.getValue(),
+				(int) spinnerSectorHex.getValue());
 		displaySector();
-		
-		
-//		aSector = diskDrive.read();
-//		clearSectorDisplay();
-//		doc = txtDisplay.getDocument();
-
-//		try {
-//			for (int i = 0; i < linesToDisplay; i++) {
-//				doc.insertString(doc.getLength(), formatLine(i), null);
-//			}
-//		} catch (BadLocationException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		txtDisplay.setCaretPosition(0);
-
 	}
-	private void displaySector(){
+
+	private void displaySector() {
 		spinnerHeadHex.setValue(diskDrive.getCurrentHead());
 		spinnerTrackHex.setValue(diskDrive.getCurrentTrack());
 		spinnerSectorHex.setValue(diskDrive.getCurrentSector());
-		lblLogicalSector.setText(String.format(geometryString,diskDrive.getCurrentAbsoluteSector()));
-		
+		lblLogicalSector.setText(String.format(geometryString, diskDrive.getCurrentAbsoluteSector()));
+
 		aSector = diskDrive.read();
 		clearSectorDisplay();
 		doc = txtDisplay.getDocument();
@@ -275,6 +253,16 @@ public class NativeDiskTool implements ActionListener {
 		spinnerTrackDecimal.setVisible(!state);
 		spinnerSectorDecimal.setVisible(!state);
 
+		spinnerTrackBeforeDirectoryHex.setVisible(state);
+		spinnerLogicalBlockSizeHex.setVisible(state);
+		spinnerMaxDirectoryEntriesHex.setVisible(state);
+
+
+		spinnerTrackBeforeDirectoryDecimal.setVisible(!state);
+		spinnerLogicalBlockSizeDecimal.setVisible(!state);
+		spinnerMaxDirectoryEntriesDecimal.setVisible(!state);
+
+
 	}
 
 	private void haveFile(boolean state) {
@@ -289,7 +277,6 @@ public class NativeDiskTool implements ActionListener {
 		if (state == false) {
 			clearSectorDisplay();
 		}
-
 	}
 
 	private void setFileNameLabel(String selectedAbsolutePath) {
@@ -310,6 +297,8 @@ public class NativeDiskTool implements ActionListener {
 		}
 		// doc = null;
 	}
+
+	// ----------------------------Directory View ----------------------------------------
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 	private final static String AC_MNU_FILE_NEW = "MenuFileNew";
@@ -362,6 +351,13 @@ public class NativeDiskTool implements ActionListener {
 	private JMenuItem mnuFileCloseDisk;
 	private JMenuItem mnuFileSaveDisk;
 	private JMenuItem mnuFileSaveAsDisk;
+	private Hex64KSpinner spinnerTrackBeforeDirectoryHex;
+	private JSpinner spinnerTrackBeforeDirectoryDecimal;
+	private Hex64KSpinner spinnerLogicalBlockSizeHex;
+	private JSpinner spinnerLogicalBlockSizeDecimal;
+	private JLabel lblMaxDirectoryEntries;
+	private JSpinner spinnerMaxDirectoryEntriesDecimal;
+	private Hex64KSpinner spinnerMaxDirectoryEntriesHex;
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
@@ -420,29 +416,47 @@ public class NativeDiskTool implements ActionListener {
 			displaySector();
 			break;
 		case AC_BTN_PREVIOUS:
-			sectorNumber = diskDrive.getCurrentAbsoluteSector()-1;
-			if(	sectorNumber <=-1){
-				return;		// no more to read
+			sectorNumber = diskDrive.getCurrentAbsoluteSector() - 1;
+			if (sectorNumber <= -1) {
+				return; // no more to read
 			}
 			diskDrive.setCurrentAbsoluteSector(sectorNumber);
 			displaySector();
 
 			break;
 		case AC_BTN_NEXT:
-			 sectorNumber = diskDrive.getCurrentAbsoluteSector()+1;
-			if(	sectorNumber >= diskDrive.getTotalSectorsOnDisk()){
-				return;		// no more to read
+			sectorNumber = diskDrive.getCurrentAbsoluteSector() + 1;
+			if (sectorNumber >= diskDrive.getTotalSectorsOnDisk()) {
+				return; // no more to read
 			}
 			diskDrive.setCurrentAbsoluteSector(sectorNumber);
 			displaySector();
 			break;
 		case AC_BTN_LAST:
-			diskDrive.setCurrentAbsoluteSector(diskDrive.getTotalSectorsOnDisk()-1);
+			diskDrive.setCurrentAbsoluteSector(diskDrive.getTotalSectorsOnDisk() - 1);
 			displaySector();
 			break;
 		default:
 		}// switch
 			// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent ce) {
+		if (ce.getSource() instanceof JTabbedPane) {
+			int pane = ((JTabbedPane) ce.getSource()).getSelectedIndex();
+			switch (pane) {
+			case TAB_PHYSICAL:
+				break;
+			case TAB_DIRECTORY:
+				break;
+			case TAB_FILE:
+				break;
+			default:
+			}
+
+		}
 
 	}
 
@@ -457,6 +471,13 @@ public class NativeDiskTool implements ActionListener {
 		spinnerHeadDecimal.setModel(spinnerHeadHex.getModel());
 		spinnerTrackDecimal.setModel(spinnerTrackHex.getModel());
 		spinnerSectorDecimal.setModel(spinnerSectorHex.getModel());
+
+		spinnerTrackBeforeDirectoryDecimal.setModel(spinnerTrackBeforeDirectoryHex.getModel());
+		spinnerTrackBeforeDirectoryHex.setValue((int) 0x01); 
+		spinnerLogicalBlockSizeDecimal.setModel(spinnerLogicalBlockSizeHex.getModel());
+		spinnerLogicalBlockSizeHex.setValue((int) 0x04);
+		spinnerMaxDirectoryEntriesDecimal.setModel(spinnerMaxDirectoryEntriesHex.getModel());
+		spinnerMaxDirectoryEntriesHex.setValue((int) 0x80);
 
 		JLabel lblHeaderString = new JLabel("      00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F");
 		lblHeaderString.setForeground(Color.blue);
@@ -480,14 +501,15 @@ public class NativeDiskTool implements ActionListener {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		frame = new JFrame();
-		frame.addWindowListener(new WindowAdapter() {
+		frmNativeDiskTool = new JFrame();
+		frmNativeDiskTool.setTitle("Native Disk Tool");
+		frmNativeDiskTool.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent arg0) {
 				appClose();
 			}
 		});
-		frame.setBounds(100, 100, 930, 752);
+		frmNativeDiskTool.setBounds(100, 100, 950, 752);
 		// frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		// frame.addWindowListener(new WindowListener());
 		GridBagLayout gridBagLayout = new GridBagLayout();
@@ -495,7 +517,7 @@ public class NativeDiskTool implements ActionListener {
 		gridBagLayout.rowHeights = new int[] { 0, 79, 637, 0 };
 		gridBagLayout.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
 		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
-		frame.getContentPane().setLayout(gridBagLayout);
+		frmNativeDiskTool.getContentPane().setLayout(gridBagLayout);
 
 		lblFileName = new JLabel("File Name");
 		lblFileName.setFont(new Font("Tahoma", Font.PLAIN, 18));
@@ -503,7 +525,7 @@ public class NativeDiskTool implements ActionListener {
 		gbc_lblFileName.insets = new Insets(0, 0, 5, 0);
 		gbc_lblFileName.gridx = 0;
 		gbc_lblFileName.gridy = 0;
-		frame.getContentPane().add(lblFileName, gbc_lblFileName);
+		frmNativeDiskTool.getContentPane().add(lblFileName, gbc_lblFileName);
 
 		JPanel panelGeomertry = new JPanel();
 		panelGeomertry.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
@@ -512,12 +534,12 @@ public class NativeDiskTool implements ActionListener {
 		gbc_panelGeomertry.fill = GridBagConstraints.BOTH;
 		gbc_panelGeomertry.gridx = 0;
 		gbc_panelGeomertry.gridy = 1;
-		frame.getContentPane().add(panelGeomertry, gbc_panelGeomertry);
+		frmNativeDiskTool.getContentPane().add(panelGeomertry, gbc_panelGeomertry);
 		GridBagLayout gbl_panelGeomertry = new GridBagLayout();
 		gbl_panelGeomertry.columnWidths = new int[] { 0, 0, 0, 0 };
-		gbl_panelGeomertry.rowHeights = new int[] { 0, 0, 0 };
+		gbl_panelGeomertry.rowHeights = new int[] { 0, 0, 0, 0 };
 		gbl_panelGeomertry.columnWeights = new double[] { 1.0, 0.0, 1.0, Double.MIN_VALUE };
-		gbl_panelGeomertry.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelGeomertry.rowWeights = new double[] { 0.0, 1.0, 1.0, Double.MIN_VALUE };
 		panelGeomertry.setLayout(gbl_panelGeomertry);
 
 		JPanel panelGeometry1 = new JPanel();
@@ -665,11 +687,12 @@ public class NativeDiskTool implements ActionListener {
 		panelTotals.add(lblTotalBytes, gbc_lblTotalBytes);
 
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.addChangeListener(this);
 		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
 		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
 		gbc_tabbedPane.gridx = 0;
 		gbc_tabbedPane.gridy = 2;
-		frame.getContentPane().add(tabbedPane, gbc_tabbedPane);
+		frmNativeDiskTool.getContentPane().add(tabbedPane, gbc_tabbedPane);
 
 		panelPhysical = new JPanel();
 		tabbedPane.addTab("Physical View", null, panelPhysical, null);
@@ -680,10 +703,6 @@ public class NativeDiskTool implements ActionListener {
 				0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		gbl_panelPhysical.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		panelPhysical.setLayout(gbl_panelPhysical);
-
-		JPanel panelDirectory = new JPanel();
-		tabbedPane.addTab("Directory View", null, panelDirectory, null);
-		panelDirectory.setLayout(new GridLayout(1, 0, 0, 0));
 
 		JPanel panelFile = new JPanel();
 		tabbedPane.addTab("File View", null, panelFile, null);
@@ -865,8 +884,97 @@ public class NativeDiskTool implements ActionListener {
 		gbc_btnLast.gridy = 2;
 		panelSkipButtons.add(btnLast, gbc_btnLast);
 
+		JPanel panelDirectory = new JPanel();
+		tabbedPane.addTab("Directory View", null, panelDirectory, null);
+		GridBagLayout gbl_panelDirectory = new GridBagLayout();
+		gbl_panelDirectory.columnWidths = new int[] { 0, 0 };
+		gbl_panelDirectory.rowHeights = new int[] { 0, 0 };
+		gbl_panelDirectory.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_panelDirectory.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		panelDirectory.setLayout(gbl_panelDirectory);
+
+		JPanel panelFileMetrics = new JPanel();
+		GridBagConstraints gbc_panelFileMetrics = new GridBagConstraints();
+		gbc_panelFileMetrics.fill = GridBagConstraints.VERTICAL;
+		gbc_panelFileMetrics.gridx = 0;
+		gbc_panelFileMetrics.gridy = 0;
+		panelDirectory.add(panelFileMetrics, gbc_panelFileMetrics);
+		GridBagLayout gbl_panelFileMetrics = new GridBagLayout();
+		gbl_panelFileMetrics.columnWidths = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_panelFileMetrics.rowHeights = new int[] { 0, 0 };
+		gbl_panelFileMetrics.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				0.0, 0.0, 0.0, 0.0,
+				Double.MIN_VALUE };
+		gbl_panelFileMetrics.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		panelFileMetrics.setLayout(gbl_panelFileMetrics);
+
+		JLabel lblTracksBeforeDirectory = new JLabel("Tracks Before Directory");
+		GridBagConstraints gbc_lblTracksBeforeDirectory = new GridBagConstraints();
+		gbc_lblTracksBeforeDirectory.insets = new Insets(0, 0, 0, 5);
+		gbc_lblTracksBeforeDirectory.gridx = 1;
+		gbc_lblTracksBeforeDirectory.gridy = 0;
+		panelFileMetrics.add(lblTracksBeforeDirectory, gbc_lblTracksBeforeDirectory);
+
+		spinnerTrackBeforeDirectoryHex = new Hex64KSpinner();
+		GridBagConstraints gbc_spinnerTrackBeforeDirectoryHex = new GridBagConstraints();
+		gbc_spinnerTrackBeforeDirectoryHex.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerTrackBeforeDirectoryHex.gridx = 3;
+		gbc_spinnerTrackBeforeDirectoryHex.gridy = 0;
+		panelFileMetrics.add(spinnerTrackBeforeDirectoryHex, gbc_spinnerTrackBeforeDirectoryHex);
+
+		spinnerTrackBeforeDirectoryDecimal = new JSpinner();
+		spinnerTrackBeforeDirectoryDecimal.setModel(new SpinnerNumberModel(1, 0, 65535, 1));
+		GridBagConstraints gbc_spinnerTrackBeforeDirectoryDecimal = new GridBagConstraints();
+		gbc_spinnerTrackBeforeDirectoryDecimal.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerTrackBeforeDirectoryDecimal.gridx = 4;
+		gbc_spinnerTrackBeforeDirectoryDecimal.gridy = 0;
+		panelFileMetrics.add(spinnerTrackBeforeDirectoryDecimal, gbc_spinnerTrackBeforeDirectoryDecimal);
+
+		JLabel lblLogicalBlockSize = new JLabel("Logical Block Size in Sectors");
+		GridBagConstraints gbc_lblLogicalBlockSize = new GridBagConstraints();
+		gbc_lblLogicalBlockSize.insets = new Insets(0, 0, 0, 5);
+		gbc_lblLogicalBlockSize.gridx = 6;
+		gbc_lblLogicalBlockSize.gridy = 0;
+		panelFileMetrics.add(lblLogicalBlockSize, gbc_lblLogicalBlockSize);
+
+		spinnerLogicalBlockSizeHex = new Hex64KSpinner();
+		GridBagConstraints gbc_spinnerLogicalBlockSizeHex = new GridBagConstraints();
+		gbc_spinnerLogicalBlockSizeHex.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerLogicalBlockSizeHex.gridx = 8;
+		gbc_spinnerLogicalBlockSizeHex.gridy = 0;
+		panelFileMetrics.add(spinnerLogicalBlockSizeHex, gbc_spinnerLogicalBlockSizeHex);
+
+		spinnerLogicalBlockSizeDecimal = new JSpinner();
+		spinnerLogicalBlockSizeDecimal.setModel(new SpinnerNumberModel(4, 1, 65535, 1));
+		GridBagConstraints gbc_spinnerLogicalBlockSizeDecimal = new GridBagConstraints();
+		gbc_spinnerLogicalBlockSizeDecimal.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerLogicalBlockSizeDecimal.gridx = 9;
+		gbc_spinnerLogicalBlockSizeDecimal.gridy = 0;
+		panelFileMetrics.add(spinnerLogicalBlockSizeDecimal, gbc_spinnerLogicalBlockSizeDecimal);
+
+		lblMaxDirectoryEntries = new JLabel("Max Directory Entries");
+		GridBagConstraints gbc_lblMaxDirectoryEntries = new GridBagConstraints();
+		gbc_lblMaxDirectoryEntries.insets = new Insets(0, 0, 0, 5);
+		gbc_lblMaxDirectoryEntries.gridx = 11;
+		gbc_lblMaxDirectoryEntries.gridy = 0;
+		panelFileMetrics.add(lblMaxDirectoryEntries, gbc_lblMaxDirectoryEntries);
+		
+		spinnerMaxDirectoryEntriesHex = new Hex64KSpinner();
+		GridBagConstraints gbc_spinnerMaxDirectoryEntriesHex = new GridBagConstraints();
+		gbc_spinnerMaxDirectoryEntriesHex.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerMaxDirectoryEntriesHex.gridx = 13;
+		gbc_spinnerMaxDirectoryEntriesHex.gridy = 0;
+		panelFileMetrics.add(spinnerMaxDirectoryEntriesHex, gbc_spinnerMaxDirectoryEntriesHex);
+		
+		spinnerMaxDirectoryEntriesDecimal = new JSpinner();
+		GridBagConstraints gbc_spinnerMaxDirectoryEntriesDecimal = new GridBagConstraints();
+		gbc_spinnerMaxDirectoryEntriesDecimal.insets = new Insets(0, 0, 0, 5);
+		gbc_spinnerMaxDirectoryEntriesDecimal.gridx = 14;
+		gbc_spinnerMaxDirectoryEntriesDecimal.gridy = 0;
+		panelFileMetrics.add(spinnerMaxDirectoryEntriesDecimal, gbc_spinnerMaxDirectoryEntriesDecimal);
+
 		JMenuBar menuBar = new JMenuBar();
-		frame.setJMenuBar(menuBar);
+		frmNativeDiskTool.setJMenuBar(menuBar);
 
 		JMenu mnuFile = new JMenu("File");
 		menuBar.add(mnuFile);

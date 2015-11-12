@@ -183,11 +183,20 @@ public class DiskDrive {
 		boolean setCurrentAbsoluteSector = false;
 		if (validateAbsoluteSector(currentAbsoluteSector)) {
 			this.currentAbsoluteSector = currentAbsoluteSector;
-			setCurrentHead((int) currentAbsoluteSector / sectorsPerHead);
-			int netTrack = currentAbsoluteSector
-					- (currentHead * sectorsPerHead);
-			setCurrentTrack(netTrack / sectorsPerTrack);
-			setCurrentSector(1 + (currentAbsoluteSector % sectorsPerTrack));
+			
+//			setCurrentHead((int) currentAbsoluteSector / sectorsPerHead);
+//			int netTrack = currentAbsoluteSector
+//					- (currentHead * sectorsPerHead);
+//			setCurrentTrack(netTrack / sectorsPerTrack);
+//			setCurrentSector(1 + (currentAbsoluteSector % sectorsPerTrack));
+			
+			int sectorsPerTrackHead = this.sectorsPerTrack * this.heads;
+			int headSectors = currentAbsoluteSector % sectorsPerTrackHead;
+			setCurrentHead(headSectors/sectorsPerTrack);		// /sectorsPerTrackHead
+			setCurrentTrack(currentAbsoluteSector/sectorsPerTrackHead);
+			setCurrentSector((currentAbsoluteSector % sectorsPerTrack)+1);		//  % sectorsPerTrackHead
+			
+			
 			setCurrentAbsoluteSector = true;
 		}
 		return setCurrentAbsoluteSector;
@@ -196,8 +205,14 @@ public class DiskDrive {
 	public boolean setCurrentAbsoluteSector(int head, int track, int sector) {
 		boolean setCurrentAbsoluteSector = false;
 		if (validateHead(head) & validateSector(sector) & validateTrack(track)) {
-			int absoluteSector = ((head) * sectorsPerHead)
-					+ (track * sectorsPerTrack) + (sector - 1);
+			
+//			int absoluteSector = ((head) * sectorsPerHead)
+//					+ (track * sectorsPerTrack) + (sector - 1);
+			
+			int absoluteSector = (sector -1) +
+					(head * this.sectorsPerTrack) +
+					(track * this.sectorsPerTrack * this.heads);
+			
 			if (validateAbsoluteSector(absoluteSector)) {
 				this.currentAbsoluteSector = absoluteSector;
 				this.currentHead = head;

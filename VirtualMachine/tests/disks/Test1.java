@@ -17,13 +17,24 @@ public class Test1 {
 
 	public static void main(String[] args) {
 
-		new Test1().doIt5(); // Check DCU & core w/ trap
+		new Test1().doIt6(); // test Random.nextInt(bound);
+		// new Test1().doIt5(); // Check DCU & core w/ trap
 		// new Test1().doIt4(); // invoke make new disk to check return value
 		// new Test1().doIt3(); //check out Random().nextBytes()
 		// new Test1().doIt2(); // simple read of a disk
 		// new Test1().doIt1(); // list all elements of DiskLayout- to check validity
 
 	}// main
+	private void doIt6(){
+		int iterations = 30;
+		int bound = 50;
+		Random random = new Random();
+		for (int i = 0; i < iterations;i++){
+			System.out.printf("bound = %d, value = %d%n"
+					+ "", bound,random.nextInt(bound));
+		}
+		
+	}
 
 	private void doIt5() {
 		core = new Core(4096);

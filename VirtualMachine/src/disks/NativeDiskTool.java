@@ -115,6 +115,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	int directoryEntriesPerSector;
 	int numberOfDirectorySectors;
 	int absoluteSector;
+	int blockZeroBias;
+	
+	int recordCount = 0;
 
 	// private final static String AC_BTN;
 
@@ -266,12 +269,12 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	}
 
-	private void displayFileSector(int head, int track, int sector) {
-		diskDrive.setCurrentAbsoluteSector(head, track, sector);
+	private void displayFileSector(int absoluteSector, int lineNumber) {
+		diskDrive.setCurrentAbsoluteSector(absoluteSector);
 		aSector = diskDrive.read();
 		try {
 			for (int i = 0; i < linesToDisplay; i++) {
-				docFile.insertString(docFile.getLength(), formatLine(i), null);
+				docFile.insertString(docFile.getLength(), formatLine(lineNumber + i), null);
 			}
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
@@ -284,8 +287,10 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		StringBuilder sbHex = new StringBuilder();
 		StringBuilder sbDot = new StringBuilder();
 		sbHex.append(String.format("%04X: ", lineNumber * CHARACTERS_PER_LINE));
+		int indexIntoSector = lineNumber % linesToDisplay;
 		for (int i = 0; i < CHARACTERS_PER_LINE; i++) {
-			target = aSector[(lineNumber * CHARACTERS_PER_LINE) + i];
+			// target = aSector[(lineNumber * CHARACTERS_PER_LINE) + i];
+			target = aSector[(indexIntoSector * CHARACTERS_PER_LINE) + i];
 			sbHex.append(String.format("%02X ", target));
 
 			sbDot.append((target >= 0x20 && target <= 0x7F) ? (char) target : ".");
@@ -309,6 +314,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			geometryString = "%X";
 		}
 		showHexSpinners(isHex);
+		lblRecordCount.setText(String.format(geometryString, recordCount));
 	}
 
 	private void showHexSpinners(boolean state) {
@@ -388,8 +394,8 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		for (int i = 0; i < (int) spinnerMaxDirectoryEntriesHex.getValue(); i++) {
 			bias = i * DIRECTORY_ENTRY_SIZE;
 			if (rawDirectory.get(bias + DIR_USER) != EMPTY_ENTRY) {
-				name = strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END);
-				type = strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END);
+				name = convertTo7BitASCII(strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END));
+				type = convertTo7BitASCII(strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END));
 				dirEntry = String.format("%s.%s   :%d", name.trim(), type.trim(), bias);
 				cbFileNames.addItem(dirEntry);
 			}// if
@@ -402,31 +408,62 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		if (selectItem.equals(NO_FILE)) {
 			// what to do here?
 		} else {
-			int value,baseSector;
+			int value = 0;
+			int baseSector;
 			String strBias[] = selectItem.split(":");
 			int bias = Integer.valueOf(strBias[1]);
 			// get the allocated blocks
 			int sectorsPerBlock = (int) spinnerLogicalBlockSizeHex.getValue();
-			int directoryOffset = diskDrive.getSectorsPerTrack() 
-					* diskDrive.getHeads() * (int)spinnerTracksBeforeDirectoryHex.getValue();
-			
+			// int directoryOffset = diskDrive.getSectorsPerTrack()
+			// * diskDrive.getHeads() * (int) spinnerTracksBeforeDirectoryHex.getValue();
+
 			for (int i = DIR_BLOCKS; i < DIR_BLOCKS + DIR_BLOCKS_SIZE; i++) {
 				if (bigDisk) {
 					// need to complete
 				} else {
 					value = rawDirectory.get(i + bias);
-					if (value != 0){
-						baseSector = (sectorsPerBlock * value) + directoryOffset;
-						for (int j = 0;j <sectorsPerBlock; j ++){
+					if (value != 0) {
+						baseSector = (sectorsPerBlock * value) + blockZeroBias;
+						for (int j = 0; j < sectorsPerBlock; j++) {
 							allocatedSectors.add(j + baseSector);
 						}
-					}//inner if - value
-				}//if - bigDisk
+					}// inner if - value
+				}// if - bigDisk
 
 				// System.out.printf("%02X hex : %d decimal - %2d bias%n", value, value, bias);
-			}//for
+			}// for
+			
+			byte msb = (byte) 0x80;
+			if ((rawDirectory.get(bias + DIR_T1) & msb) == msb) {
+				lblDro.setVisible(true);
+			} else {
+				lblDro.setVisible(false);
+			}//if
+			if ((rawDirectory.get(bias + DIR_T2) & msb) == msb) {
+				lblDSystemFile.setVisible(true);
+			} else {
+				lblDSystemFile.setVisible(false);
+			}//if
+			
+			recordCount = rawDirectory.get(bias + DIR_RC) & 0xFF;	// unsigned value ( & 0xFF)
+			lblRecordCount.setText(String.format(geometryString, recordCount));
+			
 		}
-		docPhysical = txtDisplayPhysical.getDocument();
+
+		docFile = textDisplayFile.getDocument();
+		try {
+			docFile.remove(0, docFile.getLength());
+		} catch (BadLocationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		int lineNumber = 0;
+		for (int sector : allocatedSectors) {
+			displayFileSector(sector, lineNumber);
+			textDisplayFile.setCaretPosition(0);
+			lineNumber += linesToDisplay;
+		}
 	}
 
 	// ----------------------------Directory View ----------------------------------------
@@ -472,14 +509,16 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		maxDirectoryEntries = (int) spinnerMaxDirectoryEntriesHex.getValue();
 		directoryEntriesPerSector = (diskDrive.getBytesPerSector() / DIRECTORY_ENTRY_SIZE);
 		numberOfDirectorySectors = maxDirectoryEntries / directoryEntriesPerSector;
-		absoluteSector = diskDrive.getSectorsPerTrack() * (int) spinnerTracksBeforeDirectoryHex.getValue();
+		absoluteSector = diskDrive.getSectorsPerTrack() * diskDrive.getHeads()
+				* (int) spinnerTracksBeforeDirectoryHex.getValue();
 
 		for (int i = 0; i < numberOfDirectorySectors; i++) {
 			diskDrive.setCurrentAbsoluteSector(absoluteSector + i);
 			aSector = diskDrive.read();
 			constructRawDirectory(aSector);
 		}// for i
-
+		blockZeroBias = absoluteSector;
+		// System.out.printf("blockZeroBias = %d%n", blockZeroBias);
 	}
 
 	private void fillDirectoryTable(JTable table) {
@@ -497,8 +536,11 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			user = rawDirectory.get(bias + DIR_USER);// EMPTY_ENTRY
 			int s = bias + DIR_NAME;
 			int e = bias + DIR_NAME_END;
-			name = strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END);
-			type = strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END);
+			// name = strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END);
+			// type = strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END);
+
+			name = convertTo7BitASCII(strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END));
+			type = convertTo7BitASCII(strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END));
 			readOnly = (rawDirectory.get(bias + DIR_T1) & 0x80) == 0x80;
 			systemFile = (rawDirectory.get(bias + DIR_T2) & 0x80) == 0x80;
 			seqNumber = (rawDirectory.get(bias + DIR_S2) * 0x0100) + aSector[DIR_EX];
@@ -510,6 +552,15 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			Object[] aRow = makeRow(rowCount, name, type, user, readOnly, systemFile, seqNumber, count, blocks);
 			modelDir.insertRow(rowCount++, aRow);
 		}
+	}
+
+	private String convertTo7BitASCII(String source) {
+		char[] sourceChars = source.toCharArray();
+		for (int i = 0; i < sourceChars.length; i++) {
+			sourceChars[i] &= 0x7F;
+		}
+		return new String(sourceChars);
+
 	}
 
 	private Object[] makeRow(int row, String name, String type, int user, boolean readOnly,
@@ -1171,6 +1222,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		panelFile.add(scrollPaneFile, gbc_scrollPaneFile);
 
 		textDisplayFile = new JTextArea();
+		textDisplayFile.setEditable(false);
 		textDisplayFile.setFont(new Font("Courier New", Font.PLAIN, 15));
 		scrollPaneFile.setViewportView(textDisplayFile);
 
@@ -1286,6 +1338,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		panelPhysical.add(scrollPanePhysical, gbc_scrollPanePhysical);
 
 		txtDisplayPhysical = new JTextArea();
+		txtDisplayPhysical.setEditable(false);
 		txtDisplayPhysical.setFont(new Font("Courier New", Font.PLAIN, 15));
 		scrollPanePhysical.setViewportView(txtDisplayPhysical);
 

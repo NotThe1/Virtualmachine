@@ -160,7 +160,108 @@ public class DiskLayoutATest {
 		target = 15;sectorsPerBlock = 4;		
 		disk5HD.setSectorsPerBlock(sectorsPerBlock);
 		assertThat("testBSH - 4 ", target, equalTo(disk5HD.getBLM()));	
+	}
+	@Test
+	public void testOFS(){
+		int target = 3;
+		assertThat("testOFS - 1 ", target, equalTo(disk8SS.getOFS()));
+
+		 target = 2; 
+		assertThat("testOFS - 2 ", target, equalTo(disk8DS.getOFS()));
+	
+		target = 1;
+		assertThat("testOFS - 3 ", target, equalTo(disk5DD.getOFS()));
 		
+		target = 1;
+		assertThat("testOFS - 4 ", target, equalTo(disk5HD.getOFS()));	
+	}
+	@Test
+	public void testDSM(){
+		int target = 239;int sectorsPerBlock = 8;
+		disk8SS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 1 ", target, equalTo(disk8SS.getDSM()));
+
+		 target = 486; sectorsPerBlock = 8;
+		disk8DS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 2 ", target, equalTo(disk8DS.getDSM()));
+		
+		target = 174;sectorsPerBlock = 4;
+		disk5DD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 3 ", target, equalTo(disk5DD.getDSM()));
+		
+		target = 591;sectorsPerBlock = 4;		
+		disk5HD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 4 ", target, equalTo(disk5HD.getDSM()));	
+	}
+	@Test
+	public void testDRM(){
+		int target = 63;int sectorsPerBlock = 8;
+		disk8SS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 1 ", target, equalTo(disk8SS.getDRM()));
+
+		 target = 63; sectorsPerBlock = 8;
+		disk8DS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 2 ", target, equalTo(disk8DS.getDRM()));
+		
+		target = 127;sectorsPerBlock = 4;
+		disk5DD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 3 ", target, equalTo(disk5DD.getDRM()));
+		
+		target = 127;sectorsPerBlock = 4;		
+		disk5HD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testDSM - 4 ", target, equalTo(disk5HD.getDRM()));	
+	}
+	@Test
+	public void testAL01(){
+		int target = 0xC000;
+		assertThat("testAL01 - 1 ", target, equalTo(disk8SS.getAL01()));
+
+		 target = 0x8000;
+		 disk8DS.setDirectoryBlockCount(1);
+		assertThat("testAL01 - 2 ", target, equalTo(disk8DS.getAL01()));
+		
+		target = 0xC000;
+		assertThat("testAL01 - 3 ", target, equalTo(disk5DD.getAL01()));
+		
+		target = 0xC000;
+		assertThat("testAL01 - 4 ", target, equalTo(disk5HD.getAL01()));	
+	}
+	@Test
+	public void testCKS(){
+		int target = 16;int sectorsPerBlock = 8;
+		disk8SS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testCKS - 1 ", target, equalTo(disk8SS.getCKS()));
+
+		 target = 16; sectorsPerBlock = 8;
+		disk8DS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testCKS - 2 ", target, equalTo(disk8DS.getCKS()));
+		
+		target = 32;sectorsPerBlock = 4;
+		disk5DD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testCKS - 3 ", target, equalTo(disk5DD.getCKS()));
+		
+		target = 32;sectorsPerBlock = 4;		
+		disk5HD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testCKS - 4 ", target, equalTo(disk5HD.getCKS()));	
+	}
+	@Test
+	public void testEXM(){
+		int target = 0;int sectorsPerBlock = 8;
+		disk8SS.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testEXM - 1 ", target, equalTo(disk8SS.getEXM()));
+
+// N/A
+//		 target = 0; sectorsPerBlock = 8;
+//		disk8DS.setSectorsPerBlock(sectorsPerBlock);
+//		assertThat("testEXM - 2 ", target, equalTo(disk8DS.getEXM()));
+		
+		target = 1;sectorsPerBlock = 4;
+		disk5DD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testEXM - 3 ", target, equalTo(disk5DD.getEXM()));
+		
+		target = 0;sectorsPerBlock = 4;		
+		disk5HD.setSectorsPerBlock(sectorsPerBlock);
+		assertThat("testEXM - 4 ", target, equalTo(disk5HD.getEXM()));	
 	}
 
 

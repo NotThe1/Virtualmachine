@@ -9,11 +9,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
 
-public class DiskLayoutATest {
-	DiskLayoutA disk8SS;
-	DiskLayoutA disk8DS;
-	DiskLayoutA disk5DD;
-	DiskLayoutA disk5HD;
+public class DiskLayoutTest {
+	DiskLayout disk8SS;
+	DiskLayout disk8DS;
+	DiskLayout disk5DD;
+	DiskLayout disk5HD;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -26,10 +26,10 @@ public class DiskLayoutATest {
 
 	@Before
 	public void setUp() throws Exception {
-		disk8SS = DiskLayoutA.F8SS;
-		disk8DS = DiskLayoutA.F8DS;
-		disk5DD = DiskLayoutA.F5DD;
-		disk5HD = DiskLayoutA.F5HD;
+		disk8SS = DiskLayout.F8SS;
+		disk8DS = DiskLayout.F8DS;
+		disk5DD = DiskLayout.F5DD;
+		disk5HD = DiskLayout.F5HD;
 	}
 
 	@After

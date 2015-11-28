@@ -48,6 +48,8 @@ import javax.swing.SpinnerNumberModel;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
@@ -116,7 +118,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	int numberOfDirectorySectors;
 	int absoluteSector;
 	int blockZeroBias;
-	
+
 	int recordCount = 0;
 
 	// private final static String AC_BTN;
@@ -139,6 +141,12 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	}
 
 	// ----------------------------Physical View ----------------------------------------
+	private void loadDiskViews(String selectedAbsolutePath) {
+		loadDiskDrive(selectedAbsolutePath);
+		tabDirectory();
+		tabFile();
+	}
+
 	private void loadDiskDrive(String selectedAbsolutePath) {
 		diskDrive = new RawDiskDrive(selectedAbsolutePath);
 		setFileNameLabel(selectedAbsolutePath);
@@ -146,8 +154,6 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		haveFile(true);
 		diskDrive.setCurrentAbsoluteSector(0);
 		displayPhysicalSector(); // display only one sector
-		// setSpinnerLimits();
-
 	}
 
 	private String getDisk() {
@@ -189,6 +195,19 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		lblTotalBytes.setText(String.format(geometryString, diskDrive.getTotalBytesOnDisk()));
 
 		setSpinnerLimits();
+		String fileName = diskDrive.getFileLocalName();
+		String diskSuffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
+
+		for (DiskLayout dla : DiskLayout.values()) {
+			if (dla.fileExtension.equals(diskSuffix)) {
+
+				dla.setSectorsPerBlock((int) spinnerLogicalBlockSizeHex.getValue());
+				spinnerTracksBeforeDirectoryHex.setValue(dla.getOFS());
+				spinnerMaxDirectoryEntriesHex.setValue(dla.getDRM());
+				bigDisk = dla.getDSM() > 255 ? true : false;
+
+			}// if
+		}// for
 
 		sectorSize = diskDrive.getBytesPerSector();
 		linesToDisplay = sectorSize / CHARACTERS_PER_LINE;
@@ -346,6 +365,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		mnuFileSaveAsDisk.setEnabled(state);
 
 		if (state == false) {
+			docFile = null;
 			clearSectorDisplay();
 			clearDirectoryDisplay();
 			clearFileDisplay();
@@ -383,6 +403,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	// ----------------------------File View --------------------------------------------
 	private void tabFile() {
+		if (docFile != null) {
+			return;
+		}
 		if (rawDirectory == null) {
 			readDirectory();
 		}
@@ -403,6 +426,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	}
 
 	private void cbFilenames() {
+		if (cbFileNames.getItemCount() == 0) {
+			return;
+		}
 		String selectItem = (String) cbFileNames.getSelectedItem();
 		ArrayList<Integer> allocatedSectors = new ArrayList<Integer>();
 		if (selectItem.equals(NO_FILE)) {
@@ -414,40 +440,33 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			int bias = Integer.valueOf(strBias[1]);
 			// get the allocated blocks
 			int sectorsPerBlock = (int) spinnerLogicalBlockSizeHex.getValue();
-			// int directoryOffset = diskDrive.getSectorsPerTrack()
-			// * diskDrive.getHeads() * (int) spinnerTracksBeforeDirectoryHex.getValue();
+			int numberOfBlocks = bigDisk ? DIR_BIG_BLOCKS_COUNT : DIR_SMALL_BLOCKS_COUNT;
 
-			for (int i = DIR_BLOCKS; i < DIR_BLOCKS + DIR_BLOCKS_SIZE; i++) {
-				if (bigDisk) {
-					// need to complete
-				} else {
-					value = rawDirectory.get(i + bias);
-					if (value != 0) {
-						baseSector = (sectorsPerBlock * value) + blockZeroBias;
-						for (int j = 0; j < sectorsPerBlock; j++) {
-							allocatedSectors.add(j + baseSector);
-						}
-					}// inner if - value
-				}// if - bigDisk
-
-				// System.out.printf("%02X hex : %d decimal - %2d bias%n", value, value, bias);
+			for (int i = DIR_BLOCKS; i < DIR_BLOCKS + numberOfBlocks; i++) {
+				value = rawDirectory.get(i + bias);
+				if (value != 0) {
+					baseSector = (sectorsPerBlock * value) + blockZeroBias; //blockZeroBias gets past OFS
+					for (int j = 0; j < sectorsPerBlock; j++) {
+						allocatedSectors.add(j + baseSector);
+					}// for
+				}// inner if - value
 			}// for
-			
+
 			byte msb = (byte) 0x80;
 			if ((rawDirectory.get(bias + DIR_T1) & msb) == msb) {
 				lblDro.setVisible(true);
 			} else {
 				lblDro.setVisible(false);
-			}//if
+			}// if
 			if ((rawDirectory.get(bias + DIR_T2) & msb) == msb) {
 				lblDSystemFile.setVisible(true);
 			} else {
 				lblDSystemFile.setVisible(false);
-			}//if
-			
-			recordCount = rawDirectory.get(bias + DIR_RC) & 0xFF;	// unsigned value ( & 0xFF)
+			}// if
+
+			recordCount = rawDirectory.get(bias + DIR_RC) & 0xFF; // unsigned value ( & 0xFF)
 			lblRecordCount.setText(String.format(geometryString, recordCount));
-			
+
 		}
 
 		docFile = textDisplayFile.getDocument();
@@ -474,7 +493,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			return;
 		}
 
-		int rowCount = (int) spinnerMaxDirectoryEntriesHex.getValue();
+//		int rowCount = (int) spinnerMaxDirectoryEntriesHex.getValue();
 		Object[] columnNames = { "row", "Name", "type", "User", "R/O", "Sys", "Seq", "Count", "Blocks" };
 		dirTable = new JTable(new DefaultTableModel(columnNames, 0)) {
 			public boolean isCellEditable(int row, int column) {
@@ -484,6 +503,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		dirTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 		dirTable.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		dirTable.getSelectionModel().addListSelectionListener(new RowListener());
+		dirTable.setName(AC_DIRECTORY_TABLE);
 		adjustTableLook(dirTable);
 
 		scrollDirectoryTable.setViewportView(dirTable);
@@ -505,9 +525,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private void readDirectory() {
 		rawDirectory = new ArrayList<Byte>();
 		strDirectory = "";
-		bigDisk = false; // need to figure out from total disk size
-		maxDirectoryEntries = (int) spinnerMaxDirectoryEntriesHex.getValue();
-		directoryEntriesPerSector = (diskDrive.getBytesPerSector() / DIRECTORY_ENTRY_SIZE);
+		// bigDisk = false; // need to figure out from total disk size
+		maxDirectoryEntries = (int) spinnerMaxDirectoryEntriesHex.getValue() + 1;
+		directoryEntriesPerSector = diskDrive.getBytesPerSector() / DIRECTORY_ENTRY_SIZE;
 		numberOfDirectorySectors = maxDirectoryEntries / directoryEntriesPerSector;
 		absoluteSector = diskDrive.getSectorsPerTrack() * diskDrive.getHeads()
 				* (int) spinnerTracksBeforeDirectoryHex.getValue();
@@ -531,7 +551,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		int rowCount = 0;
 		modelDir = (DefaultTableModel) table.getModel();
 
-		for (int i = 0; i < (int) spinnerMaxDirectoryEntriesHex.getValue(); i++) {
+		for (int i = 0; i < (int) spinnerMaxDirectoryEntriesHex.getValue()+1; i++) {
 			int bias = i * DIRECTORY_ENTRY_SIZE;
 			user = rawDirectory.get(bias + DIR_USER);// EMPTY_ENTRY
 			int s = bias + DIR_NAME;
@@ -546,9 +566,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			seqNumber = (rawDirectory.get(bias + DIR_S2) * 0x0100) + aSector[DIR_EX];
 			count = rawDirectory.get(bias + DIR_RC);
 			blocks = 0;
-			for (int k = DIR_BLOCKS; k < DIR_BLOCKS_END; k++) {
-				blocks = rawDirectory.get(bias + k) != 0 ? blocks + 1 : blocks;
-			}// for k
+			// for (int k = DIR_BLOCKS; k < DIR_BLOCKS_END; k++) {
+			// blocks = rawDirectory.get(bias + k) != 0 ? blocks + 1 : blocks;
+			// }// for k
 			Object[] aRow = makeRow(rowCount, name, type, user, readOnly, systemFile, seqNumber, count, blocks);
 			modelDir.insertRow(rowCount++, aRow);
 		}
@@ -688,6 +708,8 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	private final static String AC_CB_FILE_NAMES = "cbFileNames";
 
+	private final static String AC_DIRECTORY_TABLE = "dirTable";
+
 	private final static int TAB_PHYSICAL = 0;
 	private final static int TAB_DIRECTORY = 2;
 	private final static int TAB_FILE = 1;
@@ -711,8 +733,10 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private final static int DIR_S1 = 13;
 	private final static int DIR_RC = 15;
 	private final static int DIR_BLOCKS = 16;
-	private final static int DIR_BLOCKS_SIZE = 16;
-	private final static int DIR_BLOCKS_END = DIR_BLOCKS + DIR_BLOCKS_SIZE;
+	private final static int DIR_SMALL_BLOCKS_COUNT = 16;
+	private final static int DIR_BIG_BLOCKS_COUNT = 8;
+
+	// private final static int DIR_BLOCKS_END = DIR_BLOCKS + DIR_BLOCKS_SIZE;
 
 	private Hex64KSpinner spinnerHeadHex;
 	private JSpinner spinnerHeadDecimal;
@@ -788,14 +812,14 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			if (selectedAbsolutePath == null) {
 				return;
 			}// if
-			loadDiskDrive(selectedAbsolutePath);
+			loadDiskViews(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_OPEN:
 			selectedAbsolutePath = getDisk();
 			if (selectedAbsolutePath == null) {
 				return;
 			}// if
-			loadDiskDrive(selectedAbsolutePath);
+			loadDiskViews(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_CLOSE:
 			if (diskDrive != null) {
@@ -858,7 +882,6 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			diskDrive.setCurrentAbsoluteSector(diskDrive.getTotalSectorsOnDisk() - 1);
 			displayPhysicalSector(); // display only one sector
 			break;
-
 		// other objects - ComboBox
 		case AC_CB_FILE_NAMES:
 			cbFilenames();
@@ -877,10 +900,10 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			case TAB_PHYSICAL:
 				break;
 			case TAB_DIRECTORY:
-				tabDirectory();
+				// tabDirectory();
 				break;
 			case TAB_FILE:
-				tabFile();
+				// tabFile();
 				break;
 			default:
 			}
@@ -888,6 +911,13 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		}
 
 	}
+
+	// @Override
+	// public void mouseClicked(MouseEvent me) {
+	// if (((Component) me.getSource()).getName().equals(AC_DIRECTORY_TABLE)){
+	// if (me.getClickCount()>=3)
+	//
+	// }
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	private void appInit() {
@@ -1144,9 +1174,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		tabbedPane.addTab("File View", null, panelFile, null);
 		GridBagLayout gbl_panelFile = new GridBagLayout();
 		gbl_panelFile.columnWidths = new int[] { 0, 0, 0, 0, 0 };
-		gbl_panelFile.rowHeights = new int[] { 0, 0, 0, 0 };
+		gbl_panelFile.rowHeights = new int[] { 0, 0, 0, 0, 0 };
 		gbl_panelFile.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
-		gbl_panelFile.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panelFile.rowWeights = new double[] { 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		panelFile.setLayout(gbl_panelFile);
 
 		panelDetails = new JPanel();
@@ -1215,7 +1245,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		scrollPaneFile = new JScrollPane();
 		scrollPaneFile.setPreferredSize(new Dimension(680, 400));
 		GridBagConstraints gbc_scrollPaneFile = new GridBagConstraints();
-		gbc_scrollPaneFile.insets = new Insets(0, 0, 0, 5);
+		gbc_scrollPaneFile.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollPaneFile.fill = GridBagConstraints.BOTH;
 		gbc_scrollPaneFile.gridx = 1;
 		gbc_scrollPaneFile.gridy = 2;

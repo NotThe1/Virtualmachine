@@ -15,6 +15,9 @@ public class Test1 {
 
 	// MakeNewDisk mnd;
 
+	/**
+	 * @wbp.parser.entryPoint
+	 */
 	public static void main(String[] args) {
 
 		new Test1().doIt6(); // test Random.nextInt(bound);

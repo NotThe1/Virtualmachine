@@ -1,9 +1,9 @@
 package disks;
 
-import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.FontMetrics;
-import java.awt.ScrollPane;
+//import java.awt.ScrollPane;
+//import java.awt.Component;
 
 import javax.swing.JFrame;
 
@@ -31,14 +31,14 @@ import java.awt.Font;
 
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.AbstractTableModel;
+//import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
-import java.awt.GridLayout;
+//import java.awt.GridLayout;
 
 import myComponents.Hex64KSpinner;
 
@@ -50,29 +50,37 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.io.BufferedReader;
+//import java.awt.event.MouseEvent;
+//import java.awt.event.MouseListener;
+//import java.beans.PropertyChangeEvent;
+//import java.beans.PropertyChangeListener;
+//import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+//import java.io.FileNotFoundException;
+//import java.io.FileReader;
+//import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.regex.Pattern;
+//import java.util.Arrays;
+//import java.util.Collection;
+//import java.util.HashMap;
+//import java.util.regex.Pattern;
 
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.AbstractButton;
+import javax.swing.AbstractListModel;
+import javax.swing.ComboBoxModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
-import javax.swing.JFormattedTextField;
-import javax.swing.JViewport;
+//import javax.swing.JFormattedTextField;
+//import javax.swing.JViewport;
 import javax.swing.SwingConstants;
 
 import java.awt.event.WindowAdapter;
@@ -83,15 +91,18 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import myComponents.Hex64KSpinner16;
-
-import javax.swing.JTextField;
-import javax.swing.JList;
-import javax.swing.AbstractListModel;
-import javax.swing.ListSelectionModel;
-import javax.swing.JToggleButton;
+//import myComponents.Hex64KSpinner16;
+//
+//import javax.swing.JTextField;
+//import javax.swing.JList;
+//import javax.swing.AbstractListModel;
+//import javax.swing.ListSelectionModel;
+//import javax.swing.JToggleButton;
 import javax.swing.JComboBox;
+import javax.swing.JTextField;
 import javax.swing.DefaultComboBoxModel;
+
+//import javax.swing.DefaultComboBoxModel;
 
 public class NativeDiskTool implements ActionListener, ChangeListener {
 
@@ -105,6 +116,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	String geometryString;
 
 	int sectorSize;
+	int blockSizeInBytes;
 	int linesToDisplay;
 	boolean bigDisk = false;
 
@@ -113,6 +125,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	JTable dirTable;
 	DefaultTableModel modelDir;
 
+	int maxBlockNumber;
 	int maxDirectoryEntries;
 	int directoryEntriesPerSector;
 	int numberOfDirectorySectors;
@@ -121,7 +134,61 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	int recordCount = 0;
 
-	// private final static String AC_BTN;
+	HashMap<Integer, Boolean> allocationTable;
+
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	class DirEntry {
+		public String fileName;
+		public int directoryOffset;
+
+		public DirEntry(String fileName, int directoryOffset) {
+			this.fileName = fileName;
+			this.directoryOffset = directoryOffset;
+		}// constructor
+
+		public String toString() {
+			return this.fileName;
+		}// toString
+	}// class DirEntry
+
+	class FileCpmModel extends AbstractListModel implements ComboBoxModel {
+		List<DirEntry> modelItemList;
+		DirEntry selection = null;
+
+		public FileCpmModel() {
+			modelItemList = new ArrayList<DirEntry>();
+		}// Constructor
+
+		public void add(DirEntry item) {
+			modelItemList.add(item);
+		}// add
+
+		@Override
+		public DirEntry getElementAt(int index) {
+			return modelItemList.get(index);
+		}// getElementAt
+
+		@Override
+		public int getSize() {
+			return modelItemList.size();
+		}// getSize
+
+		@Override
+		public DirEntry getSelectedItem() {
+			return selection;
+		}// getSelectedItem
+
+		@Override
+		public void setSelectedItem(Object arg0) {
+			if (arg0 instanceof DirEntry) {
+				selection = (DirEntry) arg0;
+			} else {
+				selection = new DirEntry((String) arg0, -1);
+			}// if
+		}// setSelectedItem
+	}// class FileCpmModel
+
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	/**
 	 * Launch the application.
@@ -140,16 +207,86 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		});
 	}
 
-	// ----------------------------Physical View ----------------------------------------
-	private void loadDiskViews(String selectedAbsolutePath) {
-		loadDiskDrive(selectedAbsolutePath);
-		tabDirectory();
-		tabFile();
+	// ----------------------------Copy View ----------------------------------------
+	private final static String AC_BTN_NATIVE_SOURCE = "btnCpmTarget";
+	private final static String AC_BTN_CPM_TARGET = "btnNativeSource";
+	private File nativeSource = null;
+	private String cpmTarget = null;
+	private long sourceSize;
+
+	private void getNativeSource() {
+		nativeSource = getNativeFile();
+		lblNativeSource.setText(nativeSource.getName());
+		lblNativeSource.setToolTipText(nativeSource.getAbsolutePath());
+		sourceSize = nativeSource.length();
 	}
+
+	private File getNativeFile(boolean write) {
+		String fileLocation = ".";
+		Path sourcePath = Paths.get(fileLocation);
+
+		JFileChooser nativeChooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
+		nativeChooser.setMultiSelectionEnabled(false);
+		if (nativeChooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {
+			return null;
+		}// if
+		return nativeChooser.getSelectedFile();
+	}
+
+	private File getNativeFile() {
+		return getNativeFile(false);
+	}
+
+	private void copyToCPM() {
+		DirEntry selectedEntry = (DirEntry) cbCpmTarget.getSelectedItem();
+		if (selectedEntry == null | nativeSource == null) {
+			JOptionPane.showMessageDialog(null, "You need to specify both a Source and Target",
+					"Copying a file to CPM",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}// if
+		cpmTarget = selectedEntry.fileName;
+		int bias = selectedEntry.directoryOffset;
+		if (bias != -1) {
+			int ans = JOptionPane.showConfirmDialog(null, "Existing File! Do You want to overwright it?",
+					"Copying a file to CPM",
+					JOptionPane.YES_NO_OPTION);
+			if (ans == JOptionPane.NO_OPTION) {
+				System.out.println("No - return");
+				return;
+			}// inner if
+				// need to delete the file and then write a new one *************************************
+		}// if
+
+		// find out how much space is on the CPM disk to see if the file will fit.
+		int blocksAvailable = (maxBlockNumber + 1) - allocationTable.size();
+		long availableBytes = blocksAvailable * blockSizeInBytes;
+//		sourceSize = 987654321 ;
+//		availableBytes = 1;
+		if (sourceSize > availableBytes) {
+			String msg = String.format("Not enough space on CPM disk%n"
+					+ "Available: %,d - Need: %,d",availableBytes,sourceSize);
+			JOptionPane.showMessageDialog(null, msg,"Copying a file to CPM",JOptionPane.WARNING_MESSAGE);
+			return;
+		}// if
+
+
+		System.out.printf("nativeSource = %s %nfileName = %s : bias = %d%n", nativeSource, cpmTarget, bias);
+	}
+
+	// private void copyToCPM;
+
+	// ----------------------------Physical View ----------------------------------------
 
 	private void loadDiskDrive(String selectedAbsolutePath) {
 		diskDrive = new RawDiskDrive(selectedAbsolutePath);
 		setFileNameLabel(selectedAbsolutePath);
+		refreshDiskInformation();
+	}
+
+	private void refreshDiskInformation() {
+		tabDirectory();
+		tabFile();
 		showGeometry(diskDrive);
 		haveFile(true);
 		diskDrive.setCurrentAbsoluteSector(0);
@@ -205,11 +342,18 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 				spinnerTracksBeforeDirectoryHex.setValue(dla.getOFS());
 				spinnerMaxDirectoryEntriesHex.setValue(dla.getDRM());
 				bigDisk = dla.getDSM() > 255 ? true : false;
-
+				maxBlockNumber = dla.getDSM();
+				al01 = dla.getAL01() & 0xFFFF;
 			}// if
 		}// for
+		
+		setDirectoryBlocksInAT();
 
 		sectorSize = diskDrive.getBytesPerSector();
+		blockSizeInBytes = (int) spinnerLogicalBlockSizeHex.getValue() * sectorSize;
+		logicalRecordsPerSector = sectorSize / CPM_RECORD_SIZE;
+		physicalSectorsPerBlock = (int) spinnerLogicalBlockSizeHex.getValue();
+
 		linesToDisplay = sectorSize / CHARACTERS_PER_LINE;
 	}
 
@@ -288,11 +432,11 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	}
 
-	private void displayFileSector(int absoluteSector, int lineNumber) {
+	private void displayFileSector(int absoluteSector, int lineNumber, int linesToShow) {
 		diskDrive.setCurrentAbsoluteSector(absoluteSector);
 		aSector = diskDrive.read();
 		try {
-			for (int i = 0; i < linesToDisplay; i++) {
+			for (int i = 0; i < linesToShow; i++) {
 				docFile.insertString(docFile.getLength(), formatLine(lineNumber + i), null);
 			}
 		} catch (BadLocationException e) {
@@ -409,8 +553,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		if (rawDirectory == null) {
 			readDirectory();
 		}
-		cbFileNames.removeAllItems();
-		cbFileNames.addItem(NO_FILE);
+		allocationTable = new HashMap<Integer, Boolean>();
+
+		FileCpmModel fileCpmModel = new FileCpmModel();
 
 		String name, type, dirEntry;
 		int bias;
@@ -419,17 +564,55 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			if (rawDirectory.get(bias + DIR_USER) != EMPTY_ENTRY) {
 				name = convertTo7BitASCII(strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END));
 				type = convertTo7BitASCII(strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END));
-				dirEntry = String.format("%s.%s   :%d", name.trim(), type.trim(), bias);
-				cbFileNames.addItem(dirEntry);
+				setAllocationTable(bias);
+				fileCpmModel.add(new DirEntry(String.format("%s.%s", name.trim(), type.trim()), bias));
 			}// if
 		}// for
+		cbFileNames.setModel(fileCpmModel);
+		cbCpmTarget.setModel(fileCpmModel);
+	}
+
+//	private HashMap<Integer, Boolean> setUpAllocationTable() {
+//		HashMap<Integer, Boolean> at = new HashMap<Integer, Boolean>();
+//		for (Integer i = 0; i < 16; i++) {
+//			if ((al01 & 0X8000) == 0x8000) {
+//				at.put(i, true);
+//			}// if
+//			al01 <<= 1; // shift left
+//		}// for
+//		return at;
+//	}
+	private void  setDirectoryBlocksInAT(){
+		for (Integer i = 0; i < 16; i++) {
+			if ((al01 & 0X8000) == 0x8000) {
+				allocationTable.put(i, true);
+			}// if
+			al01 <<= 1; // shift left
+		}// for
+
+	}
+
+	private void setAllocationTable(int bias) {
+		int numberOfBlocks = bigDisk ? DIR_BIG_BLOCKS_COUNT : DIR_SMALL_BLOCKS_COUNT;
+		int value = 0;
+
+		for (int i = DIR_BLOCKS; i < DIR_BLOCKS + numberOfBlocks; i++) {
+			value = rawDirectory.get(i + bias);
+			if (value != 0) {
+				allocationTable.put(value, true);
+			}// inner if - value
+		}// for
+
 	}
 
 	private void cbFilenames() {
 		if (cbFileNames.getItemCount() == 0) {
 			return;
 		}
-		String selectItem = (String) cbFileNames.getSelectedItem();
+		DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
+		String selectItem = (String) de.fileName;
+		int bias = de.directoryOffset;
+		// String selectItem = (String) cbFileNames.getSelectedItem();
 		ArrayList<Integer> allocatedSectors = new ArrayList<Integer>();
 		if (selectItem.equals(NO_FILE)) {
 			// what to do here?
@@ -437,7 +620,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			int value = 0;
 			int baseSector;
 			String strBias[] = selectItem.split(":");
-			int bias = Integer.valueOf(strBias[1]);
+			// int bias = Integer.valueOf(strBias[1]);
 			// get the allocated blocks
 			int sectorsPerBlock = (int) spinnerLogicalBlockSizeHex.getValue();
 			int numberOfBlocks = bigDisk ? DIR_BIG_BLOCKS_COUNT : DIR_SMALL_BLOCKS_COUNT;
@@ -445,7 +628,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			for (int i = DIR_BLOCKS; i < DIR_BLOCKS + numberOfBlocks; i++) {
 				value = rawDirectory.get(i + bias);
 				if (value != 0) {
-					baseSector = (sectorsPerBlock * value) + blockZeroBias; //blockZeroBias gets past OFS
+					baseSector = (sectorsPerBlock * value) + blockZeroBias; // blockZeroBias gets past OFS
 					for (int j = 0; j < sectorsPerBlock; j++) {
 						allocatedSectors.add(j + baseSector);
 					}// for
@@ -477,12 +660,21 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			e.printStackTrace();
 		}
 
+		int logicalRecords = recordCount;
+		int linesPerLogicalRecord = CPM_RECORD_SIZE / CHARACTERS_PER_LINE;
+		int recordsToDisplay;
+
 		int lineNumber = 0;
 		for (int sector : allocatedSectors) {
-			displayFileSector(sector, lineNumber);
-			textDisplayFile.setCaretPosition(0);
-			lineNumber += linesToDisplay;
+			recordsToDisplay = logicalRecords >= logicalRecordsPerSector ? logicalRecordsPerSector : logicalRecords;
+			displayFileSector(sector, lineNumber, recordsToDisplay * linesPerLogicalRecord);
+			lineNumber += (linesPerLogicalRecord * recordsToDisplay);
+			logicalRecords -= logicalRecordsPerSector;
+			if (logicalRecords < 0) {
+				break;
+			}
 		}
+		textDisplayFile.setCaretPosition(0);
 	}
 
 	// ----------------------------Directory View ----------------------------------------
@@ -493,7 +685,6 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			return;
 		}
 
-//		int rowCount = (int) spinnerMaxDirectoryEntriesHex.getValue();
 		Object[] columnNames = { "row", "Name", "type", "User", "R/O", "Sys", "Seq", "Count", "Blocks" };
 		dirTable = new JTable(new DefaultTableModel(columnNames, 0)) {
 			public boolean isCellEditable(int row, int column) {
@@ -542,7 +733,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	}
 
 	private void fillDirectoryTable(JTable table) {
-		String name, type, aSectorAsString;
+		String name, type;
 		int user, seqNumber, count, blocks;
 		boolean readOnly, systemFile;
 
@@ -551,13 +742,9 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		int rowCount = 0;
 		modelDir = (DefaultTableModel) table.getModel();
 
-		for (int i = 0; i < (int) spinnerMaxDirectoryEntriesHex.getValue()+1; i++) {
+		for (int i = 0; i < (int) spinnerMaxDirectoryEntriesHex.getValue(); i++) {
 			int bias = i * DIRECTORY_ENTRY_SIZE;
 			user = rawDirectory.get(bias + DIR_USER);// EMPTY_ENTRY
-			int s = bias + DIR_NAME;
-			int e = bias + DIR_NAME_END;
-			// name = strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END);
-			// type = strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END);
 
 			name = convertTo7BitASCII(strDirectory.substring(bias + DIR_NAME, bias + DIR_NAME_END));
 			type = convertTo7BitASCII(strDirectory.substring(bias + DIR_TYPE, bias + DIR_TYPE_END));
@@ -566,9 +753,6 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			seqNumber = (rawDirectory.get(bias + DIR_S2) * 0x0100) + aSector[DIR_EX];
 			count = rawDirectory.get(bias + DIR_RC);
 			blocks = 0;
-			// for (int k = DIR_BLOCKS; k < DIR_BLOCKS_END; k++) {
-			// blocks = rawDirectory.get(bias + k) != 0 ? blocks + 1 : blocks;
-			// }// for k
 			Object[] aRow = makeRow(rowCount, name, type, user, readOnly, systemFile, seqNumber, count, blocks);
 			modelDir.insertRow(rowCount++, aRow);
 		}
@@ -704,6 +888,8 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private final static String BTN_LABEL_HEX = "Hex";
 	private final static String BTN_LABEL_DECIMAL = "Decimal";
 
+	private final static String BTN_COPY_TO_CPM = "btnCopyToCPM";
+
 	private final static String AC_BTN_PHYSICAL_TRACK = "btnPhysicalTrack";
 
 	private final static String AC_CB_FILE_NAMES = "cbFileNames";
@@ -714,6 +900,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private final static int TAB_DIRECTORY = 2;
 	private final static int TAB_FILE = 1;
 
+	private final static int CPM_RECORD_SIZE = 128;
 	private final static int CHARACTERS_PER_LINE = 16;
 	private final static int DIRECTORY_ENTRY_SIZE = 32;
 	private final static byte EMPTY_ENTRY = (byte) 0xE5;
@@ -735,6 +922,10 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private final static int DIR_BLOCKS = 16;
 	private final static int DIR_SMALL_BLOCKS_COUNT = 16;
 	private final static int DIR_BIG_BLOCKS_COUNT = 8;
+
+	private int logicalRecordsPerSector;
+	private int al01;
+	private int physicalSectorsPerBlock;
 
 	// private final static int DIR_BLOCKS_END = DIR_BLOCKS + DIR_BLOCKS_SIZE;
 
@@ -800,6 +991,13 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	private JScrollPane scrollPaneFile;
 	private JTextArea textDisplayFile;
 	private JComboBox cbFileNames;
+	private JPanel panelCopy;
+	private JPanel panelCopyToCPM;
+	private JButton btnCopyToCPM;
+	private JButton btnNativeSource;
+	private JLabel lblNativeSource;
+	private JComboBox cbCpmTarget;
+	private JLabel lblTargetFile;
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
@@ -812,14 +1010,14 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			if (selectedAbsolutePath == null) {
 				return;
 			}// if
-			loadDiskViews(selectedAbsolutePath);
+			loadDiskDrive(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_OPEN:
 			selectedAbsolutePath = getDisk();
 			if (selectedAbsolutePath == null) {
 				return;
 			}// if
-			loadDiskViews(selectedAbsolutePath);
+			loadDiskDrive(selectedAbsolutePath);
 			break;
 		case AC_MNU_FILE_CLOSE:
 			if (diskDrive != null) {
@@ -830,6 +1028,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			resetGeometry();
 			break;
 		case AC_MNU_FILE_SAVE:
+			// refreshDiskInformation();
 			break;
 		case AC_MNU_FILE_SAVE_AS:
 			break;
@@ -882,6 +1081,16 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 			diskDrive.setCurrentAbsoluteSector(diskDrive.getTotalSectorsOnDisk() - 1);
 			displayPhysicalSector(); // display only one sector
 			break;
+
+		case AC_BTN_CPM_TARGET:
+			break;
+		case AC_BTN_NATIVE_SOURCE:
+			getNativeSource();
+			break;
+		case BTN_COPY_TO_CPM:
+			copyToCPM();
+			break;
+
 		// other objects - ComboBox
 		case AC_CB_FILE_NAMES:
 			cbFilenames();
@@ -911,13 +1120,6 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		}
 
 	}
-
-	// @Override
-	// public void mouseClicked(MouseEvent me) {
-	// if (((Component) me.getSource()).getName().equals(AC_DIRECTORY_TABLE)){
-	// if (me.getClickCount()>=3)
-	//
-	// }
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	private void appInit() {
@@ -1817,6 +2019,77 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		gbc_lblDDelement.gridx = 2;
 		gbc_lblDDelement.gridy = 3;
 		panelDirDisk.add(lblDDelement, gbc_lblDDelement);
+
+		panelCopy = new JPanel();
+		tabbedPane.addTab("Move", null, panelCopy, null);
+		GridBagLayout gbl_panelCopy = new GridBagLayout();
+		gbl_panelCopy.columnWidths = new int[] { 0, 0, 0 };
+		gbl_panelCopy.rowHeights = new int[] { 0, 0, 0 };
+		gbl_panelCopy.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelCopy.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		panelCopy.setLayout(gbl_panelCopy);
+
+		panelCopyToCPM = new JPanel();
+		panelCopyToCPM.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 255), 2, true),
+				"Fom Native file to CP/M file",
+				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		GridBagConstraints gbc_panelCopyToCPM = new GridBagConstraints();
+		gbc_panelCopyToCPM.fill = GridBagConstraints.BOTH;
+		gbc_panelCopyToCPM.gridx = 1;
+		gbc_panelCopyToCPM.gridy = 1;
+		panelCopy.add(panelCopyToCPM, gbc_panelCopyToCPM);
+		GridBagLayout gbl_panelCopyToCPM = new GridBagLayout();
+		gbl_panelCopyToCPM.columnWidths = new int[] { 0, 0, 0, 100, 0, 0 };
+		gbl_panelCopyToCPM.rowHeights = new int[] { 0, 0, 3, 0, 4, 0, 0, 0, 0, 0, 0 };
+		gbl_panelCopyToCPM.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gbl_panelCopyToCPM.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+				Double.MIN_VALUE };
+		panelCopyToCPM.setLayout(gbl_panelCopyToCPM);
+		btnNativeSource = new JButton("Source File");
+		btnNativeSource.setActionCommand(AC_BTN_NATIVE_SOURCE);
+		btnNativeSource.addActionListener(this);
+		GridBagConstraints gbc_btnNativeSource = new GridBagConstraints();
+		gbc_btnNativeSource.insets = new Insets(0, 0, 5, 5);
+		gbc_btnNativeSource.gridx = 1;
+		gbc_btnNativeSource.gridy = 1;
+		panelCopyToCPM.add(btnNativeSource, gbc_btnNativeSource);
+
+		lblNativeSource = new JLabel("<none>");
+		lblNativeSource.setForeground(Color.BLUE);
+		lblNativeSource.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		GridBagConstraints gbc_lblNativeSource = new GridBagConstraints();
+		gbc_lblNativeSource.anchor = GridBagConstraints.WEST;
+		gbc_lblNativeSource.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNativeSource.gridx = 3;
+		gbc_lblNativeSource.gridy = 1;
+		panelCopyToCPM.add(lblNativeSource, gbc_lblNativeSource);
+
+		lblTargetFile = new JLabel("Target File");
+		GridBagConstraints gbc_lblTargetFile = new GridBagConstraints();
+		gbc_lblTargetFile.insets = new Insets(0, 0, 5, 5);
+		gbc_lblTargetFile.gridx = 1;
+		gbc_lblTargetFile.gridy = 3;
+		panelCopyToCPM.add(lblTargetFile, gbc_lblTargetFile);
+
+		cbCpmTarget = new JComboBox();
+		cbCpmTarget.setForeground(Color.BLUE);
+		cbCpmTarget.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		cbCpmTarget.setEditable(true);
+		GridBagConstraints gbc_cbCpmTarget = new GridBagConstraints();
+		gbc_cbCpmTarget.anchor = GridBagConstraints.WEST;
+		gbc_cbCpmTarget.insets = new Insets(0, 0, 5, 5);
+		gbc_cbCpmTarget.gridx = 3;
+		gbc_cbCpmTarget.gridy = 3;
+		panelCopyToCPM.add(cbCpmTarget, gbc_cbCpmTarget);
+
+		btnCopyToCPM = new JButton("Copy");
+		btnCopyToCPM.setActionCommand(BTN_COPY_TO_CPM);
+		btnCopyToCPM.addActionListener(this);
+		GridBagConstraints gbc_btnCopyToCPM = new GridBagConstraints();
+		gbc_btnCopyToCPM.insets = new Insets(0, 0, 5, 5);
+		gbc_btnCopyToCPM.gridx = 1;
+		gbc_btnCopyToCPM.gridy = 5;
+		panelCopyToCPM.add(btnCopyToCPM, gbc_btnCopyToCPM);
 
 		JMenuBar menuBar = new JMenuBar();
 		frmNativeDiskTool.setJMenuBar(menuBar);

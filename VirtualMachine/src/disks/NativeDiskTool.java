@@ -2,8 +2,6 @@ package disks;
 
 import java.awt.EventQueue;
 import java.awt.FontMetrics;
-//import java.awt.ScrollPane;
-//import java.awt.Component;
 
 import javax.swing.JFrame;
 
@@ -31,14 +29,11 @@ import java.awt.Font;
 
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-//import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
-
-//import java.awt.GridLayout;
 
 import myComponents.Hex64KSpinner;
 
@@ -48,25 +43,15 @@ import javax.swing.SpinnerNumberModel;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-//import java.awt.event.MouseEvent;
-//import java.awt.event.MouseListener;
-//import java.beans.PropertyChangeEvent;
-//import java.beans.PropertyChangeListener;
-//import java.io.BufferedReader;
 import java.io.File;
-//import java.io.FileNotFoundException;
-//import java.io.FileReader;
-//import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-//import java.util.Arrays;
-//import java.util.Collection;
-//import java.util.HashMap;
-//import java.util.regex.Pattern;
-
 import java.util.HashMap;
 import java.util.List;
 
@@ -79,8 +64,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
-//import javax.swing.JFormattedTextField;
-//import javax.swing.JViewport;
 import javax.swing.SwingConstants;
 
 import java.awt.event.WindowAdapter;
@@ -90,14 +73,6 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-
-//import myComponents.Hex64KSpinner16;
-//
-//import javax.swing.JTextField;
-//import javax.swing.JList;
-//import javax.swing.AbstractListModel;
-//import javax.swing.ListSelectionModel;
-//import javax.swing.JToggleButton;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
 import javax.swing.DefaultComboBoxModel;
@@ -117,6 +92,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	int sectorSize;
 	int blockSizeInBytes;
+	int blockSizeInSectors;
 	int linesToDisplay;
 	boolean bigDisk = false;
 
@@ -210,15 +186,17 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 	// ----------------------------Copy View ----------------------------------------
 	private final static String AC_BTN_NATIVE_SOURCE = "btnCpmTarget";
 	private final static String AC_BTN_CPM_TARGET = "btnNativeSource";
-	private File nativeSource = null;
+	private File nativeSourceFile = null;
+	private String nativeSourceAbsoluteName = null;
 	private String cpmTarget = null;
 	private long sourceSize;
 
 	private void getNativeSource() {
-		nativeSource = getNativeFile();
-		lblNativeSource.setText(nativeSource.getName());
-		lblNativeSource.setToolTipText(nativeSource.getAbsolutePath());
-		sourceSize = nativeSource.length();
+		nativeSourceFile = getNativeFile();
+		lblNativeSource.setText(nativeSourceFile.getName());
+		nativeSourceAbsoluteName = nativeSourceFile.getAbsolutePath();
+		lblNativeSource.setToolTipText(nativeSourceAbsoluteName);
+		sourceSize = nativeSourceFile.length();
 	}
 
 	private File getNativeFile(boolean write) {
@@ -227,7 +205,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 		JFileChooser nativeChooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
 		nativeChooser.setMultiSelectionEnabled(false);
-		if (nativeChooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {
+		if (nativeChooser.showDialog(null, "Select the file") != JFileChooser.APPROVE_OPTION) {
 			return null;
 		}// if
 		return nativeChooser.getSelectedFile();
@@ -239,42 +217,122 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 
 	private void copyToCPM() {
 		DirEntry selectedEntry = (DirEntry) cbCpmTarget.getSelectedItem();
-		if (selectedEntry == null | nativeSource == null) {
+		cpmTarget = selectedEntry.fileName;
+		int bias = selectedEntry.directoryOffset;
+
+		if (haveFilesToCopy(bias) == false) {
+			return;
+		}
+
+		// find out how much space is on the CPM disk to see if the file will fit.
+		int blocksNeeded = (int) Math.ceil(sourceSize / (float) blockSizeInBytes);
+		int blocksAvailable = (maxBlockNumber + 1) - allocationTable.size();
+		if (blocksNeeded > blocksAvailable) {
+			String msg = String.format("Not enough space on CPM disk%n"
+					+ "Blocks Available: %,d -Blocks  Need: %,d", blocksAvailable, blocksNeeded);
+			JOptionPane.showMessageDialog(null, msg, "Copying a file to CPM", JOptionPane.WARNING_MESSAGE);
+			return;
+		}// if
+
+		 final byte NULL_BYTE = 0x00;
+		ArrayList<Integer> blocksToWrite = getNextBlocks(blocksNeeded);
+		byte[] fromBuffer = new byte[blockSizeInBytes];
+		ByteBuffer inBuffer = ByteBuffer.allocate(blockSizeInBytes);
+
+		//
+		StringBuilder sb = new StringBuilder();
+		//
+		try {
+			int blockListIndex = 0;
+			int r = 0;
+			FileInputStream fin = new FileInputStream(nativeSourceAbsoluteName);
+			FileChannel fcin = fin.getChannel();
+			while (true){
+				inBuffer.clear();
+				r = fcin.read(inBuffer);
+				if (r == -1){
+					break;
+				}
+				inBuffer.flip();
+				inBuffer.get(fromBuffer,0,r);
+				if ( r < blockSizeInBytes){ // fill the block with 00
+					for ( int i = inBuffer.position();i < inBuffer.capacity(); i++){
+						fromBuffer[i] = NULL_BYTE;
+					}
+					System.out.printf("r is short = %d%n",r);
+				}
+				// ready to write a block of date
+				putDataOnDisk(fromBuffer, blocksToWrite.get(blockListIndex++));
+				System.out.println(new String(fromBuffer));
+//				break;
+			}//while
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		System.out.printf("nativeSource = %s %nfileName = %s : bias = %d%n", nativeSourceFile, cpmTarget, bias);
+	} // private void copyToCPM;
+
+	private void putDataOnDisk(byte[] data, int blockNumber){
+		int absoluteSectorNumber = blockZeroBias + (blockNumber * blockSizeInSectors);
+		diskDrive.setCurrentAbsoluteSector(absoluteSectorNumber);
+		byte[] sectorData = new byte[sectorSize];
+		for ( int i = 0; i < blockSizeInSectors; i ++){
+			for ( int j = 0 ; j <  sectorSize ; j++ ){
+				sectorData[j] = data[(i * sectorSize) + j];	
+			}//for j
+			diskDrive.setCurrentAbsoluteSector(absoluteSectorNumber++);
+			diskDrive.write(sectorData);
+		}//for - i
+		
+		
+		
+		
+	}
+
+	private boolean haveFilesToCopy(int bias) {
+		boolean ok = true;
+
+		// 1 - need both source and target
+		DirEntry selectedEntry = (DirEntry) cbCpmTarget.getSelectedItem();
+		if (selectedEntry == null | nativeSourceFile == null) {
 			JOptionPane.showMessageDialog(null, "You need to specify both a Source and Target",
 					"Copying a file to CPM",
 					JOptionPane.WARNING_MESSAGE);
-			return;
+			return false;
 		}// if
-		cpmTarget = selectedEntry.fileName;
-		int bias = selectedEntry.directoryOffset;
+
+		// 2 - Overwrite an existing file
 		if (bias != -1) {
 			int ans = JOptionPane.showConfirmDialog(null, "Existing File! Do You want to overwright it?",
 					"Copying a file to CPM",
 					JOptionPane.YES_NO_OPTION);
 			if (ans == JOptionPane.NO_OPTION) {
 				System.out.println("No - return");
-				return;
+				return false;
 			}// inner if
 				// need to delete the file and then write a new one *************************************
 		}// if
 
-		// find out how much space is on the CPM disk to see if the file will fit.
-		int blocksAvailable = (maxBlockNumber + 1) - allocationTable.size();
-		long availableBytes = blocksAvailable * blockSizeInBytes;
-//		sourceSize = 987654321 ;
-//		availableBytes = 1;
-		if (sourceSize > availableBytes) {
-			String msg = String.format("Not enough space on CPM disk%n"
-					+ "Available: %,d - Need: %,d",availableBytes,sourceSize);
-			JOptionPane.showMessageDialog(null, msg,"Copying a file to CPM",JOptionPane.WARNING_MESSAGE);
-			return;
-		}// if
-
-
-		System.out.printf("nativeSource = %s %nfileName = %s : bias = %d%n", nativeSource, cpmTarget, bias);
+		return ok;
 	}
 
-	// private void copyToCPM;
+	private ArrayList<Integer> getNextBlocks(int count) {
+		ArrayList<Integer> blocks = new ArrayList<Integer>();
+		for (int i = 0; i < maxBlockNumber; i++) {
+			if (!allocationTable.containsKey(i)) {
+				blocks.add(i);
+			}
+			if (count == blocks.size()) {
+				break;
+			}
+		}
+		return blocks;
+	}
 
 	// ----------------------------Physical View ----------------------------------------
 
@@ -346,11 +404,12 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 				al01 = dla.getAL01() & 0xFFFF;
 			}// if
 		}// for
-		
+
 		setDirectoryBlocksInAT();
 
 		sectorSize = diskDrive.getBytesPerSector();
-		blockSizeInBytes = (int) spinnerLogicalBlockSizeHex.getValue() * sectorSize;
+		blockSizeInSectors = (int) spinnerLogicalBlockSizeHex.getValue();
+		blockSizeInBytes = blockSizeInSectors * sectorSize;
 		logicalRecordsPerSector = sectorSize / CPM_RECORD_SIZE;
 		physicalSectorsPerBlock = (int) spinnerLogicalBlockSizeHex.getValue();
 
@@ -572,17 +631,17 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		cbCpmTarget.setModel(fileCpmModel);
 	}
 
-//	private HashMap<Integer, Boolean> setUpAllocationTable() {
-//		HashMap<Integer, Boolean> at = new HashMap<Integer, Boolean>();
-//		for (Integer i = 0; i < 16; i++) {
-//			if ((al01 & 0X8000) == 0x8000) {
-//				at.put(i, true);
-//			}// if
-//			al01 <<= 1; // shift left
-//		}// for
-//		return at;
-//	}
-	private void  setDirectoryBlocksInAT(){
+	// private HashMap<Integer, Boolean> setUpAllocationTable() {
+	// HashMap<Integer, Boolean> at = new HashMap<Integer, Boolean>();
+	// for (Integer i = 0; i < 16; i++) {
+	// if ((al01 & 0X8000) == 0x8000) {
+	// at.put(i, true);
+	// }// if
+	// al01 <<= 1; // shift left
+	// }// for
+	// return at;
+	// }
+	private void setDirectoryBlocksInAT() {
 		for (Integer i = 0; i < 16; i++) {
 			if ((al01 & 0X8000) == 0x8000) {
 				allocationTable.put(i, true);

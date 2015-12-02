@@ -20,7 +20,8 @@ public class Test1 {
 	 */
 	public static void main(String[] args) {
 
-		new Test1().doIt6(); // test Random.nextInt(bound);
+		new Test1().doIt7(); // test Random.nextInt(bound);
+		//new Test1().doIt6(); // test Random.nextInt(bound);
 		// new Test1().doIt5(); // Check DCU & core w/ trap
 		// new Test1().doIt4(); // invoke make new disk to check return value
 		// new Test1().doIt3(); //check out Random().nextBytes()
@@ -28,6 +29,18 @@ public class Test1 {
 		// new Test1().doIt1(); // list all elements of DiskLayout- to check validity
 
 	}// main
+	private void doIt7(){
+		byte[] rawData = new byte[]{(byte) 0x00,(byte) 0x41,(byte) 0x42,(byte) 0x43,(byte) 0x44,
+		                          (byte) 0x45,(byte) 0x00,(byte) 0x31,(byte) 0x32,(byte) 0x33,(byte) 0x34,(byte) 0x35};
+		System.out.printf("rawData.length = %s%n",rawData.length);
+		String strData = new String(rawData);
+		System.out.printf("strData = %s%n",strData);
+		System.out.printf("strData.length() = %s%n",strData.length());
+		byte[] testByte = new byte[5];
+		System.out.printf("--%s--%n",new String(testByte));
+		
+	}
+	
 	private void doIt6(){
 		int iterations = 30;
 		int bound = 50;

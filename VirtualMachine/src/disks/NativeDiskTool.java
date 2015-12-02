@@ -782,14 +782,28 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		absoluteSector = diskDrive.getSectorsPerTrack() * diskDrive.getHeads()
 				* (int) spinnerTracksBeforeDirectoryHex.getValue();
 
+		//
+		CPMDirectory cpmDirectory = new CPMDirectory(bigDisk,maxDirectoryEntries,blockSizeInSectors,sectorSize);
+		//
 		for (int i = 0; i < numberOfDirectorySectors; i++) {
 			diskDrive.setCurrentAbsoluteSector(absoluteSector + i);
 			aSector = diskDrive.read();
+			//
+			//populateCPMdirectory(cpmDirectory,i,aSector);
+			//
 			constructRawDirectory(aSector);
 		}// for i
 		blockZeroBias = absoluteSector;
 		// System.out.printf("blockZeroBias = %d%n", blockZeroBias);
 	}
+//	private void populateCPMdirectory(CPMDirectory cpmDirectory,int sectorNumber,byte[] sectorData){
+//		int entriesPerSector = sectorSize/DIRECTORY_ENTRY_SIZE;
+//		byte[] rawEntry = new byte[DIRECTORY_ENTRY_SIZE];
+//		for ( int i = 0; i < entriesPerSector;i ++){
+//			
+//		}
+//		
+//	}
 
 	private void fillDirectoryTable(JTable table) {
 		String name, type;

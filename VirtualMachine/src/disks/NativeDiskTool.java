@@ -783,7 +783,7 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 				* (int) spinnerTracksBeforeDirectoryHex.getValue();
 
 		//
-		CPMDirectory cpmDirectory = new CPMDirectory(bigDisk,maxDirectoryEntries,blockSizeInSectors,sectorSize);
+//		CPMDirectory cpmDirectory = new CPMDirectory(bigDisk,maxDirectoryEntries,blockSizeInSectors,sectorSize);
 		//
 		for (int i = 0; i < numberOfDirectorySectors; i++) {
 			diskDrive.setCurrentAbsoluteSector(absoluteSector + i);

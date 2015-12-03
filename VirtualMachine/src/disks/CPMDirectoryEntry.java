@@ -1,7 +1,9 @@
 package disks;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.SortedMap;
 
 public class CPMDirectoryEntry {
 	private byte userNumber;
@@ -9,7 +11,7 @@ public class CPMDirectoryEntry {
 	private String fileType;
 	private byte ex;
 	private byte s2;
-	private byte s1;
+	// private byte s1;
 	private byte rc;
 
 	private byte[] rawDirectory;
@@ -17,23 +19,29 @@ public class CPMDirectoryEntry {
 	private boolean readOnly;
 	private boolean systemFile;
 	String strEntry;
-	private HashMap<Integer, Boolean> allocatedBlocks;
+	private ArrayList<Integer> allocatedBlocks;
 
 	private boolean bigDisk;
-	// private int blockNumber;
-	private int absoluteEntryNumber;
+
+	public static CPMDirectoryEntry emptyDirectoryEntry() {
+		return new CPMDirectoryEntry(Disk.EMPTY_DIRECTORY_ENTRY);
+	}
+
+	public void markAsDeleted() {
+		this.setUserNumber(Disk.EMPTY_ENTRY);
+	}
 
 	public CPMDirectoryEntry() {
-		rawDirectory = new byte[DIRECTORY_ENTRY_SIZE];
+		rawDirectory = new byte[Disk.DIRECTORY_ENTRY_SIZE];
 		strEntry = new String(rawDirectory);
-		this.setUserNumber(EMPTY_ENTRY);
-		this.setFileName(EMPTY_NAME);
-		this.setFileType(EMPTY_TYPE);
-		this.setEx(NULL_BYTE);
-		this.setS2(NULL_BYTE);
-		this.s1 = NULL_BYTE;
-		this.setRc(NULL_BYTE);
-		allocatedBlocks = new HashMap<Integer, Boolean>();
+		this.setUserNumber(Disk.EMPTY_ENTRY);
+		this.setFileName(Disk.EMPTY_NAME);
+		this.setFileType(Disk.EMPTY_TYPE);
+		this.setEx(Disk.NULL_BYTE);
+		this.setS2(Disk.NULL_BYTE);
+		// this.s1 = Disk.NULL_BYTE;
+		this.setRc(Disk.NULL_BYTE);
+		allocatedBlocks = new ArrayList<Integer>();
 		this.bigDisk = false;
 	}// Constructor
 
@@ -43,18 +51,25 @@ public class CPMDirectoryEntry {
 
 	public CPMDirectoryEntry(byte[] rawEntry, boolean bigDisk) {
 		this();
-		rawDirectory = rawEntry;
-		strEntry = new String(rawDirectory);
+		rawDirectory = rawEntry.clone();
+		try {
+			strEntry = new String(rawDirectory, "US-ASCII");
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		this.bigDisk = bigDisk;
 
 		this.setUserNumber(rawDirectory[0]);
-		this.setFileName(convertTo7BitASCII(strEntry.substring(DIR_NAME, DIR_NAME_END)));
-		this.setFileType(convertTo7BitASCII(strEntry.substring(DIR_TYPE, DIR_TYPE_END)));
-		readOnly = ((rawDirectory[DIR_T1] & 0x80) == 0x80);
-		systemFile = ((rawDirectory[DIR_T2] & 0x80) == 0x80);
-		this.setEx(rawDirectory[DIR_EX]);
-		this.setS2(rawDirectory[DIR_S2]);
-		this.setRc(rawDirectory[DIR_RC]);
+
+		this.setFileName(strEntry.substring(Disk.DIR_NAME, Disk.DIR_NAME_END));
+		this.setFileType(strEntry.substring(Disk.DIR_TYPE, Disk.DIR_TYPE_END));
+
+		readOnly = ((rawDirectory[Disk.DIR_T1] & 0x80) == 0x80);
+		systemFile = ((rawDirectory[Disk.DIR_T2] & 0x80) == 0x80);
+		this.setEx(rawDirectory[Disk.DIR_EX]);
+		this.setS2(rawDirectory[Disk.DIR_S2]);
+		this.setRc(rawDirectory[Disk.DIR_RC]);
 		setAllocationTable();
 		// blocks = 0;
 	}
@@ -62,23 +77,13 @@ public class CPMDirectoryEntry {
 	private void setAllocationTable() {
 		int value = 0;
 
-		for (int i = DIR_BLOCKS; i < DIR_BLOCKS_END; i++) {
+		for (int i = Disk.DIR_BLOCKS; i < Disk.DIR_BLOCKS_END; i++) {
 			value = bigDisk ? (int) ((rawDirectory[i] & 0xff) * 256) + (rawDirectory[++i] & 0xff)
 					: rawDirectory[i] & 0xff;
 			if (value != 0) {
-				allocatedBlocks.put(value, true);
+				allocatedBlocks.add(value);
 			}// inner if - value
 		}// for
-
-	}
-
-	private String convertTo7BitASCII(String source) {
-		char[] sourceChars = source.toCharArray();
-		for (int i = 0; i < sourceChars.length; i++) {
-			sourceChars[i] &= 0x7F;
-		}
-		return new String(sourceChars);
-
 	}
 
 	public String toString() {
@@ -96,7 +101,7 @@ public class CPMDirectoryEntry {
 
 	public void setUserNumber(byte userNumber) {
 		this.userNumber = userNumber;
-		rawDirectory[DIR_USER] = userNumber;
+		rawDirectory[Disk.DIR_USER] = userNumber;
 	}
 
 	// File Name & Type
@@ -109,12 +114,13 @@ public class CPMDirectoryEntry {
 	}
 
 	public void setFileName(String fileName) {
-		this.fileName = padEntryField(fileName, NAME_MAX);
+
+		this.fileName = padEntryField(fileName, Disk.NAME_MAX);
 		byte[] name;
 		try {
 			name = this.fileName.getBytes("US-ASCII");
-			for (int i = 0; i < 0 + NAME_MAX; i++) {
-				rawDirectory[DIR_NAME + i] = name[i];
+			for (int i = 0; i < 0 + Disk.NAME_MAX; i++) {
+				rawDirectory[Disk.DIR_NAME + i] = name[i];
 			}
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
@@ -131,27 +137,44 @@ public class CPMDirectoryEntry {
 	}
 
 	public void setFileType(String fileType) {
-		this.fileType = padEntryField(fileType, TYPE_MAX);
+		boolean wasReadOnly = this.readOnly;
+		boolean wasSystemFile = this.systemFile;
+
+		this.fileType = padEntryField(fileType, Disk.TYPE_MAX);
 		byte[] type;
 		try {
 			type = this.fileName.getBytes("US-ASCII");
-			for (int i = 0; i < 0 + TYPE_MAX; i++) {
-				rawDirectory[DIR_TYPE + i] = type[i];
+			for (int i = 0; i < 0 + Disk.TYPE_MAX; i++) {
+				rawDirectory[Disk.DIR_TYPE + i] = type[i];
 			}
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		if (wasReadOnly) {
+			rawDirectory[Disk.DIR_T1] = (byte) (rawDirectory[Disk.DIR_T1] | 0x80);
+		}
+		if (wasSystemFile) {
+			rawDirectory[Disk.DIR_T2] = (byte) (rawDirectory[Disk.DIR_T2] | 0x80);
+		}
+
+		readOnly = ((rawDirectory[Disk.DIR_T1] & 0x80) == 0x80);
+		systemFile = ((rawDirectory[Disk.DIR_T2] & 0x80) == 0x80);
+
 	}
 
 	public String getNameAndType11() {
 		return getFileName() + getFileType();
 	}
 
+	public String getNameTypeAndExt() {
+		return getNameAndType11() + getActualExtNumString();
+	}
+
 	public String getNameAndTypePeriod() {
 		String result = getFileName().trim();
 		if (getFileType().trim().length() != 0) {
-			result += PERIOD + getFileType().trim();
+			result += Disk.PERIOD + getFileType().trim();
 		}
 		return result;
 	}
@@ -170,7 +193,11 @@ public class CPMDirectoryEntry {
 
 	public void setEx(byte ex) {
 		this.ex = (byte) (ex & 0x1F);
-		rawDirectory[DIR_EX] = this.ex;
+		rawDirectory[Disk.DIR_EX] = this.ex;
+	}
+
+	public byte getS1() {
+		return Disk.NULL_BYTE;
 	}
 
 	public byte getS2() {
@@ -179,11 +206,15 @@ public class CPMDirectoryEntry {
 
 	public void setS2(byte s2) {
 		this.s2 = (byte) (s2 & 0x3F);
-		rawDirectory[DIR_S2] = this.s2;
+		rawDirectory[Disk.DIR_S2] = this.s2;
 	}
 
 	public int getActualExtentNumber() {
-		return (getS2() * 0x20) + getEx(); // ( s2 * 32) + ex
+		return (getS2() * 0x20) + getEx(); // ( s2 * 32) + ex should max at 0x832
+	}
+
+	private String getActualExtNumString() {
+		return String.format("%03X", getActualExtentNumber());
 	}
 
 	// 128-byte record count
@@ -198,25 +229,25 @@ public class CPMDirectoryEntry {
 	public void setRc(byte rc) {
 		int rcInt = rc & 0xFF;
 		this.rc = (byte) (rcInt > 0x1F ? 0x1F : rc); // 0x80 = this extent is full
-		rawDirectory[DIR_RC] = this.rc;
+		rawDirectory[Disk.DIR_RC] = this.rc;
 	}
 
 	// Allocation table
 	public void addBlock(int blockNumber) {
-		allocatedBlocks.put(blockNumber, true);
-		
+		allocatedBlocks.add(blockNumber);
+
 		if (bigDisk) {
-			for (int i = DIR_BLOCKS; i < DIR_BLOCKS_END; i+=2) {
-				if ((rawDirectory[i] + rawDirectory[i + 1]) == NULL_BYTE) {
-					rawDirectory[i] = (byte)( blockNumber/256);
-					rawDirectory[i+1]  = (byte)(blockNumber % 256);
+			for (int i = Disk.DIR_BLOCKS; i < Disk.DIR_BLOCKS_END; i += 2) {
+				if ((rawDirectory[i] + rawDirectory[i + 1]) == Disk.NULL_BYTE) {
+					rawDirectory[i] = (byte) (blockNumber / 256);
+					rawDirectory[i + 1] = (byte) (blockNumber % 256);
 					break; // we are done
 				}// if
 			}// for
 
 		} else {
-			for (int i = DIR_BLOCKS; i < DIR_BLOCKS_END; i++) {
-				if (rawDirectory[i] == NULL_BYTE) {
+			for (int i = Disk.DIR_BLOCKS; i < Disk.DIR_BLOCKS_END; i++) {
+				if (rawDirectory[i] == Disk.NULL_BYTE) {
 					rawDirectory[i] = (byte) blockNumber;
 					break; // we are done
 				}// inner if
@@ -229,8 +260,36 @@ public class CPMDirectoryEntry {
 		return allocatedBlocks.size();
 	}
 
-	public HashMap<Integer, Boolean> getAllocatedBlocks() {
+	public ArrayList<Integer> getAllocatedBlocks() {
 		return allocatedBlocks;
+	}
+
+	public boolean isReadOnly() {
+		return this.readOnly;
+	}
+
+	public boolean isSystemFile() {
+		return this.systemFile;
+	}
+
+	public void setReadOnly(boolean state) {
+		if (state) {
+			rawDirectory[Disk.DIR_T1] = (byte) (rawDirectory[Disk.DIR_T1] | 0x80);
+		} else {
+			rawDirectory[Disk.DIR_T1] = (byte) (rawDirectory[Disk.DIR_T1] & 0x7F);
+		}
+	}
+
+	public void setSystemFile(boolean state) {
+		if (state) {
+			rawDirectory[Disk.DIR_T2] = (byte) (rawDirectory[Disk.DIR_T2] | 0x80);
+		} else {
+			rawDirectory[Disk.DIR_T2] = (byte) (rawDirectory[Disk.DIR_T2] & 0x7F);
+		}
+	}
+
+	public boolean isEmpty() {
+		return this.getUserNumber() == Disk.EMPTY_ENTRY;
 	}
 
 	// Supporting attributes
@@ -241,41 +300,5 @@ public class CPMDirectoryEntry {
 	public void setBigDisk(boolean bigDisk) {
 		this.bigDisk = bigDisk;
 	}
-
-	// public boolean isReadOnly(){
-	// readOnly = this.get & 0x80) == 0x80;
-	// }
-	// public boolean isSystem(){
-	//
-	// }
-	// class methods
-
-	private static final byte NULL_BYTE = (byte) 0x00;
-	private static final byte EMPTY_ENTRY = (byte) 0xE5;
-	private static final String EMPTY_NAME = "        ";
-	private static final String EMPTY_TYPE = "   ";
-	private static final String PERIOD = ".";
-
-	private static final int NAME_MAX = 8;
-	private static final int TYPE_MAX = 3;
-
-	private final static int DIRECTORY_ENTRY_SIZE = 32;
-	private final static int DIR_USER = 0;
-	private final static int DIR_NAME = 1;
-	private final static int DIR_NAME_SIZE = 8;
-	private final static int DIR_NAME_END = DIR_NAME + DIR_NAME_SIZE;
-	private final static int DIR_TYPE = 9;
-	private final static int DIR_TYPE_SIZE = 3;
-	private final static int DIR_TYPE_END = DIR_TYPE + DIR_TYPE_SIZE;
-	private final static int DIR_T1 = 9;
-	private final static int DIR_T2 = 10;
-	private final static int DIR_EX = 12; // LOW BYTE
-	private final static int DIR_S2 = 14;
-	private final static int DIR_S1 = 13;
-	private final static int DIR_RC = 15;
-	private final static int DIR_BLOCKS = 16;
-	private final static int DIR_BLOCKS_END = 31;
-	private final static int DIR_SMALL_BLOCKS_COUNT = 16;
-	private final static int DIR_BIG_BLOCKS_COUNT = 8;
 
 }

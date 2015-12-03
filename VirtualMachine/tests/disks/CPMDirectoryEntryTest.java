@@ -2,6 +2,7 @@ package disks;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.junit.After;
@@ -12,7 +13,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.*;
 
-public class TestCPMDirectoryEntry {
+public class CPMDirectoryEntryTest {
 	CPMDirectoryEntry de;
 
 	@Before
@@ -213,9 +214,9 @@ public class TestCPMDirectoryEntry {
 
 	@Test
 	public void testAllocation() {
-		HashMap<Integer, Boolean> allocatedBlocks = new HashMap<Integer, Boolean>();
-		
-		byte[] rawDirectory1 = new byte[] { (byte) 00,
+		ArrayList<Integer> allocatedBlocks = new ArrayList<Integer>();
+
+		final byte[] rawDirectory1 = new byte[] { (byte) 00,
 				(byte) 0x53, (byte) 0x59, (byte) 0x53, (byte) 0x4D, (byte) 0x41, (byte) 0x4B, (byte) 0x45, (byte) 0x20,
 				(byte) 0x43, (byte) 0x4F, (byte) 0x4D,
 				(byte) 0x01,
@@ -224,6 +225,7 @@ public class TestCPMDirectoryEntry {
 				(byte) 0x06,
 				(byte) 0x02, (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
 				(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
+
 		byte[] rawDirectory2 = new byte[] { (byte) 00,
 				(byte) 0x53, (byte) 0x59, (byte) 0x53, (byte) 0x4D, (byte) 0x41, (byte) 0x4B, (byte) 0x45, (byte) 0x20,
 				(byte) 0x43, (byte) 0x4F, (byte) 0x4D,
@@ -233,31 +235,57 @@ public class TestCPMDirectoryEntry {
 				(byte) 0x06,
 				(byte) 0x02, (byte) 0x04, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
 				(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
-
 		boolean bigDisk = false;
 		CPMDirectoryEntry deRaw = new CPMDirectoryEntry(rawDirectory1, bigDisk);
+		System.out.println(new String(rawDirectory1));
 		assertThat("testAllocation - 1 ", 2, equalTo(deRaw.getBlockCount()));
-		allocatedBlocks.put(2, true);allocatedBlocks.put(4, true);
+		allocatedBlocks.add(2);
+		allocatedBlocks.add(4);
 		assertThat("testAllocation - 1A ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
-		
-		allocatedBlocks.put(6, true);allocatedBlocks.put(8, true);
+
+		allocatedBlocks.add(6);
+		allocatedBlocks.add(8);
 		deRaw.addBlock(6);
 		deRaw.addBlock(8);
 		assertThat("testAllocation - 2 ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
 		assertThat("testAllocation - 2A ", 4, equalTo(deRaw.getBlockCount()));
-		
+		System.out.println(new String(rawDirectory1));
+		System.out.println();
+		// System.out.println(new String(rawDirectory2));
 		allocatedBlocks.clear();
-deRaw = null;
+		deRaw = null;
 		bigDisk = true;
 		deRaw = new CPMDirectoryEntry(rawDirectory1, bigDisk);
 		assertThat("testAllocation - 3 ", 1, equalTo(deRaw.getBlockCount()));
-//		allocatedBlocks.put(516, true);	allocatedBlocks.put(1554, true);	
-//		assertThat("testAllocation - 3A ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
-//		assertThat("testAllocation - 1A ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
+		allocatedBlocks.add(516);
+		assertThat("testAllocation - 3A ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
+		allocatedBlocks.add(1554);
+		deRaw.addBlock(1554);
+		assertThat("testAllocation - 4 ", 2, equalTo(deRaw.getBlockCount()));
+		 assertThat("testAllocation - 1A ", allocatedBlocks, equalTo(deRaw.getAllocatedBlocks()));
+
+	}
+	@Test
+	public void testEmptyEntry(){
+		CPMDirectoryEntry deEmpty = CPMDirectoryEntry.emptyDirectoryEntry();
+		assertThat("testEmptyEntry - 1 ", (byte)0xE5, equalTo(deEmpty.getUserNumber()));
+
+		String nameIn = "";
+		String typeIn = "";
+		String out11 = "           ";
+		de.setFileName(nameIn);
+		de.setFileType(typeIn);
+		assertThat("testEmptyEntry - 2 ", out11, equalTo(de.getNameAndType11()));
+		assertThat("testEmptyEntry - 3 ", 11, equalTo(de.getNameAndType11().length()));
+		assertThat("testEmptyEntry - 4 ", true, equalTo(de.isEmpty()));
+		
+		de.setUserNumber((byte) 0x00);
+		assertThat("testEmptyEntry - 5 ", false, equalTo(de.isEmpty()));
+		de.markAsDeleted();
+		assertThat("testEmptyEntry - 5A ", true, equalTo(de.isEmpty()));
+		
 		
 
-//		assertThat("testAllocation - 4 ", 2, equalTo(deRaw.getBlockCount()));
-	
 	}
 
 	// @BeforeClass

@@ -1,115 +1,164 @@
 package disks;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 
 public class CPMDirectory {
-	private HashMap<Integer,CPMDirectoryEntry> dirEntries;
+	private HashMap<Integer, CPMDirectoryEntry> dirEntries;
 	private boolean bigDisk;
 	private int maxEntries;
 	private int sectorsPerBlock;
 	private int bytesPerSector;
-	
-	private int absoluteEntryNumber;
-	
-	int entriesPerSector ;
-	
-	
+	private int trackOffset; // ofs
+	private int maxBlocks;
+
+	private int directoryEntryNumber;
+
+	private HashMap<Integer, Boolean> allocationTable;
+
+	int entriesPerSector;
+	int entriesPerBlock;
 
 	public CPMDirectory() {
-		this(false,128,4,512);  // Default to 3.5" and 5" disks
+		this(false, 128, 4, 512, 72, 175); // Default to 3.5" and 5" disks
 	}
-	public CPMDirectory(boolean bigDisk,int maxEntries,int sectorsPerBlock,int bytesPerSector){
+
+	public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
+			int maxBlocks) {
 		this.bigDisk = bigDisk;
 		this.maxEntries = maxEntries;
 		this.sectorsPerBlock = sectorsPerBlock;
 		this.bytesPerSector = bytesPerSector;
-		 entriesPerSector = bytesPerSector/DIRECTORY_ENTRY_SIZE;
-	}
-	private boolean parseRawEntry(byte[] rawEntry ,int sectorNumber,int index){
-		boolean result = false;
-		String strEntry = new String(rawEntry);
-		CPMDirectoryEntry cpmEntry = new CPMDirectoryEntry();
-		cpmEntry.setUserNumber(rawEntry[0]);
-		
-		cpmEntry.setFileName(convertTo7BitASCII(strEntry.substring(DIR_NAME,  DIR_NAME_END)));
-		cpmEntry.setFileType(convertTo7BitASCII(strEntry.substring( DIR_TYPE, DIR_TYPE_END)));
-		
-//		readOnly = (rawDirectory.get(bias + DIR_T1) & 0x80) == 0x80;
-//		systemFile = (rawDirectory.get(bias + DIR_T2) & 0x80) == 0x80;
-//		cpmEntry.setS2(rawEntry[DIR_S2]);
-//		cpmEntry.setRc(rawEntry[DIR_RC]);
-//		count = rawDirectory.get(bias + DIR_RC);
-//		blocks = 0;
+		this.trackOffset = trackOffset;
+		this.maxBlocks = maxBlocks;
+		entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
+		entriesPerBlock = sectorsPerBlock * entriesPerSector;
+		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
+		allocationTable = new HashMap<Integer, Boolean>();
 
-
-		return result;
-	}
-	private String convertTo7BitASCII(String source) {
-		char[] sourceChars = source.toCharArray();
-		for (int i = 0; i < sourceChars.length; i++) {
-			sourceChars[i] &= 0x7F;
+		for (int i = 0; i < maxEntries; i++) {
+			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
 		}
-		return new String(sourceChars);
-
-	}
-	
-	public boolean addEntries(int sectorNumber, byte[] aSector){
-		boolean result = false;
-		byte[] rawEntry = new byte[DIRECTORY_ENTRY_SIZE];
-		for (int i =0; i < this.sectorsPerBlock;i ++){
-			for (int j = 0; j <DIRECTORY_ENTRY_SIZE; j ++){
-				rawEntry[j] = aSector[(i * DIRECTORY_ENTRY_SIZE) + i];	
-			}//for - j - now we have 1 raw entry
-			parseRawEntry(rawEntry,sectorNumber,i);
-		}// for - i
-		return result;
-	}
-	
-	public boolean removeEntry(int absoluteEntryNumber){
-		boolean result = true;
-		if (dirEntries.remove(absoluteEntryNumber) == null){
-			result = false;		// nothing there to remove;
-		}
-		return result;
-	}
-	
-	public boolean addEntry(int absoluteEntryNumber,CPMDirectoryEntry entry){
-		boolean result = false;
-		if (!(dirEntries.containsKey(absoluteEntryNumber))){
-			dirEntries.put(absoluteEntryNumber, entry);
-			result = true;  // nothing got wiped out
-		}
-		return result;
-	}
-	public boolean addEntry(int absoluteEntryNumber,byte[] rawData){
-			boolean result = false;
-		if (!(dirEntries.containsKey(absoluteEntryNumber))){
-//			dirEntries.put(absoluteEntryNumber, entry);
-			result = true;  // nothing got wiped out
-		}
-		return result;
 	}
 
-	private final static int DIRECTORY_ENTRY_SIZE = 32;
-	private final static byte EMPTY_ENTRY = (byte) 0xE5;
-	
-	private final static int DIR_USER = 0;
-	private final static int DIR_NAME = 1;
-	private final static int DIR_NAME_SIZE = 8;
-	private final static int DIR_NAME_END = DIR_NAME + DIR_NAME_SIZE;
-	private final static int DIR_TYPE = 9;
-	private final static int DIR_TYPE_SIZE = 3;
-	private final static int DIR_TYPE_END = DIR_TYPE + DIR_TYPE_SIZE;
-	private final static int DIR_T1 = 9;
-	private final static int DIR_T2 = 10;
-	private final static int DIR_EX = 12; // LOW BYTE
-	private final static int DIR_S2 = 14;
-	private final static int DIR_S1 = 13;
-	private final static int DIR_RC = 15;
-	private final static int DIR_BLOCKS = 16;
-	private final static int DIR_SMALL_BLOCKS_COUNT = 16;
-	private final static int DIR_BIG_BLOCKS_COUNT = 8;
+	public int getDirectoryBlockNumber(int directoryEntryNumber) {
+		return directoryEntryNumber / entriesPerBlock;
+	}
 
+	public int getPhysicalSectorNumber(int directoryEntryNumber) {
+		return (directoryEntryNumber / entriesPerSector) + this.trackOffset;
+	}
+
+	// where in the physical record this belongs
+	public int getLogicalRecordIndex(int directoryEntryNumber) {
+		return directoryEntryNumber % entriesPerSector;
+	}
+
+	public void addEntry(byte[] rawEntry, int directoryEntryNumber) {
+		dirEntries.put(directoryEntryNumber, new CPMDirectoryEntry(rawEntry, bigDisk));
+		allocateBlocks(directoryEntryNumber);
+	}
+
+	public int addEntry(byte[] rawEntry) {
+		int entryLocation = getNextAvailableEntry();
+		addEntry(rawEntry, entryLocation);
+		return entryLocation;
+	}
+
+	public void removeEntry(int directoryEntryNumber) {
+		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
+		for (Integer block : blockList) {
+			allocationTable.remove(block, true);
+		}//
+		dirEntries.get(directoryEntryNumber).markAsDeleted();
+	}
+
+	public void deleteFile(String fullName) {
+		String[] parts = fullName.split(Disk.PERIOD);
+		String name = padEntryField(parts[0].trim().toUpperCase(), Disk.NAME_MAX);
+		String type = padEntryField(parts[0].trim().toUpperCase(), Disk.TYPE_MAX);
+		String target = name + type;
+		ArrayList<Integer> targetDirectories = getDirectoryEntries(target);
+		for (Integer de : targetDirectories) {
+			removeEntry(de);
+		}// for
+	}
+
+	public ArrayList<Integer> getFilesBlocks(int directoryEntryNumber) {
+		return dirEntries.get(directoryEntryNumber).getAllocatedBlocks();
+	}
+
+	public void allocateBlocks(int directoryEntryNumber) {
+		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
+		for (Integer block : blockList) {
+			allocationTable.put(block, true);
+		}//
+		return;
+	}
+
+	public void deAllocateBlocks(int directoryEntryNumber) {
+		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
+		for (Integer block : blockList) {
+			allocationTable.remove(block);
+		}//
+		return;
+	}
+
+	public int getActiveEntryCount() {
+		Collection<CPMDirectoryEntry> entries = dirEntries.values();
+		return (int) entries.stream().filter(entry -> entry.isEmpty() != true).count();
+	}
+
+	public int getAvailableEntryCount() {
+		Collection<CPMDirectoryEntry> entries = dirEntries.values();
+		return (int) entries.stream().filter(entry -> entry.isEmpty() == true).count();
+	}
+
+	private int getNextAvailableEntry() {
+		int ans = -1;
+		for (int i = 0; i < dirEntries.size(); i++) {
+			if (dirEntries.get(i).isEmpty()) {
+				ans = i;
+				break;
+			}// if
+		}// for
+		return ans;
+	}
+
+	public int getAllocatedBlockCount() {
+		return allocationTable.size();
+	}
+
+	public int getAvailableBlockCount() {
+		return maxBlocks - getAllocatedBlockCount();
+	}
+
+	private ArrayList<Integer> getDirectoryEntries(String target) {
+		HashMap<Integer, Integer> targetEntries = new HashMap<Integer, Integer>();
+
+		for (int i = 0; i < maxEntries; i++) {
+			if (dirEntries.get(i).getNameAndType11().equals(target)) {
+				((List<Integer>) targetEntries).add(dirEntries.get(i).getActualExtentNumber(), i);
+			}// if
+		}// for
+
+		// we have all entries that match the name & type with the directory index & extent number
+		ArrayList<Integer> ans = new ArrayList<Integer>();
+		Set<Integer> extentNumbers = targetEntries.keySet();
+		for (Integer extentNuber : extentNumbers) {
+			ans.add(targetEntries.get(extentNuber)); // get the indexes in order
+		}
+		return ans;
+	}
+
+	private String padEntryField(String field, int fieldLength) {
+		String result = field.trim().toUpperCase();
+		result = result.length() > fieldLength ? result.substring(0, fieldLength) : result;
+		result = String.format("%-" + fieldLength + "s", result);
+		return result;
+	}
 
 }

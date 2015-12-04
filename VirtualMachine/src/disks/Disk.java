@@ -12,7 +12,7 @@ public class Disk {
 	static final int SYSTEM_SIZE = 0X2000;
 	static final int SYSTEM_LOGICAL_BLOCKS = SYSTEM_SIZE / LOGICAL_SECTOR_SIZE;
 	final static int DIRECTORY_ENTRY_SIZE = 32;
-	static final int DIRECTORY_ENTRYS_PER_SECTOR = LOGICAL_SECTOR_SIZE / DIRECTORY_ENTRY_SIZE;
+	static final int DIRECTORY_ENTRYS_PER_LOGICAL_SECTOR = LOGICAL_SECTOR_SIZE / DIRECTORY_ENTRY_SIZE;
 
 	static final byte NULL_BYTE = (byte) 0x00;
 	static final byte EMPTY_ENTRY = (byte) 0xE5;

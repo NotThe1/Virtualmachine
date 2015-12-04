@@ -7,12 +7,15 @@ import java.util.List;
 import java.util.Set;
 
 public class CPMDirectory {
+
 	private HashMap<Integer, CPMDirectoryEntry> dirEntries;
 	private boolean bigDisk;
 	private int maxEntries;
+	private int directoryBlockCount;
 	private int sectorsPerBlock;
 	private int bytesPerSector;
 	private int trackOffset; // ofs
+	public int sectorsOffset;
 	private int maxBlocks;
 
 	private int directoryEntryNumber;
@@ -23,21 +26,47 @@ public class CPMDirectory {
 	int entriesPerBlock;
 
 	public CPMDirectory() {
-		this(false, 128, 4, 512, 72, 175); // Default to 3.5" and 5" disks
+		this("F5DD", true); // Default to 3.5" and 5" disks
 	}
 
-	public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
-			int maxBlocks) {
-		this.bigDisk = bigDisk;
-		this.maxEntries = maxEntries;
-		this.sectorsPerBlock = sectorsPerBlock;
-		this.bytesPerSector = bytesPerSector;
-		this.trackOffset = trackOffset;
-		this.maxBlocks = maxBlocks;
+//	public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
+//			int maxBlocks) {
+//		this.bigDisk = bigDisk;
+//		this.maxEntries = maxEntries;
+//		this.sectorsPerBlock = sectorsPerBlock;
+//		this.bytesPerSector = bytesPerSector;
+//		this.trackOffset = trackOffset;
+//		this.maxBlocks = maxBlocks;
+//		entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
+//		entriesPerBlock = sectorsPerBlock * entriesPerSector;
+//		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
+//		allocationTable = new HashMap<Integer, Boolean>();
+//
+//		for (int i = 0; i < maxEntries; i++) {
+//			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
+//		}
+//	}
+
+	public CPMDirectory(String diskExtention, boolean bootDisk) {
+		for (DiskLayout diskLayout : DiskLayout.values()) {
+			if (diskLayout.fileExtension.equals(diskExtention)) {
+				diskLayout.setBootDisk(bootDisk);
+				this.bigDisk = diskLayout.isBigDisk();
+				this.maxEntries = diskLayout.getDRM() + 1;
+				this.sectorsPerBlock = diskLayout.sectorsPerBlock;
+				this.bytesPerSector = diskLayout.bytesPerSector;
+				this.trackOffset = diskLayout.getOFS();
+				this.maxBlocks = diskLayout.getDSM()+1;
+				this.directoryBlockCount = diskLayout.directoryBlockCount;
+				this.sectorsOffset =diskLayout.getDirectoryStartSector();
+				break;
+			}
+
+		}
 		entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
 		entriesPerBlock = sectorsPerBlock * entriesPerSector;
 		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
-		allocationTable = new HashMap<Integer, Boolean>();
+		initializeAllocationTable();
 
 		for (int i = 0; i < maxEntries; i++) {
 			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
@@ -49,7 +78,7 @@ public class CPMDirectory {
 	}
 
 	public int getPhysicalSectorNumber(int directoryEntryNumber) {
-		return (directoryEntryNumber / entriesPerSector) + this.trackOffset;
+		return (directoryEntryNumber / entriesPerSector) + this.sectorsOffset;
 	}
 
 	// where in the physical record this belongs
@@ -69,9 +98,14 @@ public class CPMDirectory {
 	}
 
 	public void removeEntry(int directoryEntryNumber) {
+		System.out.printf("removeEntry - directoryEntryNumber = %d",directoryEntryNumber);
+
 		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
+		System.out.printf("removeEntry - blockList.size() = %d",blockList.size());
+
 		for (Integer block : blockList) {
-			allocationTable.remove(block, true);
+			System.out.printf("removeEntry - block = %d",block);
+			allocationTable.remove(block);
 		}//
 		dirEntries.get(directoryEntryNumber).markAsDeleted();
 	}
@@ -97,6 +131,10 @@ public class CPMDirectory {
 			allocationTable.put(block, true);
 		}//
 		return;
+	}
+
+	public void allocateBlocksX(int directoryEntryNumber) {
+
 	}
 
 	public void deAllocateBlocks(int directoryEntryNumber) {
@@ -159,6 +197,29 @@ public class CPMDirectory {
 		result = result.length() > fieldLength ? result.substring(0, fieldLength) : result;
 		result = String.format("%-" + fieldLength + "s", result);
 		return result;
+	}
+
+	private void initializeAllocationTable() {
+		if (allocationTable != null) {
+			allocationTable = null;
+		}
+		
+		allocationTable = new HashMap<Integer, Boolean>();
+		for (int i = 0; i < this.directoryBlockCount; i++) {
+			allocationTable.put(i, true);
+		}
+
+	}
+
+	public void refreshAllocationTable() {
+		initializeAllocationTable();
+		for (int i = 0; i < maxEntries; i++) {
+			if (!dirEntries.get(i).isEmpty()) {
+				allocateBlocks(i);
+			}
+
+		}
+
 	}
 
 }

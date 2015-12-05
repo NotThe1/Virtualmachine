@@ -1,5 +1,6 @@
 package disks;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,23 +30,23 @@ public class CPMDirectory {
 		this("F5DD", true); // Default to 3.5" and 5" disks
 	}
 
-//	public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
-//			int maxBlocks) {
-//		this.bigDisk = bigDisk;
-//		this.maxEntries = maxEntries;
-//		this.sectorsPerBlock = sectorsPerBlock;
-//		this.bytesPerSector = bytesPerSector;
-//		this.trackOffset = trackOffset;
-//		this.maxBlocks = maxBlocks;
-//		entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
-//		entriesPerBlock = sectorsPerBlock * entriesPerSector;
-//		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
-//		allocationTable = new HashMap<Integer, Boolean>();
-//
-//		for (int i = 0; i < maxEntries; i++) {
-//			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
-//		}
-//	}
+	// public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
+	// int maxBlocks) {
+	// this.bigDisk = bigDisk;
+	// this.maxEntries = maxEntries;
+	// this.sectorsPerBlock = sectorsPerBlock;
+	// this.bytesPerSector = bytesPerSector;
+	// this.trackOffset = trackOffset;
+	// this.maxBlocks = maxBlocks;
+	// entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
+	// entriesPerBlock = sectorsPerBlock * entriesPerSector;
+	// dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
+	// allocationTable = new HashMap<Integer, Boolean>();
+	//
+	// for (int i = 0; i < maxEntries; i++) {
+	// dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
+	// }
+	// }
 
 	public CPMDirectory(String diskExtention, boolean bootDisk) {
 		for (DiskLayout diskLayout : DiskLayout.values()) {
@@ -56,21 +57,20 @@ public class CPMDirectory {
 				this.sectorsPerBlock = diskLayout.sectorsPerBlock;
 				this.bytesPerSector = diskLayout.bytesPerSector;
 				this.trackOffset = diskLayout.getOFS();
-				this.maxBlocks = diskLayout.getDSM()+1;
+				this.maxBlocks = diskLayout.getDSM() + 1;
 				this.directoryBlockCount = diskLayout.directoryBlockCount;
-				this.sectorsOffset =diskLayout.getDirectoryStartSector();
+				this.sectorsOffset = diskLayout.getDirectoryStartSector();
 				break;
 			}
-
 		}
+		resetDirectory();
+	}
+
+	public void resetDirectory() {
 		entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
 		entriesPerBlock = sectorsPerBlock * entriesPerSector;
-		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
+		clearDirEntries();
 		initializeAllocationTable();
-
-		for (int i = 0; i < maxEntries; i++) {
-			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
-		}
 	}
 
 	public int getDirectoryBlockNumber(int directoryEntryNumber) {
@@ -97,32 +97,35 @@ public class CPMDirectory {
 		return entryLocation;
 	}
 
-	public void removeEntry(int directoryEntryNumber) {
-		System.out.printf("removeEntry - directoryEntryNumber = %d",directoryEntryNumber);
-
+	public void deleteFile(int directoryEntryNumber) {
 		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
-		System.out.printf("removeEntry - blockList.size() = %d",blockList.size());
 
 		for (Integer block : blockList) {
-			System.out.printf("removeEntry - block = %d",block);
 			allocationTable.remove(block);
 		}//
 		dirEntries.get(directoryEntryNumber).markAsDeleted();
 	}
 
 	public void deleteFile(String fullName) {
-		String[] parts = fullName.split(Disk.PERIOD);
-		String name = padEntryField(parts[0].trim().toUpperCase(), Disk.NAME_MAX);
-		String type = padEntryField(parts[0].trim().toUpperCase(), Disk.TYPE_MAX);
-		String target = name + type;
-		ArrayList<Integer> targetDirectories = getDirectoryEntries(target);
+		ArrayList<Integer> targetDirectories = getDirectoryEntries(fullName);
 		for (Integer de : targetDirectories) {
-			removeEntry(de);
+			deleteFile(de);
 		}// for
 	}
 
+	public ArrayList<Integer> getFilesBlocks(String fullName) {
+		return getFilesBlocks(getDirectoryEntries(fullName));
+	}
 	public ArrayList<Integer> getFilesBlocks(int directoryEntryNumber) {
 		return dirEntries.get(directoryEntryNumber).getAllocatedBlocks();
+	}
+
+	public ArrayList<Integer> getFilesBlocks(ArrayList<Integer> directoryEntries) {
+		ArrayList<Integer> result = new ArrayList<Integer>();
+		for (Integer directoryEntryNumber : directoryEntries) {
+			result.addAll(dirEntries.get(directoryEntryNumber).getAllocatedBlocks());
+		}
+		return result;
 	}
 
 	public void allocateBlocks(int directoryEntryNumber) {
@@ -174,12 +177,14 @@ public class CPMDirectory {
 		return maxBlocks - getAllocatedBlockCount();
 	}
 
-	private ArrayList<Integer> getDirectoryEntries(String target) {
+	public ArrayList<Integer> getDirectoryEntries(String target) {
+		String fullName = makeFileName11(target);
 		HashMap<Integer, Integer> targetEntries = new HashMap<Integer, Integer>();
 
 		for (int i = 0; i < maxEntries; i++) {
-			if (dirEntries.get(i).getNameAndType11().equals(target)) {
-				((List<Integer>) targetEntries).add(dirEntries.get(i).getActualExtentNumber(), i);
+			if (dirEntries.get(i).getNameAndType11().equals(fullName)) {
+
+				targetEntries.put(dirEntries.get(i).getActualExtentNumber(), i);
 			}// if
 		}// for
 
@@ -192,34 +197,52 @@ public class CPMDirectory {
 		return ans;
 	}
 
-	private String padEntryField(String field, int fieldLength) {
+	private static String padEntryField(String field, int fieldLength) {
 		String result = field.trim().toUpperCase();
 		result = result.length() > fieldLength ? result.substring(0, fieldLength) : result;
 		result = String.format("%-" + fieldLength + "s", result);
 		return result;
 	}
 
+	private void clearDirEntries() {
+		if (dirEntries != null) {
+			dirEntries = null;
+		}
+		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
+		for (int i = 0; i < maxEntries; i++) {
+			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
+		}
+	}
+
 	private void initializeAllocationTable() {
 		if (allocationTable != null) {
 			allocationTable = null;
-		}
-		
+		}// for
+
 		allocationTable = new HashMap<Integer, Boolean>();
 		for (int i = 0; i < this.directoryBlockCount; i++) {
 			allocationTable.put(i, true);
-		}
+		}// for
 
-	}
+	}// initializeAllocationTable
 
 	public void refreshAllocationTable() {
 		initializeAllocationTable();
 		for (int i = 0; i < maxEntries; i++) {
 			if (!dirEntries.get(i).isEmpty()) {
 				allocateBlocks(i);
-			}
+			}// if
+		}// for
 
-		}
+	}// refreshAllocationTable
 
-	}
+	public static String makeFileName11(String fullName) {
+		String[] parts = fullName.split("\\" + Disk.PERIOD);
+
+		String name = padEntryField(parts[0].trim().toUpperCase(), Disk.NAME_MAX);
+		String type = fullName.contains(Disk.PERIOD) ? padEntryField(parts[1].trim().toUpperCase(), Disk.TYPE_MAX)
+				: "   ";
+		return name + type;
+	}// makeFileName11
 
 }

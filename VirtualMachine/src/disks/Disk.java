@@ -37,7 +37,8 @@ public class Disk {
 	final static int DIR_S1 = 13;
 	final static int DIR_RC = 15;
 	final static int DIR_BLOCKS = 16;
-	final static int DIR_BLOCKS_END = 31;
+	final static int DIR_BLOCKS_SIZE = 16 ;
+	final static int DIR_BLOCKS_END = DIR_BLOCKS + DIR_BLOCKS_SIZE;
 	// private final static int DIR_SMALL_BLOCKS_COUNT = 16;
 	// private final static int DIR_BIG_BLOCKS_COUNT = 8;
 

@@ -3,6 +3,8 @@ package disks;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -149,16 +151,126 @@ public class CPMDirectoryTest {
 		assertThat("testAddDirectoryEntry - 4D", dirCount, equalTo(dir.getActiveEntryCount()));
 		assertThat("testAddDirectoryEntry - 4E", maxEntries - dirCount, equalTo(dir.getAvailableEntryCount()));
 
-		dir.removeEntry(3);//3
-		blockCount = 4;//4
-		dirCount = 2;//2
-//		assertThat("testAddDirectoryEntry - 5AAA",0, equalTo(dir.getActiveEntryCount()));
+		dir.deleteFile(2);// 3
+		blockCount = 4;// 4
+		dirCount = 2;// 2
+		// assertThat("testAddDirectoryEntry - 5AAA",0, equalTo(dir.getActiveEntryCount()));
 		assertThat("testAddDirectoryEntry - 5A", maxBlocks - blockCount, equalTo(dir.getAvailableBlockCount()));
 		assertThat("testAddDirectoryEntry - 5B", blockCount, equalTo(dir.getAllocatedBlockCount()));
 		assertThat("testAddDirectoryEntry - 5C", maxBlocks,
 				equalTo(dir.getAllocatedBlockCount() + dir.getAvailableBlockCount()));
 		assertThat("testAddDirectoryEntry - 5D", dirCount, equalTo(dir.getActiveEntryCount()));
 		assertThat("testAddDirectoryEntry - 5E", maxEntries - dirCount, equalTo(dir.getAvailableEntryCount()));
+	}
+
+	@Test
+	public void testExtents() {
+		String fileName = "SYSMAKE.COM";
+
+		final byte[] rawDirectory1 = new byte[] { (byte) 00,
+				(byte) 0x53, (byte) 0x59, (byte) 0x53, (byte) 0x4D, (byte) 0x41, (byte) 0x4B, (byte) 0x45, (byte) 0x20,
+				(byte) 0x43, (byte) 0x4F, (byte) 0x4D,
+				(byte) 0x00,
+				(byte) 0x00,
+				(byte) 0x00,
+				(byte) 0x80,
+				(byte) 0x02, (byte) 0x04, (byte) 0x06, (byte) 0x08, (byte) 0x0A, (byte) 0x0C, (byte) 0x0E, (byte) 0x10,
+				(byte) 0x012, (byte) 0x14, (byte) 0x16, (byte) 0x18, (byte) 0x1A, (byte) 0x1C, (byte) 0x1E, (byte) 0x20 };
+
+		final byte[] rawDirectory2 = new byte[] { (byte) 00,
+				(byte) 0x53, (byte) 0x59, (byte) 0x53, (byte) 0x4D, (byte) 0x41, (byte) 0x4B, (byte) 0x45, (byte) 0x20,
+				(byte) 0x43, (byte) 0x4F, (byte) 0x4D,
+				(byte) 0x01,
+				(byte) 0x00,
+				(byte) 0x00,
+				(byte) 0x40,
+				(byte) 0x11, (byte) 0x0F, (byte) 0x0D, (byte) 0x0B, (byte) 0x09, (byte) 0x07, (byte) 0x05, (byte) 0x03,
+				(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
+
+		byte[] rawDirectory3 = new byte[] { (byte) 00,
+				(byte) 0x53, (byte) 0x59, (byte) 0x53, (byte) 0x4D, (byte) 0x41, (byte) 0x4B, (byte) 0x45, (byte) 0x20,
+				(byte) 0x45, (byte) 0x45, (byte) 0x45,
+				(byte) 0x02,
+				(byte) 0x00,
+				(byte) 0x00,
+				(byte) 0x1C,
+				(byte) 0x24, (byte) 0x26, (byte) 0x28, (byte) 0x2A, (byte) 0x29, (byte) 0x27, (byte) 0x25, (byte) 0x23,
+				(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
+
+		ArrayList<Integer> allocatedDirEntries = new ArrayList<Integer>();
+		ArrayList<Integer> allocatedBlocks = new ArrayList<Integer>();
+
+		dir.resetDirectory();
+		assertThat("testExtents - 1A", maxEntries, equalTo(dir.getAvailableEntryCount()));
+		assertThat("testExtents - 1B", maxBlocks - 2, equalTo(dir.getAvailableBlockCount()));
+		assertThat("testExtents - 1C", allocatedDirEntries, equalTo(dir.getDirectoryEntries("FRED")));
+		assertThat("testExtents - 1D", allocatedBlocks, equalTo(dir.getFilesBlocks(allocatedDirEntries)));
+		assertThat("testExtents - 1E", allocatedBlocks, equalTo(dir.getFilesBlocks("SYSMAKE.COM")));
+
+		dir.addEntry(rawDirectory1);
+		allocatedDirEntries.add(0);
+		allocatedBlocks.add(2);
+		allocatedBlocks.add(4);
+		allocatedBlocks.add(6);
+		allocatedBlocks.add(8);
+		allocatedBlocks.add(10);
+		allocatedBlocks.add(12);
+		allocatedBlocks.add(14);
+		allocatedBlocks.add(16);
+		allocatedBlocks.add(18);
+		allocatedBlocks.add(20);
+		allocatedBlocks.add(22);
+		allocatedBlocks.add(24);
+		allocatedBlocks.add(26);
+		allocatedBlocks.add(28);
+		allocatedBlocks.add(30);
+		allocatedBlocks.add(32);
+
+		assertThat("testExtents - 2A", maxEntries - 1, equalTo(dir.getAvailableEntryCount()));
+		assertThat("testExtents - 2B", maxBlocks - (2 + 16), equalTo(dir.getAvailableBlockCount()));
+		assertThat("testExtents - 2C", allocatedDirEntries, equalTo(dir.getDirectoryEntries(fileName)));
+		assertThat("testExtents - 2D", allocatedBlocks, equalTo(dir.getFilesBlocks(allocatedDirEntries)));
+		assertThat("testExtents - 2E", allocatedBlocks, equalTo(dir.getFilesBlocks("SYSMAKE.COM")));
+
+		dir.addEntry(rawDirectory2);
+		allocatedDirEntries.add(1);
+		allocatedBlocks.add(17);
+		allocatedBlocks.add(15);
+		allocatedBlocks.add(13);
+		allocatedBlocks.add(11);
+		allocatedBlocks.add(9);
+		allocatedBlocks.add(7);
+		allocatedBlocks.add(5);
+		allocatedBlocks.add(3);
+
+		assertThat("testExtents - 3A", maxEntries - 2, equalTo(dir.getAvailableEntryCount()));
+		assertThat("testExtents - 3B", maxBlocks - (2 + 16 + 8), equalTo(dir.getAvailableBlockCount()));
+		assertThat("testExtents - 3C", allocatedDirEntries, equalTo(dir.getDirectoryEntries(fileName)));
+		assertThat("testExtents - 3D", allocatedBlocks, equalTo(dir.getFilesBlocks(allocatedDirEntries)));
+		assertThat("testExtents - 3E", allocatedBlocks, equalTo(dir.getFilesBlocks("SYSMAKE.COM")));
+
+		dir.addEntry(rawDirectory3);
+		ArrayList<Integer> allocatedBlocks3 = new ArrayList<Integer>();
+
+		allocatedDirEntries.add(2);
+		allocatedBlocks3.add(36);
+		allocatedBlocks3.add(38);
+		allocatedBlocks3.add(40);
+		allocatedBlocks3.add(42);
+		allocatedBlocks3.add(41);
+		allocatedBlocks3.add(39);
+		allocatedBlocks3.add(37);
+		allocatedBlocks3.add(35);
+		assertThat("testExtents - 4A", maxEntries - 3, equalTo(dir.getAvailableEntryCount()));
+		assertThat("testExtents - 4B", maxBlocks - (2 + 16 + 8 + 8), equalTo(dir.getAvailableBlockCount()));
+		// assertThat("testExtents - 4C",allocatedDirEntries , equalTo(dir.getDirectoryEntries("SYSMAKE.EEE")));
+		assertThat("testExtents - 4D", allocatedBlocks3, equalTo(dir.getFilesBlocks(2)));
+		assertThat("testExtents - 4E", allocatedBlocks3, equalTo(dir.getFilesBlocks("SYSMAKE.EEE")));
+		
+		dir.deleteFile(fileName);
+		assertThat("testExtents - 5A", maxEntries - 1, equalTo(dir.getAvailableEntryCount()));
+		assertThat("testExtents - 5B", maxBlocks - (2 + 0 + 0 + 8), equalTo(dir.getAvailableBlockCount()));
+
 
 	}
 

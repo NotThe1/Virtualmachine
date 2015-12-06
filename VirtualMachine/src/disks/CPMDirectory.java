@@ -48,21 +48,36 @@ public class CPMDirectory {
 	// }
 	// }
 
+	// public CPMDirectory(String diskExtention, boolean bootDisk) {
+	// for (DiskLayout diskLayout : DiskLayout.values()) {
+	// if (diskLayout.fileExtension.equals(diskExtention)) {
+	// diskLayout.setBootDisk(bootDisk);
+	// this.bigDisk = diskLayout.isBigDisk();
+	// this.maxEntries = diskLayout.getDRM() + 1;
+	// this.sectorsPerBlock = diskLayout.sectorsPerBlock;
+	// this.bytesPerSector = diskLayout.bytesPerSector;
+	// this.trackOffset = diskLayout.getOFS();
+	// this.maxBlocks = diskLayout.getDSM() + 1;
+	// this.directoryBlockCount = diskLayout.directoryBlockCount;
+	// this.sectorsOffset = diskLayout.getDirectoryStartSector();
+	// break;
+	// }
+	// }
+	// resetDirectory();
+	// }
+
 	public CPMDirectory(String diskExtention, boolean bootDisk) {
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (diskLayout.fileExtension.equals(diskExtention)) {
-				diskLayout.setBootDisk(bootDisk);
-				this.bigDisk = diskLayout.isBigDisk();
-				this.maxEntries = diskLayout.getDRM() + 1;
-				this.sectorsPerBlock = diskLayout.sectorsPerBlock;
-				this.bytesPerSector = diskLayout.bytesPerSector;
-				this.trackOffset = diskLayout.getOFS();
-				this.maxBlocks = diskLayout.getDSM() + 1;
-				this.directoryBlockCount = diskLayout.directoryBlockCount;
-				this.sectorsOffset = diskLayout.getDirectoryStartSector();
-				break;
-			}
-		}
+		DiskMetrics diskMetric = DiskMetrics.diskMetric(diskExtention);
+		diskMetric.setBootDisk(bootDisk);
+		this.bigDisk = diskMetric.isBigDisk();
+		this.maxEntries = diskMetric.getDRM() + 1;
+		this.sectorsPerBlock = diskMetric.sectorsPerBlock;
+		this.bytesPerSector = diskMetric.bytesPerSector;
+		this.trackOffset = diskMetric.getOFS();
+		this.maxBlocks = diskMetric.getDSM() + 1;
+		this.directoryBlockCount = diskMetric.directoryBlockCount;
+		this.sectorsOffset = diskMetric.getDirectoryStartSector();
+		
 		resetDirectory();
 	}
 
@@ -116,6 +131,7 @@ public class CPMDirectory {
 	public ArrayList<Integer> getFilesBlocks(String fullName) {
 		return getFilesBlocks(getDirectoryEntries(fullName));
 	}
+
 	public ArrayList<Integer> getFilesBlocks(int directoryEntryNumber) {
 		return dirEntries.get(directoryEntryNumber).getAllocatedBlocks();
 	}

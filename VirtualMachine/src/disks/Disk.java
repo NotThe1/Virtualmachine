@@ -8,6 +8,16 @@ public class Disk {
 	}
 
 	// Constants
+	// for disk Metrics
+	static final String TYPE_3DD ="F3DD";
+	static final String TYPE_3HD ="F3HD";
+	static final String TYPE_3ED ="F3ED";
+	static final String TYPE_5DD ="F5DD";
+	static final String TYPE_5HD ="F5HD";
+	static final String TYPE_8SS ="F8SS";
+	static final String TYPE_8DS ="F8DS";
+
+	
 	static final int LOGICAL_SECTOR_SIZE = 128;
 	static final int SYSTEM_SIZE = 0X2000;
 	static final int SYSTEM_LOGICAL_BLOCKS = SYSTEM_SIZE / LOGICAL_SECTOR_SIZE;

@@ -61,6 +61,7 @@ import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
 
+
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
@@ -89,7 +90,8 @@ import memoryDisplay.ShowCoreMemory;
 import device.DeviceController;
 import disks.DiskControlUnit;
 import disks.DiskDrive;
-import disks.DiskLayout;
+//import disks.DiskLayout;
+import disks.DiskMetrics;
 import disks.DiskUserInterface;
 import disks.MakeNewDisk;
 
@@ -739,12 +741,12 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		JFileChooser chooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
 		chooser.setMultiSelectionEnabled(false);
 		//
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (diskLayout.fileExtension.startsWith(diskType)) {
-				chooser.addChoosableFileFilter(
-						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
-			}// if - correct type
-		}// for
+
+		String[] fileTypes = DiskMetrics.getDiskTypes();
+		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
+		for ( int i = 0;i < fileTypes.length;i++){
+			chooser.addChoosableFileFilter(	new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
+		}
 
 		chooser.setAcceptAllFileFilterUsed(false);
 		if (chooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {

@@ -22,6 +22,7 @@ import javax.swing.SwingConstants;
 
 //import disks.DiskControlUnit.DriveLetter;
 
+
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -140,12 +141,19 @@ public class DiskUserInterface extends JDialog implements ActionListener {
 		JFileChooser chooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
 		chooser.setMultiSelectionEnabled(false);
 		//
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (diskLayout.fileExtension.startsWith(diskType)) {
-				chooser.addChoosableFileFilter(
-						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
-			}// if - correct type
-		}// for
+//		for (DiskLayout diskLayout : DiskLayout.values()) {
+//			if (diskLayout.fileExtension.startsWith(diskType)) {
+//				chooser.addChoosableFileFilter(
+//						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
+//			}// if - correct type
+//		}// for
+		
+		String[] fileTypes = DiskMetrics.getDiskTypes();
+		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
+		for ( int i = 0;i < fileTypes.length;i++){
+			chooser.addChoosableFileFilter(	new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
+		}
+
 
 		chooser.setAcceptAllFileFilterUsed(false);
 		if (chooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {

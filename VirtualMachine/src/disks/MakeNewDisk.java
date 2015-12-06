@@ -1,13 +1,11 @@
 package disks;
 
 import java.io.File;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -24,21 +22,30 @@ public class MakeNewDisk {
 		String fileDescription = null;
 		String fileExtension = null;
 		String fileBaseName = null;
-		ArrayList<DiskLayout> diskLayouts = new ArrayList<DiskLayout>();
-		DiskLayout selectedDiskLayout = null;
+//		ArrayList<DiskLayout> diskLayouts = new ArrayList<DiskLayout>();
+//		DiskLayout selectedDiskLayout = null;
+		DiskMetrics diskMetric;
 
 		Path sourcePath = Paths.get(fileLocation, "Disks");
 		String fp = sourcePath.resolve(fileLocation).toString();
 		JFileChooser chooser = new JFileChooser(fp);
 
 		// get all the valid disk layouts - file filtering
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			diskLayouts.add(diskLayout);
-			fileExtension = diskLayout.fileExtension;
-			fileDescription = diskLayout.descriptor;
-			chooser.addChoosableFileFilter(new FileNameExtensionFilter(
-					fileDescription, fileExtension));
-		}// for
+//		for (DiskLayout diskLayout : DiskLayout.values()) {
+//			diskLayouts.add(diskLayout);
+//			fileExtension = diskLayout.fileExtension;
+//			fileDescription = diskLayout.descriptor;
+//			chooser.addChoosableFileFilter(new FileNameExtensionFilter(
+//					fileDescription, fileExtension));
+//		}// for
+		
+		String[] fileTypes = DiskMetrics.getDiskTypes();
+		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
+		for ( int i = 0;i < fileTypes.length;i++){
+			chooser.addChoosableFileFilter(	new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
+		}
+		
+		
 		chooser.setAcceptAllFileFilterUsed(false);
 		if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) {
 			return null; // do nothing
@@ -59,21 +66,32 @@ public class MakeNewDisk {
 		if (chooserFilter.accept(selectedFile)) { // has name and valid extension
 			fileExtension = fileNameComponents[1];
 		} else if (fileNameComponents.length == 1) {// no extension, use selected form filter
-			for (DiskLayout d : diskLayouts) {
-				if (d.descriptor.equals(chooserFilter.getDescription())) {
-					fileExtension = d.fileExtension;
-					break; // we found it
+//			for (DiskLayout d : diskLayouts) {
+//				if (d.descriptor.equals(chooserFilter.getDescription())) {
+//					fileExtension = d.fileExtension;
+//					break; // we found it
+//				}
+//			}// for
+			for(int i = 0; i < fileDesc.length;i++){
+				if (fileDesc[i].equals(chooserFilter.getDescription())){
+					fileExtension = fileTypes[i];
 				}
-			}// for
+			}
 		} else { // there is an ext, but is it valid?
 			boolean validExt = false;
-			for (DiskLayout d : diskLayouts) {
-				if (fileNameComponents[1].equalsIgnoreCase(d.fileExtension)) {
-					fileExtension = d.fileExtension;
+//			for (DiskLayout d : diskLayouts) {
+//				if (fileNameComponents[1].equalsIgnoreCase(d.fileExtension)) {
+//					fileExtension = d.fileExtension;
+//					validExt = true;
+//					break;
+//				}// if - valid?
+//			}// for
+			for(String fileType:fileTypes){
+				if (fileType.equals(fileExtension)){
 					validExt = true;
 					break;
-				}// if - valid?
-			}// for
+				}//if
+			}//for
 			if (!validExt) {
 				String message = String.format("%S is not a valid file extension",
 						fileNameComponents[1]);
@@ -82,12 +100,13 @@ public class MakeNewDisk {
 				return null;
 			}// if - not valid
 		}// if - determine type
-		for (DiskLayout d : diskLayouts) {
-			if (fileExtension.equalsIgnoreCase(d.fileExtension)) {
-				selectedDiskLayout = d;
-				break;
-			}// if
-		}// for - pick disk layout
+//		for (DiskLayout d : diskLayouts) {
+//			if (fileExtension.equalsIgnoreCase(d.fileExtension)) {
+//				selectedDiskLayout = d;
+//				break;
+//			}// if
+//		}// for - pick disk layout
+	diskMetric = DiskMetrics.diskMetric(fileExtension);
 
 		// System.out.printf("Base name: %s, Extension %s:%n", fileBaseName, fileExtension);
 		// System.out.printf("ParentPath: %s %n", parentPath.getAbsolutePath());
@@ -111,8 +130,10 @@ public class MakeNewDisk {
 
 		try  {
 			FileChannel fc = new RandomAccessFile(f, "rw").getChannel();
-			MappedByteBuffer disk = fc.map(FileChannel.MapMode.READ_WRITE, 0, selectedDiskLayout.getTotalBytes());
-			ByteBuffer sector = ByteBuffer.allocate(selectedDiskLayout.bytesPerSector);
+//			MappedByteBuffer disk = fc.map(FileChannel.MapMode.READ_WRITE, 0, selectedDiskLayout.getTotalBytes());
+//			ByteBuffer sector = ByteBuffer.allocate(selectedDiskLayout.bytesPerSector);
+			MappedByteBuffer disk = fc.map(FileChannel.MapMode.READ_WRITE, 0, diskMetric.getTotalBytes());
+			ByteBuffer sector = ByteBuffer.allocate(diskMetric.bytesPerSector);
 			int sectorCount = 0;
 			while (disk.hasRemaining()) {
 				sector = setUpBuffer(sector, sectorCount++);

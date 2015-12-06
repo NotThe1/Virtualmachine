@@ -66,23 +66,38 @@ public class DiskDrive {
 			return;
 		}// if
 		String fileExtension = fileNameComponents[1]; // have the file extension
-		boolean validFile = false;
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (fileNameComponents[1].equalsIgnoreCase(diskLayout.fileExtension)) {
-				this.heads = diskLayout.heads;
-				this.tracksPerHead = diskLayout.tracksPerHead;
-				this.sectorsPerTrack = diskLayout.sectorsPerTrack;
-				this.bytesPerSector = diskLayout.bytesPerSector;
-				this.sectorsPerHead = diskLayout.getTotalSectorsPerHead();
-				this.totalSectorsOnDisk = diskLayout.getTotalSectorsOnDisk();
-				this.totalBytesOnDisk = diskLayout.getTotalBytes();
-				validFile = true;
-				break;
-			}// if
-		}// for
-		if (!validFile) {
+//		boolean validFile = false;
+//		for (DiskLayout diskLayout : DiskLayout.values()) {
+//			if (fileNameComponents[1].equalsIgnoreCase(diskLayout.fileExtension)) {
+//				this.heads = diskLayout.heads;
+//				this.tracksPerHead = diskLayout.tracksPerHead;
+//				this.sectorsPerTrack = diskLayout.sectorsPerTrack;
+//				this.bytesPerSector = diskLayout.bytesPerSector;
+//				this.sectorsPerHead = diskLayout.getTotalSectorsPerHead();
+//				this.totalSectorsOnDisk = diskLayout.getTotalSectorsOnDisk();
+//				this.totalBytesOnDisk = diskLayout.getTotalBytes();
+//				validFile = true;
+//				break;
+//			}// if
+//		}// for
+//		if (!validFile) {
+//			fireVDiskError((long) 2, "Not a Valid disk type " + fileNameComponents[1]);
+//		}// if
+		
+		
+		DiskMetrics diskMetric = DiskMetrics.diskMetric(fileExtension);
+		if (diskMetric == null) {
 			fireVDiskError((long) 2, "Not a Valid disk type " + fileNameComponents[1]);
+			return;
 		}// if
+		this.heads = diskMetric.heads;
+		this.tracksPerHead = diskMetric.tracksPerHead;
+		this.sectorsPerTrack = diskMetric.sectorsPerTrack;
+		this.bytesPerSector = diskMetric.bytesPerSector;
+		this.sectorsPerHead = diskMetric.getTotalSectorsPerHead();
+		this.totalSectorsOnDisk = diskMetric.getTotalSectorsOnDisk();
+		this.totalBytesOnDisk = diskMetric.getTotalBytes();
+		
 	}// resolveDiskType
 
 	public String getFileAbsoluteName() {

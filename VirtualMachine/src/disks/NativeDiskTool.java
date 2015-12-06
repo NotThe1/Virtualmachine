@@ -357,13 +357,21 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		JFileChooser chooser = new JFileChooser(sourcePath.resolve(fileLocation).toString());
 		chooser.setMultiSelectionEnabled(false);
 		//
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			if (diskLayout.fileExtension.startsWith("F")) {
-				chooser.addChoosableFileFilter(
-						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
-			}// if - correct type
-		}// for
+//		for (DiskLayout diskLayout : DiskLayout.values()) {
+//			if (diskLayout.fileExtension.startsWith("F")) {
+//				chooser.addChoosableFileFilter(
+//						new FileNameExtensionFilter(diskLayout.descriptor, diskLayout.fileExtension));
+//			}// if - correct type
+//		}// for
 
+		String[] fileTypes = DiskMetrics.getDiskTypes();
+		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
+		for ( int i = 0;i < fileTypes.length;i++){
+			chooser.addChoosableFileFilter(	new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
+		}
+
+		
+		
 		chooser.setAcceptAllFileFilterUsed(false);
 		if (chooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {
 			return null;
@@ -393,17 +401,26 @@ public class NativeDiskTool implements ActionListener, ChangeListener {
 		String fileName = diskDrive.getFileLocalName();
 		String diskSuffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
 
-		for (DiskLayout dla : DiskLayout.values()) {
-			if (dla.fileExtension.equals(diskSuffix)) {
+//		for (DiskLayout dla : DiskLayout.values()) {
+//			if (dla.fileExtension.equals(diskSuffix)) {
+//
+//				dla.setSectorsPerBlock((int) spinnerLogicalBlockSizeHex.getValue());
+//				spinnerTracksBeforeDirectoryHex.setValue(dla.getOFS());
+//				spinnerMaxDirectoryEntriesHex.setValue(dla.getDRM());
+//				bigDisk = dla.getDSM() > 255 ? true : false;
+//				maxBlockNumber = dla.getDSM();
+//				al01 = dla.getAL01() & 0xFFFF;
+//			}// if
+//		}// for
 
-				dla.setSectorsPerBlock((int) spinnerLogicalBlockSizeHex.getValue());
-				spinnerTracksBeforeDirectoryHex.setValue(dla.getOFS());
-				spinnerMaxDirectoryEntriesHex.setValue(dla.getDRM());
-				bigDisk = dla.getDSM() > 255 ? true : false;
-				maxBlockNumber = dla.getDSM();
-				al01 = dla.getAL01() & 0xFFFF;
-			}// if
-		}// for
+		DiskMetrics diskMetric = DiskMetrics.diskMetric(diskSuffix);
+//		dla.setSectorsPerBlock((int) spinnerLogicalBlockSizeHex.getValue());
+		spinnerTracksBeforeDirectoryHex.setValue(diskMetric.getOFS());
+		spinnerMaxDirectoryEntriesHex.setValue(diskMetric.getDRM());
+		bigDisk = diskMetric.isBigDisk();
+		maxBlockNumber = diskMetric.getDSM();
+		al01 = diskMetric.getAL01() & 0xFFFF;
+
 
 		setDirectoryBlocksInAT();
 

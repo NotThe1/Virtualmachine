@@ -130,20 +130,20 @@ public class Test1 {
 	}// doIt2()
 
 	private void doIt1() {
-		for (DiskLayout diskLayout : DiskLayout.values()) {
-			int bps = diskLayout.bytesPerSector;
-			long tb = diskLayout.getTotalBytes();
-			String d = diskLayout.descriptor;
-			String fe = diskLayout.fileExtension;
-			System.out.printf("%s,\t%s bps: %d, tb %d - %d KB%n", d, fe, bps, tb, tb / 1024);
-			int heads = diskLayout.heads;
-			int tracks = diskLayout.tracksPerHead;
-			int sectors = diskLayout.sectorsPerTrack;
-			long capacity = (heads * tracks * sectors * bps) / 1024;
-
-			System.out.printf("%s,\t%3d - %3d - %3d - - %10d %4d KB , Capacity: %4d KB%n%n%n", d,
-					heads, tracks, sectors, bps, tb, tb / 1024, capacity);
-		}// for
+//		for (DiskLayout diskLayout : DiskLayout.values()) {
+//			int bps = diskLayout.bytesPerSector;
+//			long tb = diskLayout.getTotalBytes();
+//			String d = diskLayout.descriptor;
+//			String fe = diskLayout.fileExtension;
+//			System.out.printf("%s,\t%s bps: %d, tb %d - %d KB%n", d, fe, bps, tb, tb / 1024);
+//			int heads = diskLayout.heads;
+//			int tracks = diskLayout.tracksPerHead;
+//			int sectors = diskLayout.sectorsPerTrack;
+//			long capacity = (heads * tracks * sectors * bps) / 1024;
+//
+//			System.out.printf("%s,\t%3d - %3d - %3d - - %10d %4d KB , Capacity: %4d KB%n%n%n", d,
+//					heads, tracks, sectors, bps, tb, tb / 1024, capacity);
+//		}// for
 	}// doIt1()
 
 }// class Test1

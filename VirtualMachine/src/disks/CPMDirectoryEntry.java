@@ -73,6 +73,9 @@ public class CPMDirectoryEntry {
 		setAllocationTable();
 		// blocks = 0;
 	}
+	public byte[] getRawDirectory(){
+		return rawDirectory;
+	}
 
 	private void setAllocationTable() {
 		int value = 0;
@@ -286,6 +289,11 @@ public class CPMDirectoryEntry {
 		} else {
 			rawDirectory[Disk.DIR_T2] = (byte) (rawDirectory[Disk.DIR_T2] & 0x7F);
 		}
+	}
+	
+	public boolean isEntryFull(){
+		int limit = isBigDisk()?Disk.DIRECTORY_ALLOC_SIZE_BIG:Disk.DIRECTORY_ALLOC_SIZE_SMALL;
+		return allocatedBlocks.size()>= limit;
 	}
 
 	public boolean isEmpty() {

@@ -105,6 +105,10 @@ public class CPMDirectory {
 		dirEntries.put(directoryEntryNumber, new CPMDirectoryEntry(rawEntry, bigDisk));
 		allocateBlocks(directoryEntryNumber);
 	}
+	public CPMDirectoryEntry  getDirectoryEntry(int directoryIndex){
+		return dirEntries.get(directoryIndex);
+		
+	}
 
 	public int addEntry(byte[] rawEntry) {
 		int entryLocation = getNextAvailableEntry();

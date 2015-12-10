@@ -6,24 +6,23 @@ public class DiskMetrics {
 		// TODO Auto-generated constructor stub
 	}
 
-
 	private static final Object[] f3DD = new Object[] { 2, 80, 9, 512, 4, 2, true, "F3DD", "3.5\"  DD   720 KB" };
 	private static final Object[] f3HD = new Object[] { 2, 80, 18, 512, 4, 2, true, "F3HD", "3.5\"  HD   1.44 MB" };
 	private static final Object[] f3ED = new Object[] { 2, 80, 36, 512, 4, 2, true, "F3ED", "3.5\"  ED   2.88 MB" };
 
-	private static final Object[] f5DD = new Object[] {2, 40, 9, 512, 4, 2, true, "F5DD", "5.25\" DD   360 KB"};
+	private static final Object[] f5DD = new Object[] { 2, 40, 9, 512, 4, 2, true, "F5DD", "5.25\" DD   360 KB" };
 	private static final Object[] f5HD = new Object[] { 2, 80, 15, 512, 4, 2, true, "F5HD", "5.25\" HD   1.2 MB" };
 	private static final Object[] f8SS = new Object[] { 1, 77, 26, 128, 8, 2, true, "F8SS", "8\"    SS   256 KB" };
 	private static final Object[] f8DS = new Object[] { 2, 77, 26, 128, 8, 2, true, "F8DS", "8\"    DS   512 KB" };
-	
-	private static final Object[] allFileTypes = new Object[]{f5DD,f5HD,f8SS,f8DS,f3DD,f3HD,f3ED};
 
-	public  int heads;
-	public  int tracksPerHead;
-	public  int sectorsPerTrack;
-	public  int bytesPerSector;
-	public  String fileExtension;
-	public  String descriptor;
+	private static final Object[] allFileTypes = new Object[] { f5DD, f5HD, f8SS, f8DS, f3DD, f3HD, f3ED };
+
+	public int heads;
+	public int tracksPerHead;
+	public int sectorsPerTrack;
+	public int bytesPerSector;
+	public String fileExtension;
+	public String descriptor;
 	public int sectorsPerBlock;
 	public int directoryBlockCount;
 	public int directoryStartSector;
@@ -40,26 +39,26 @@ public class DiskMetrics {
 		setSectorsPerBlock(sectorsPerBlock);
 		setBootDisk(bootDisk);
 	}// Constructor
-	
-	public static String[] getDiskTypes(){
+
+	public static String[] getDiskTypes() {
 		String[] fileTypes = new String[allFileTypes.length];
 		Object[] fileType;
-		for(int i = 0; i <allFileTypes.length;i++){
+		for (int i = 0; i < allFileTypes.length; i++) {
 			fileType = (Object[]) allFileTypes[i];
 			fileTypes[i] = (String) fileType[7];
 		}
 		return fileTypes;
 	}
-	public static String[] getDiskDescriptionss(){
+
+	public static String[] getDiskDescriptionss() {
 		String[] fileTypes = new String[allFileTypes.length];
 		Object[] fileType;
-		for(int i = 0; i <allFileTypes.length;i++){
+		for (int i = 0; i < allFileTypes.length; i++) {
 			fileType = (Object[]) allFileTypes[i];
 			fileTypes[i] = (String) fileType[8];
 		}
 		return fileTypes;
 	}
-
 
 	public static DiskMetrics diskMetric(String diskType) {
 		Object[] setupValues;
@@ -94,10 +93,10 @@ public class DiskMetrics {
 		int in3 = (int) setupValues[3];
 		int in4 = (int) setupValues[4];
 		int in5 = (int) setupValues[5];
-		
-		return new DiskMetrics((int)setupValues[0],(int)setupValues[1],(int)setupValues[2],(int)setupValues[3],
-				(int)setupValues[4],(int)setupValues[5],(boolean)setupValues[6],
-				(String)setupValues[7],(String)setupValues[8]);
+
+		return new DiskMetrics((int) setupValues[0], (int) setupValues[1], (int) setupValues[2], (int) setupValues[3],
+				(int) setupValues[4], (int) setupValues[5], (boolean) setupValues[6],
+				(String) setupValues[7], (String) setupValues[8]);
 	}
 
 	public long getTotalBytes() {
@@ -219,9 +218,13 @@ public class DiskMetrics {
 	public int getDirectoryStartSector() {
 		int ans = 0;
 		if (bootDisk) {
-			ans = this.getOFS() * this.getSPT();
+			ans = (this.sectorsPerTrack * this.heads);
 		}
 		return ans;
+	}
+
+	public int getDirectorysLastSector() {
+		return (getDirectoryStartSector() + (directoryBlockCount * this.sectorsPerBlock) - 1);
 	}
 
 	public int getMaxDirectoryEntries() {

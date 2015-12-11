@@ -68,7 +68,6 @@ import com.jgoodies.forms.factories.DefaultComponentFactory;
 //import disks.NativeDiskTool.DirEntry;
 //import disks.NativeDiskTool.RowListener;
 
-
 import disks.NativeDiskTool.FileCpmModel;
 
 import javax.swing.SwingConstants;
@@ -127,7 +126,8 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 		lblRawRC.setText(String.format("%02X", rawDirectory[15]));
 
-		lblRawAllocation.setText(String.format("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+		lblRawAllocation.setText(String.format(
+				"%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
 				rawDirectory[16],
 				rawDirectory[17],
 				rawDirectory[18],
@@ -146,6 +146,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				rawDirectory[31]
 				));
 	}
+
 	private void displayPhysicalSector() {
 		spinnerHeadHex.setValue(diskDrive.getCurrentHead());
 		spinnerTrackHex.setValue(diskDrive.getCurrentTrack());
@@ -155,7 +156,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 		aSector = diskDrive.read();
 
-		clearSectorDisplay();
+		clearDocument(docPhysical);
 		docPhysical = txtSector.getDocument();
 
 		try {
@@ -165,31 +166,31 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		} catch (BadLocationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}//try
+		}// try
 		txtSector.setCaretPosition(0);
-	}//displayPhysicalSector
+	}// displayPhysicalSector
 
 	private void displayPhysicalSector(int absoluteSector) {
 		if ((0 > absoluteSector) | (diskDrive.totalSectorsOnDisk < absoluteSector)) {
 			absoluteSector = 0;
-		}//if
+		}// if
 		currentAbsoluteSector = absoluteSector;
 		diskDrive.setCurrentAbsoluteSector(currentAbsoluteSector);
 		displayPhysicalSector();
-	}//displayPhysicalSector
+	}// displayPhysicalSector
 
-	private void clearSectorDisplay() {
-		if (docPhysical == null) {
+	private void clearDocument(Document doc) {
+		if (doc == null) {
 			return;
-		}//if
+		}// if
 		try {
-			docPhysical.remove(0, docPhysical.getLength());
+			doc.remove(0, doc.getLength());
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
+			// ignore
 			e.printStackTrace();
-		}//try
-		// doc = null;
-	}//clearSectorDisplay
+		}// try
+
+	}
 
 	private String formatLine(int lineNumber) {
 		byte target;
@@ -206,13 +207,13 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			if (i == 7) {
 				sbHex.append(" ");
 				sbDot.append(" ");
-			}//if
-			// sbDot.append((char)target);
-		}//for
+			}// if
+				// sbDot.append((char)target);
+		}// for
 		sbHex.append(" ");
 		sbDot.append(String.format("%n"));
 		return sbHex.toString() + sbDot.toString();
-	}//formatLine
+	}// formatLine
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 	private void setFileNameInformation(String selectedAbsolutePath) {
@@ -224,13 +225,13 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		diskType = nameParts[1];
 		// lblFileName.setToolTipText(selectedAbsolutePath.substring(0, index));
 		fileNamePath = selectedAbsolutePath.substring(0, index);
-	}//setFileNameInformation
+	}// setFileNameInformation
 
 	private void loadDiskDrive(String selectedAbsolutePath) {
 		diskDrive = new RawDiskDrive(selectedAbsolutePath);
 		setFileNameInformation(selectedAbsolutePath);
 		haveDisk(true);
-	}//loadDiskDrive
+	}// loadDiskDrive
 
 	private String getDisk() {
 		String fileLocation = ".";
@@ -242,7 +243,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
 		for (int i = 0; i < fileTypes.length; i++) {
 			chooser.addChoosableFileFilter(new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
-		}//for
+		}// for
 		chooser.setAcceptAllFileFilterUsed(false);
 
 		if (chooser.showDialog(null, "Select the disk") != JFileChooser.APPROVE_OPTION) {
@@ -270,12 +271,12 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 		((SpinnerNumberModel) spinnerSectorDecimal.getModel()).setMaximum(sectorsPerTrack);
 		((SpinnerNumberModel) spinnerSectorHex.getModel()).setMaximum(sectorsPerTrack);
-	}//setSpinnerLimits
+	}// setSpinnerLimits
 
 	private void setNumberBase() {
 		moduloFormat = mnuToolsNumberBase.isSelected() ? "%X" : "%,d";
 		refreshDisplay();
-	}//setNumberBase
+	}// setNumberBase
 
 	private void refreshDisplay() {
 		boolean displayHex = mnuToolsNumberBase.isSelected();
@@ -297,16 +298,16 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		lblLogicalBlockSizeInSectors.setText(String.format(moduloFormat, blockSizeInSectors));
 		lblMaxDirectoryEntry.setText(String.format(moduloFormat, maxDirectoryEntry));
 		lblMaxBlockNumber.setText(String.format(moduloFormat, maxBlockNumber));
-	}//refreshDisplay
+	}// refreshDisplay
 
 	private void refreshMetrics(boolean state) {
 		// state = true we have a valid disk
 		if (diskMetrics != null) {
 			diskMetrics = null;
-		}//if
+		}// if
 		if (state) {
 			diskMetrics = DiskMetrics.diskMetric(diskType);
-		}//if
+		}// if
 
 		currentHead = 0;
 		currentTrack = 0;
@@ -329,7 +330,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		lblFileName.setText(state ? fileName : "<No File Active>");
 		lblFileName.setToolTipText(state ? fileNamePath : "<No File Active>");
 		linesToDisplay = state ? bytesPerSector / CHARACTERS_PER_LINE : 0;
-	}//refreshMetrics
+	}// refreshMetrics
 
 	private void haveDisk(boolean state) {
 		// handle the menus
@@ -347,6 +348,10 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		lblAbsoluteSector.setVisible(state);
 		btnDisplayPhysical.setEnabled(state);
 
+		scrollDirectoryTable.setVisible(state);
+		cbFileNames.setEnabled(state);
+		cbCpmTarget.setEnabled(state);
+
 		refreshMetrics(state);
 		refreshDisplay();
 
@@ -354,8 +359,8 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			openDisk();
 		} else {
 			closeDisk();
-		}//if
-	}//haveDisk
+		}// if
+	}// haveDisk
 
 	private void openDisk() {
 		diskDrive.setCurrentAbsoluteSector(0);
@@ -365,21 +370,25 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	}// openDisk
 
 	private void closeDisk() {
-		clearSectorDisplay();
+		clearDocument(docPhysical);
+		clearDocument(docFile);
 		if (directory != null) {
 			directory = null;
-		}//if
+		}// if
+		if (modelDir != null) {
+			modelDir = null;
+		}
 	}// closeDisk
 
 	private void makeDirectoryTable() {
 		if (fileCpmModel != null) {
 			fileCpmModel = null;
-		}//if
+		}// if
 		fileCpmModel = new FileCpmModel();
 
 		if (dirTable != null) {
 			dirTable = null;
-		}//if
+		}// if
 		Object[] columnNames = { "index", "Name", "type", "User", "R/O", "Sys", "Seq", "Count", "Blocks" };
 		dirTable = new JTable(new DefaultTableModel(columnNames, 0)) {
 			public boolean isCellEditable(int row, int column) {
@@ -395,6 +404,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		scrollDirectoryTable.setViewportView(dirTable);
 		fillDirectoryTable(dirTable);
 		dirTable.setRowSelectionInterval(0, 0);
+
 	}// makeDirectoryTable
 
 	private void adjustTableLook(JTable table) {
@@ -443,28 +453,28 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			readOnly = entry.isReadOnly();
 			systemFile = entry.isSystemFile();
 			seqNumber = entry.getActualExtentNumber();
-			count = entry.getRc();
-			blocks = 0;
+			count = entry.getRcInt();
+			blocks = entry.getBlockCount();
 			modelDir.insertRow(i, new Object[] { i, name, type, user, readOnly, systemFile, seqNumber, count, blocks });
 			if (!entry.isEmpty()) {
-				fillFileChoosers(entry,i);
-			}//if
+				fillFileChoosers(entry, i);
+			}// if
 		}// for
 		cbFileNames.setModel(fileCpmModel);
 		cbCpmTarget.setModel(fileCpmModel);
 	}// fillDirectoryTable
 
-	private void fillFileChoosers(CPMDirectoryEntry entry,int index) {
+	private void fillFileChoosers(CPMDirectoryEntry entry, int index) {
 		if (entry.getActualExtentNumber() != 0) {
 			return; // only want one entry per file
-		}//if
-		fileCpmModel.add(new DirEntry(entry.getNameAndTypePeriod(),index));
-	}//fillFileChoosers
+		}// if
+		fileCpmModel.add(new DirEntry(entry.getNameAndTypePeriod(), index));
+	}// fillFileChoosers
 
 	private void makeDirectory() {
 		if (directory != null) {
 			directory = null;
-		}//if
+		}// if
 		directory = new CPMDirectory(diskType, diskMetrics.isBootDisk());
 		int firstDirectorySector = diskMetrics.getDirectoryStartSector();
 		int lastDirectorySector = diskMetrics.getDirectorysLastSector();
@@ -478,7 +488,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				directory.addEntry(extractDirectoryEntry(aSector, i), directoryIndex++);
 			}// for - i
 		}// for -s
-	}//makeDirectory
+	}// makeDirectory
 
 	private byte[] extractDirectoryEntry(byte[] sector, int index) {
 		byte[] rawDirectory = new byte[Disk.DIRECTORY_ENTRY_SIZE];
@@ -488,7 +498,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		}// for
 		return rawDirectory;
 	}// extractDirectoryEntry
-	
+
 	private void btnDisplayPhysicalSector() {
 		diskDrive.setCurrentAbsoluteSector(
 				(int) spinnerHeadHex.getValue(),
@@ -498,6 +508,61 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		displayPhysicalSector(diskDrive.getCurrentAbsoluteSector()); // display only one sector
 	}
 
+	private void cbFileNames() {
+		if (cbFileNames.getItemCount() == 0) {
+			return;
+		}
+		CPMDirectoryEntry directoryEntry;
+		DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
+		int directoryEntryNumber = de.directoryIndex;
+		String fileName = de.fileName;
+
+		ArrayList<Integer> blocks = directory.getAllAllocatedBlocks(fileName);
+		for (int i = 0; i < blocks.size(); i++) {
+			System.out.printf("    block  = %d ; %04X%n", blocks.get(i), blocks.get(i));
+		}
+
+		ArrayList<Integer> sectors = new ArrayList<Integer>();
+		int blockSectorStart = 0;
+		int sectorsPerBlock = diskMetrics.getSectorsPerBlock();
+		int block0StartSector = diskMetrics.getDirectoryStartSector();
+		for (int i = 0; i < blocks.size(); i++) {
+			blockSectorStart = block0StartSector + (blocks.get(i) * sectorsPerBlock);
+			for (int j = 0; j < sectorsPerBlock; sectors.add(blockSectorStart + j++))
+				;
+		}// for - i
+		int recordCount = directory.getTotalRecordCount(fileName); // 128-byte logical records
+		// we now have a list of all the sectors for the file as well as the total 128-byte record count
+		int logicalRecordsPerSector = diskMetrics.getLSperPS();
+		int actualNumberOfSectorsToRead = ((recordCount - 1) / logicalRecordsPerSector) + 1; // Logical Sectors Per
+																								// Physical Sector
+		int numberOfLogicalRecordsToProcess = 0;
+		clearDocument(docFile);
+		docFile= txtFile.getDocument();
+
+		int linesPerLogicalRecord = Disk.LOGICAL_SECTOR_SIZE / CHARACTERS_PER_LINE;
+		for (int i = 0; i < actualNumberOfSectorsToRead; i++) {
+			diskDrive.setCurrentAbsoluteSector(sectors.get(i));
+			aSector = diskDrive.read();
+			numberOfLogicalRecordsToProcess =
+					(recordCount / logicalRecordsPerSector != 0) ? logicalRecordsPerSector : recordCount
+							% logicalRecordsPerSector;
+			for (int j = 0; j < recordCount * linesPerLogicalRecord; j++) {
+				try {
+					docFile.insertString(docFile.getLength(), formatLine(j), null);
+				} catch (BadLocationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}// for - j each logical 128-byte record
+			recordCount -= logicalRecordsPerSector;
+			if (recordCount < 1) {
+				break;
+			}//if - recordCount
+		}// - for- i : each sector
+		txtFile.setCaretPosition(0);		
+
+	}// cbFileNames
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 	@Override
@@ -507,9 +572,9 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-		String menuChoice =null;
+		String menuChoice = null;
 		selectedAbsolutePath = null;
-		
+
 		switch (ae.getActionCommand()) {
 		case AC_MNU_FILE_NEW:
 			menuChoice = AC_MNU_FILE_NEW;
@@ -561,6 +626,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		// File View
 		case AC_CB_FILE_NAMES:
 			menuChoice = AC_CB_FILE_NAMES;
+			cbFileNames();
 			break;
 
 		// Copy
@@ -672,6 +738,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 	private byte[] aSector;
 	private Document docPhysical;
+	private Document docFile;
 	private int linesToDisplay;
 
 	private CPMDirectory directory;
@@ -729,6 +796,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	private JLabel lblRawRC;
 	private JLabel lblRawAllocation;
 	private JButton btnDisplayPhysical;
+	private JTextArea txtFile;
 
 	// private JScrollPane scrollDirectoryTable;
 
@@ -1262,7 +1330,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		gbl_panel_7.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		panel_7.setLayout(gbl_panel_7);
 
-		JLabel RC = new JLabel("User [15]");
+		JLabel RC = new JLabel("RC [15]");
 		RC.setFont(new Font("Arial", Font.PLAIN, 12));
 		GridBagConstraints gbc_RC = new GridBagConstraints();
 		gbc_RC.insets = new Insets(0, 0, 5, 0);
@@ -1412,7 +1480,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		gbc_scrollPaneFile.gridy = 2;
 		panelFileDetails.add(scrollPaneFile, gbc_scrollPaneFile);
 
-		JTextArea txtFile = new JTextArea();
+		txtFile = new JTextArea();
 		txtFile.setFont(new Font("Courier New", Font.PLAIN, 15));
 		scrollPaneFile.setViewportView(txtFile);
 
@@ -1741,13 +1809,14 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	private class RowListener implements ListSelectionListener {
 		public void valueChanged(ListSelectionEvent event) {
-			 if (event.getValueIsAdjusting()) {
-			 return;
-			 }
-			 showDirectoryDetail(dirTable.getSelectedRow());
+			if (event.getValueIsAdjusting()) {
+				return;
+			}
+
+			showDirectoryDetail(dirTable.getSelectedRow());
 			// showDirectoryDiskDetail(dirTable.getSelectedRow());
-		}//valueChanged
-	}//class RowListener
+		}// valueChanged
+	}// class RowListener
 
 	class DirEntry {
 		public String fileName;

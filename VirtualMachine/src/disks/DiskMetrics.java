@@ -132,6 +132,10 @@ public class DiskMetrics {
 
 	// Block size
 	private int blockSizeInBytes;
+	
+	public int getSectorsPerBlock(){
+		return this.sectorsPerBlock;
+	}
 
 	private void setSectorsPerBlock(int sectorsPerBlock) {
 		this.sectorsPerBlock = sectorsPerBlock <= 0 ? 1 : sectorsPerBlock;

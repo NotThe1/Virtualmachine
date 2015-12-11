@@ -30,42 +30,6 @@ public class CPMDirectory {
 		this("F5DD", true); // Default to 3.5" and 5" disks
 	}
 
-	// public CPMDirectory(boolean bigDisk, int maxEntries, int sectorsPerBlock, int bytesPerSector, int trackOffset,
-	// int maxBlocks) {
-	// this.bigDisk = bigDisk;
-	// this.maxEntries = maxEntries;
-	// this.sectorsPerBlock = sectorsPerBlock;
-	// this.bytesPerSector = bytesPerSector;
-	// this.trackOffset = trackOffset;
-	// this.maxBlocks = maxBlocks;
-	// entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
-	// entriesPerBlock = sectorsPerBlock * entriesPerSector;
-	// dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
-	// allocationTable = new HashMap<Integer, Boolean>();
-	//
-	// for (int i = 0; i < maxEntries; i++) {
-	// dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
-	// }
-	// }
-
-	// public CPMDirectory(String diskExtention, boolean bootDisk) {
-	// for (DiskLayout diskLayout : DiskLayout.values()) {
-	// if (diskLayout.fileExtension.equals(diskExtention)) {
-	// diskLayout.setBootDisk(bootDisk);
-	// this.bigDisk = diskLayout.isBigDisk();
-	// this.maxEntries = diskLayout.getDRM() + 1;
-	// this.sectorsPerBlock = diskLayout.sectorsPerBlock;
-	// this.bytesPerSector = diskLayout.bytesPerSector;
-	// this.trackOffset = diskLayout.getOFS();
-	// this.maxBlocks = diskLayout.getDSM() + 1;
-	// this.directoryBlockCount = diskLayout.directoryBlockCount;
-	// this.sectorsOffset = diskLayout.getDirectoryStartSector();
-	// break;
-	// }
-	// }
-	// resetDirectory();
-	// }
-
 	public CPMDirectory(String diskExtention, boolean bootDisk) {
 		DiskMetrics diskMetric = DiskMetrics.diskMetric(diskExtention);
 		diskMetric.setBootDisk(bootDisk);
@@ -77,7 +41,7 @@ public class CPMDirectory {
 		this.maxBlocks = diskMetric.getDSM() + 1;
 		this.directoryBlockCount = diskMetric.directoryBlockCount;
 		this.sectorsOffset = diskMetric.getDirectoryStartSector();
-		
+
 		resetDirectory();
 	}
 
@@ -105,9 +69,10 @@ public class CPMDirectory {
 		dirEntries.put(directoryEntryNumber, new CPMDirectoryEntry(rawEntry, bigDisk));
 		allocateBlocks(directoryEntryNumber);
 	}
-	public CPMDirectoryEntry  getDirectoryEntry(int directoryIndex){
+
+	public CPMDirectoryEntry getDirectoryEntry(int directoryIndex) {
 		return dirEntries.get(directoryIndex);
-		
+
 	}
 
 	public int addEntry(byte[] rawEntry) {
@@ -156,10 +121,6 @@ public class CPMDirectory {
 		return;
 	}
 
-	public void allocateBlocksX(int directoryEntryNumber) {
-
-	}
-
 	public void deAllocateBlocks(int directoryEntryNumber) {
 		ArrayList<Integer> blockList = getFilesBlocks(directoryEntryNumber);
 		for (Integer block : blockList) {
@@ -195,6 +156,27 @@ public class CPMDirectory {
 
 	public int getAvailableBlockCount() {
 		return maxBlocks - getAllocatedBlockCount();
+	}
+
+	public int getTotalRecordCount(String target) {
+		String fullName = makeFileName11(target);
+		int totalRecordCount = 0;
+
+		for (int i = 0; i < maxEntries; i++) {
+			if (dirEntries.get(i).getNameAndType11().equals(fullName)) {
+				totalRecordCount += dirEntries.get(i).getRcInt();
+			}// if
+		}// for
+		return totalRecordCount;
+	}
+	public ArrayList<Integer> getAllAllocatedBlocks(String target){
+		ArrayList<Integer> targetBlocks = new ArrayList<Integer>();
+		
+		ArrayList<Integer> targetEntries = getDirectoryEntries(target);
+		for (int i = 0; i < targetEntries.size(); i++){
+			targetBlocks.addAll(dirEntries.get(targetEntries.get(i)).getAllocatedBlocks());
+		}
+		return targetBlocks;
 	}
 
 	public ArrayList<Integer> getDirectoryEntries(String target) {
@@ -264,5 +246,9 @@ public class CPMDirectory {
 				: "   ";
 		return name + type;
 	}// makeFileName11
+
+	public void markAsDeleted(int directoryEntryNumber) {
+		dirEntries.get(directoryEntryNumber).markAsDeleted();
+	}// markAsDeleted
 
 }

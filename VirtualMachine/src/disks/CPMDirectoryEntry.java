@@ -231,7 +231,7 @@ public class CPMDirectoryEntry {
 
 	public void setRc(byte rc) {
 		int rcInt = rc & 0xFF;
-		this.rc = (byte) (rcInt > 0x1F ? 0x1F : rc); // 0x80 = this extent is full
+		this.rc = (byte) (rcInt > 0x80 ? 0x80 : rc); // 0x80 = this extent is full
 		rawDirectory[Disk.DIR_RC] = this.rc;
 	}
 

@@ -234,5 +234,9 @@ public class DiskMetrics {
 	public int getMaxDirectoryEntries() {
 		return (directoryBlockCount * blockSizeInBytes) / Disk.DIRECTORY_ENTRY_SIZE;
 	}
+	
+	public int getBytesPerBlock(){
+		return this.blockSizeInBytes;
+	}
 
 }

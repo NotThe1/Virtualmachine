@@ -100,6 +100,9 @@ public class CPMDirectory {
 	public ArrayList<Integer> getFilesBlocks(String fullName) {
 		return getFilesBlocks(getDirectoryEntries(fullName));
 	}
+	public int getFileBlocksCount(String fullName){
+		return  getFilesBlocks( fullName).size(); 
+	}
 
 	public ArrayList<Integer> getFilesBlocks(int directoryEntryNumber) {
 		return dirEntries.get(directoryEntryNumber).getAllocatedBlocks();
@@ -169,14 +172,37 @@ public class CPMDirectory {
 		}// for
 		return totalRecordCount;
 	}
-	public ArrayList<Integer> getAllAllocatedBlocks(String target){
+
+	public ArrayList<Integer> getAllAllocatedBlocks(String target) {
 		ArrayList<Integer> targetBlocks = new ArrayList<Integer>();
-		
+
 		ArrayList<Integer> targetEntries = getDirectoryEntries(target);
-		for (int i = 0; i < targetEntries.size(); i++){
+		for (int i = 0; i < targetEntries.size(); i++) {
 			targetBlocks.addAll(dirEntries.get(targetEntries.get(i)).getAllocatedBlocks());
 		}
 		return targetBlocks;
+	}
+
+	public boolean isReadOnly(String fileName) {
+		boolean result = false;
+		String fullName = makeFileName11(fileName);
+		for (int i = 0; i < maxEntries; i++) {
+			if (dirEntries.get(i).getNameAndType11().equals(fullName)) {
+				result = dirEntries.get(i).isReadOnly();
+			}// if
+		}// for
+		return result;
+	}
+
+	public boolean isSystemFile(String fileName) {
+		boolean result = false;
+		String fullName = makeFileName11(fileName);
+		for (int i = 0; i < maxEntries; i++) {
+			if (dirEntries.get(i).getNameAndType11().equals(fullName)) {
+				result = dirEntries.get(i).isSystemFile();
+			}// if
+		}// for
+		return result;
 	}
 
 	public ArrayList<Integer> getDirectoryEntries(String target) {

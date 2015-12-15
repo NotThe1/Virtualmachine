@@ -115,6 +115,15 @@ public class CPMDirectoryEntry {
 	public String getFileNameTrim() {
 		return fileName.trim();
 	}
+	
+	public void setFilenameAndType(String nameAndType){
+		String[] nat = nameAndType.split("\\.");
+		String name = nat[0];
+		String type = nat.length>1?nat[1]:"";
+		
+		this.setFileName(name);
+		this.setFileType(type);
+	}
 
 	public void setFileName(String fileName) {
 
@@ -213,7 +222,13 @@ public class CPMDirectoryEntry {
 	}
 
 	public int getActualExtentNumber() {
-		return (getS2() * 0x20) + getEx(); // ( s2 * 32) + ex should max at 0x832
+		return (getS2() * 32) + getEx(); // ( s2 * 32) + ex should max at 0x832
+	}
+	public void setActualExtentNumber(int actualExtentNumber){
+		byte s = (byte) (actualExtentNumber / 32) ;
+		byte e = (byte) (actualExtentNumber % 32);
+		setS2(s);
+		setEx(e);
 	}
 
 	private String getActualExtNumString() {

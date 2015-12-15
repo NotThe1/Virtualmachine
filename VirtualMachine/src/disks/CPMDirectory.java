@@ -64,6 +64,10 @@ public class CPMDirectory {
 	public int getLogicalRecordIndex(int directoryEntryNumber) {
 		return directoryEntryNumber % entriesPerSector;
 	}
+	
+	public byte[] getRawDirectoryEntry(int directoryIndex){
+		return dirEntries.get(directoryIndex).getRawDirectory();
+	}
 
 	public void addEntry(byte[] rawEntry, int directoryEntryNumber) {
 		dirEntries.put(directoryEntryNumber, new CPMDirectoryEntry(rawEntry, bigDisk));
@@ -76,9 +80,42 @@ public class CPMDirectory {
 	}
 
 	public int addEntry(byte[] rawEntry) {
-		int entryLocation = getNextAvailableEntry();
+		int entryLocation = this.getNextAvailableEntry();
 		addEntry(rawEntry, entryLocation);
 		return entryLocation;
+	}
+
+	public int updateEntry(String fullName) {
+		return updateEntry(0, fullName,  0);
+	}
+
+	public int updateEntry(int userNumber, String fullName) {
+		return updateEntry(userNumber, fullName, 0);
+	}
+
+	public int updateEntry(int userNumber, String fullName, int extentNumber) {
+		int entryLocation = this.getNextAvailableEntry();
+		CPMDirectoryEntry currentEntry = dirEntries.get(entryLocation);
+		currentEntry.setFilenameAndType(fullName);
+		currentEntry.setUserNumber((byte) (userNumber & 0xFF));
+		currentEntry.setActualExtentNumber(extentNumber);
+//		currentEntry.addBlock(this.getNextAvailableBlock());
+		this.allocateBlocks(entryLocation);
+		return entryLocation;
+	}
+	public int getNextDirectoryExtent(int directoryIndex){
+		CPMDirectoryEntry currentEntry = dirEntries.get(directoryIndex);
+		int currentExtent = currentEntry.getActualExtentNumber();
+		byte userNo = currentEntry.getUserNumber();
+		String fullName = currentEntry.getNameAndTypePeriod();
+	    return this.updateEntry(userNo, fullName, currentExtent+1);
+	}
+	
+	public int getMoreStorage(int directoryIndex){
+		int nextBlock =this.getNextAvailableBlock();
+		dirEntries.get(directoryIndex).addBlock(nextBlock);
+		allocationTable.put(nextBlock, true);
+		return nextBlock;
 	}
 
 	public void deleteFile(int directoryEntryNumber) {
@@ -100,8 +137,9 @@ public class CPMDirectory {
 	public ArrayList<Integer> getFilesBlocks(String fullName) {
 		return getFilesBlocks(getDirectoryEntries(fullName));
 	}
-	public int getFileBlocksCount(String fullName){
-		return  getFilesBlocks( fullName).size(); 
+
+	public int getFileBlocksCount(String fullName) {
+		return getFilesBlocks(fullName).size();
 	}
 
 	public ArrayList<Integer> getFilesBlocks(int directoryEntryNumber) {
@@ -132,6 +170,13 @@ public class CPMDirectory {
 		return;
 	}
 
+	public void deAllocateBlocks(ArrayList<Integer> blocks) {
+		for (Integer block : blocks) {
+			allocationTable.remove(block);
+		}//
+		return;
+	}
+
 	public int getActiveEntryCount() {
 		Collection<CPMDirectoryEntry> entries = dirEntries.values();
 		return (int) entries.stream().filter(entry -> entry.isEmpty() != true).count();
@@ -142,7 +187,7 @@ public class CPMDirectory {
 		return (int) entries.stream().filter(entry -> entry.isEmpty() == true).count();
 	}
 
-	private int getNextAvailableEntry() {
+	public int getNextAvailableEntry() {
 		int ans = -1;
 		for (int i = 0; i < dirEntries.size(); i++) {
 			if (dirEntries.get(i).isEmpty()) {
@@ -152,6 +197,17 @@ public class CPMDirectory {
 		}// for
 		return ans;
 	}
+
+	private int getNextAvailableBlock() {
+		int ans = -1;
+		for (Integer i = 0; i < maxBlocks + 1; i++) {
+			if (!allocationTable.containsKey(i)){
+				ans = i;
+			break;
+			}//if
+		}// for
+		return ans;
+	}// getNextAvailableBlock
 
 	public int getAllocatedBlockCount() {
 		return allocationTable.size();
@@ -192,6 +248,9 @@ public class CPMDirectory {
 			}// if
 		}// for
 		return result;
+	}
+	public boolean isEntryFull(int directoryIndex){
+		return dirEntries.get(directoryIndex).isEntryFull();
 	}
 
 	public boolean isSystemFile(String fileName) {

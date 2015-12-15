@@ -58,6 +58,7 @@ import javax.swing.border.LineBorder;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -67,12 +68,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Queue;
 
 import com.jgoodies.forms.factories.DefaultComponentFactory;
 
 //import disks.NativeDiskTool.DirEntry;
 //import disks.NativeDiskTool.RowListener;
-
 
 import disks.NativeDiskTool.DirEntry;
 import disks.NativeDiskTool.FileCpmModel;
@@ -121,7 +123,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 		if (nativeFile.exists()) {
 			int ans = JOptionPane.showConfirmDialog(null,
-					"File Exits, Do you want to overwrite?", "Copy Native File to CP/M File",
+					"File Exits, Do you want to overwrite?", "Copying CPM file to a Native File",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.WARNING_MESSAGE);
 			if (ans == JOptionPane.NO_OPTION) {
@@ -133,20 +135,20 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		DirEntry selectedEntry = (DirEntry) cbCpmFile.getSelectedItem();
 		cpmFile = selectedEntry.fileName;
 		nativeFileAbsoluteName = nativeFile.getAbsolutePath();
-		processSourceCPMFile(cpmFile,nativeFileAbsoluteName);
+		processSourceCPMFile(cpmFile, nativeFileAbsoluteName);
 
 	}// copyToNative
 
 	private void copyToCPM() {
 		if (nativeFile == null) {
-			JOptionPane.showMessageDialog(null, " Need to select a Native file", "Copying CPM file to a Native File",
+			JOptionPane.showMessageDialog(null, " Need to select a Native file", "Copying a Native File to a CPM file",
 					JOptionPane.WARNING_MESSAGE);
 			return;
 		}// if
 
 		DirEntry selectedEntry = (DirEntry) cbCpmFile.getSelectedItem();
 		if (selectedEntry == null) {
-			JOptionPane.showMessageDialog(null, " Need to select a CP/M file", "Copy Native File to CP/M File",
+			JOptionPane.showMessageDialog(null, " Need to select a CP/M file", "Copying a Native File to a CPM file",
 					JOptionPane.WARNING_MESSAGE);
 			return;
 		}// if
@@ -156,7 +158,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 		if (cbCpmFile.getSelectedIndex() != -1) {
 			int ans = JOptionPane.showConfirmDialog(null,
-					"File Exits, Do you want to overwrite?", "Copy Native File to CP/M File",
+					"File Exits, Do you want to overwrite?", "Copying a Native File to a CPM file",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.WARNING_MESSAGE);
 			if (ans == JOptionPane.NO_OPTION) {
@@ -171,7 +173,64 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			return;
 		}// if - space
 
+		if (deleteFile) {
+			directory.deleteFile(cpmFile);
+		}
+
+		// now we have all the pieces needed to actually move the file
+		// now we need to get a directory entry and some storage for the file
+
+		int newDirectoryIndex = directory.updateEntry(cpmFile);
+		Queue<Integer> sectorsToUse = getMoreSectorsToUse(newDirectoryIndex);
+		FileChannel fcIn = null;
+		try {
+			FileInputStream fout = new FileInputStream(nativeFile);
+			fcIn = fout.getChannel();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		int sectorSize = diskMetrics.bytesPerSector;
+		ByteBuffer inBuffer = ByteBuffer.allocate(sectorSize);
+		byte[] sectorData = new byte[sectorSize];
+		int readCount = 0;
+		Integer writeSector = -1;
+		try {
+			readCount = fcIn.read(inBuffer);
+			while (readCount != -1) {
+				if (readCount != sectorSize) {
+					sectorData = new byte[sectorSize];
+				}
+				inBuffer.flip();
+				inBuffer.get(sectorData, 0, readCount);
+				// System.out.printf("%s", new String(sectorData));
+				inBuffer.clear();
+				try {
+					writeSector = sectorsToUse.remove();
+				} catch (NoSuchElementException nsee) {
+					// TODO - see if we need another directory entry ---
+					sectorsToUse = getMoreSectorsToUse(newDirectoryIndex);
+					writeSector = sectorsToUse.remove();
+				}// try
+				diskDrive.setCurrentAbsoluteSector(writeSector);
+				System.out.printf("%n%nwriteSector = %d, %04X%n", writeSector, writeSector);
+				diskDrive.write(sectorData);
+
+				readCount = fcIn.read(inBuffer);
+			} // while (readCount != -1);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		overwriteDirectory();
 	}// copyToCPM
+
+	private Queue<Integer> getMoreSectorsToUse(int directoryIndex) {
+		if (directory.isEntryFull(directoryIndex)) {
+			directoryIndex = directory.getNextDirectoryExtent(directoryIndex);
+		}
+		return diskMetrics.storageFromBlock(directory.getMoreStorage(directoryIndex));
+	}
 
 	private boolean enoughSpaceOnCPM(boolean deleteFile) {
 		int availableBlocks = directory.getAvailableBlockCount();
@@ -618,6 +677,38 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		}// for -s
 	}// makeDirectory
 
+	private void overwriteDirectory() {
+		if (directory == null) {
+			return;
+		}// if
+		int firstDirectorySector = diskMetrics.getDirectoryStartSector();
+		int lastDirectorySector = diskMetrics.getDirectorysLastSector();
+		int entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
+		int directoryIndex = 0;
+		for (int s = firstDirectorySector; s < lastDirectorySector + 1; s++) {
+			byte[] sector={},dummyArray ;
+			for (int i = 0; i < entriesPerSector; i ++){
+				byte[] anEntry = directory.getRawDirectoryEntry(directoryIndex++);
+				sector = concat(sector,anEntry);
+			}//for
+int a = 0;
+			diskDrive.setCurrentAbsoluteSector(s);
+			System.out.printf("Sector = %d - %02X%n",s,s);
+			diskDrive.write(sector);
+		}// for -s
+
+	}
+
+	private byte[] concat(byte[] a, byte b[]) {
+		int aLen = a.length;
+		int bLen = b.length;
+		byte[] ans = new byte[aLen + bLen];
+		System.arraycopy(a, 0, ans, 0, aLen);
+		System.arraycopy(b, 0, ans, aLen, bLen);
+		return ans;
+
+	}
+
 	private byte[] extractDirectoryEntry(byte[] sector, int index) {
 		byte[] rawDirectory = new byte[Disk.DIRECTORY_ENTRY_SIZE];
 		int startIndex = index * Disk.DIRECTORY_ENTRY_SIZE;
@@ -679,11 +770,11 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		} else {
 			try {
 				FileOutputStream fout = new FileOutputStream(nativeFile);
-				fc = fout.getChannel();
+				fcOut = fout.getChannel();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}//try
+			}// try
 
 		}// if
 
@@ -715,21 +806,21 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				outBuffer.put(aSector, 0, numberOfBytesForWrite);
 				outBuffer.flip();
 				try {
-					fc.write(outBuffer);
+					fcOut.write(outBuffer);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}//try
+				}// try
 
-			}//if - screen or file
+			}// if - screen or file
 		}// - for- i : each sector
-		if(fc != null){
+		if (fcOut != null) {
 			try {
-				fc.close();
+				fcOut.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}//try
+			}// try
 		}// if fc not null
 	}// processSourceCPMFile
 
@@ -789,8 +880,14 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			break;
 		case AC_MNU_TOOLS_NUMBER_BASE:
 			setNumberBase();
+			break;
+		case AC_MNU_TOOLS_TEST:
+			overwriteDirectory();
+			break;
+			
 		case AC_MNU_CP_BOOTABLE:
 			menuChoice = AC_MNU_CP_BOOTABLE;
+			break;
 
 			// Physical View
 		case AC_BTN_DISPLAY_PHYSICAL:
@@ -885,6 +982,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	private final static String AC_MNU_FILE_SAVE_AS = "MenuFileSaveAs";
 	private final static String AC_MNU_FILE_EXIT = "MenuFileExit";
 	private final static String AC_MNU_TOOLS_NUMBER_BASE = "MenuToolsNumberBase";
+	private final static String AC_MNU_TOOLS_TEST = "MenuToolsTest";
 
 	private final static String AC_MNU_CP_BOOTABLE = "MenuBootable";
 
@@ -945,7 +1043,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 	private int linesPerLogicalRecord = Disk.LOGICAL_SECTOR_SIZE / CHARACTERS_PER_LINE;
 
-	private FileChannel fc;
+	private FileChannel fcOut;
 	private File nativeFile = null;
 	private String nativeFileAbsoluteName = null;
 	private String cpmFile = null;
@@ -1079,6 +1177,11 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		mnuToolsNumberBase.addActionListener(this);
 		mnuToolsNumberBase.setSelected(true);
 		mnuTools.add(mnuToolsNumberBase);
+		
+		JMenuItem mnuToolsTest = new JMenuItem("Test");
+		mnuToolsTest.setActionCommand(AC_MNU_TOOLS_TEST);
+		mnuToolsTest.addActionListener(this);
+		mnuTools.add(mnuToolsTest);
 
 		Component horizontalStrut = Box.createHorizontalStrut(20);
 		menuBar.add(horizontalStrut);

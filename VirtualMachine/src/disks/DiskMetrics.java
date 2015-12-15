@@ -1,5 +1,9 @@
 package disks;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class DiskMetrics {
 
 	public DiskMetrics() {
@@ -46,9 +50,9 @@ public class DiskMetrics {
 		for (int i = 0; i < allFileTypes.length; i++) {
 			fileType = (Object[]) allFileTypes[i];
 			fileTypes[i] = (String) fileType[7];
-		}
+		}//
 		return fileTypes;
-	}
+	}//
 
 	public static String[] getDiskDescriptionss() {
 		String[] fileTypes = new String[allFileTypes.length];
@@ -56,9 +60,9 @@ public class DiskMetrics {
 		for (int i = 0; i < allFileTypes.length; i++) {
 			fileType = (Object[]) allFileTypes[i];
 			fileTypes[i] = (String) fileType[8];
-		}
+		}//
 		return fileTypes;
-	}
+	}//
 
 	public static DiskMetrics diskMetric(String diskType) {
 		Object[] setupValues;
@@ -97,19 +101,19 @@ public class DiskMetrics {
 		return new DiskMetrics((int) setupValues[0], (int) setupValues[1], (int) setupValues[2], (int) setupValues[3],
 				(int) setupValues[4], (int) setupValues[5], (boolean) setupValues[6],
 				(String) setupValues[7], (String) setupValues[8]);
-	}
+	}//diskMetric
 
 	public long getTotalBytes() {
 		return getTotalSectorsOnDisk() * bytesPerSector;
-	}//
+	}//getTotalBytes
 
 	public int getTotalSectorsOnDisk() {
 		return heads * tracksPerHead * sectorsPerTrack;
-	}//
+	}//getTotalSectorsOnDisk
 
 	public int getTotalSectorsPerHead() {
 		return tracksPerHead * sectorsPerTrack;
-	}//
+	}//getTotalSectorsPerHead
 
 	// --------------------------------------------------------------------------
 	// Disk Parameter Block CP/M 2.2
@@ -120,46 +124,46 @@ public class DiskMetrics {
 
 	public void setBootDisk(boolean state) {
 		this.bootDisk = state;
-	}
+	}//setBootDisk
 
 	public boolean isBootDisk() {
 		return this.bootDisk;
-	}
+	}//isBootDisk
 
 	public boolean isBigDisk() {
 		return this.getDSM() > 255 ? true : false;
-	}
+	}//isBigDisk
 
 	// Block size
 	private int blockSizeInBytes;
 	
 	public int getSectorsPerBlock(){
 		return this.sectorsPerBlock;
-	}
+	}//getSectorsPerBlock
 
 	private void setSectorsPerBlock(int sectorsPerBlock) {
 		this.sectorsPerBlock = sectorsPerBlock <= 0 ? 1 : sectorsPerBlock;
 		this.blockSizeInBytes = this.sectorsPerBlock * this.bytesPerSector;
-	}
+	}//setSectorsPerBlock
 
 	// Directory Block count
 	private void setDirectoryBlockCount(int directoryBlockCount) {
 		this.directoryBlockCount = directoryBlockCount <= 0 ? 1 : directoryBlockCount;
-	}
+	}//setDirectoryBlockCount
 
 	public int getDirectoryBlockCount() {
 		return this.directoryBlockCount;
-	}
+	}//getDirectoryBlockCount
 
 	// Number of Logical(128-byte) Sectors per Physical Sectors
 	public int getLSperPS() {
 		return this.bytesPerSector / Disk.LOGICAL_SECTOR_SIZE;
-	}
+	}//getLSperPS
 
 	// SPT- Number of Logical(128-byte) Sectors per Logical Track
 	public int getSPT() {
 		return (this.sectorsPerTrack * this.heads) * getLSperPS();
-	}
+	}//getSPT
 
 	// BSH - Block Shift - block size is given by disk.LOGICAL_SECTOR_SIZE * (2**BSH)
 	public int getBSH() {
@@ -171,38 +175,37 @@ public class DiskMetrics {
 			bsh = i;
 		}
 		return bsh;
-	}
+	}//getBSH
 
 	// BLM - Block Mask - Block size = 128 * (BLM-1)
 	public int getBLM() {
 		return (blockSizeInBytes / Disk.LOGICAL_SECTOR_SIZE) - 1;
-	}
+	}//getBLM
 
 	// EXM - Extent Mask
 	public int getEXM() {
 		int sizefactor = (getDSM() < 256) ? 1024 : 2048;
 		return (blockSizeInBytes / sizefactor) - 1;
-	}
+	}//getEXM
 
 	// DSM - Highest Block Number
 	public int getDSM() {
 		int totalPhysicalSectorsOnDisk = this.getTotalSectorsOnDisk();
 		int totalPhysicalSectorsOnOFS = getOFS() * this.heads * this.sectorsPerTrack;
 		return ((totalPhysicalSectorsOnDisk - totalPhysicalSectorsOnOFS) / sectorsPerBlock) - 1;
-	}
+	}//getDSM
 
 	// DRM - Highest Disk Entry Position
 	public int getDRM() {
 		int drm = (this.blockSizeInBytes * this.getDirectoryBlockCount()) / Disk.DIRECTORY_ENTRY_SIZE;
 		return drm - 1;
-	}
+	}//getDRM
 
 	// AL0 & AL1 -(AL01) Directory Allocation bits
 	public int getAL01() {
-
 		int al = 0xFF0000 >> this.getDirectoryBlockCount();
 		return al & 0xFFFF;
-	}
+	}//getAL01
 
 	// OFS - Cylinder offset
 	public int getOFS() {
@@ -210,33 +213,56 @@ public class DiskMetrics {
 		if (bootDisk) {
 			float floatSize = (Disk.SYSTEM_LOGICAL_BLOCKS + 1) / (float) getSPT();
 			ans = (int) Math.ceil(floatSize);
-		}
+		}//if
 		return ans;
-	}
+	}//getOFS
 
 	// CKS - Check Area Size
 	public int getCKS() {
 		return (getDRM() + 1) / Disk.DIRECTORY_ENTRYS_PER_LOGICAL_SECTOR;
-	}
+	}//getCKS
 
 	public int getDirectoryStartSector() {
 		int ans = 0;
 		if (bootDisk) {
 			ans = (this.sectorsPerTrack * this.heads);
-		}
+		}//if
 		return ans;
-	}
+	}//getDirectoryStartSector
 
 	public int getDirectorysLastSector() {
 		return (getDirectoryStartSector() + (directoryBlockCount * this.sectorsPerBlock) - 1);
-	}
+	}//getDirectorysLastSector
 
 	public int getMaxDirectoryEntries() {
 		return (directoryBlockCount * blockSizeInBytes) / Disk.DIRECTORY_ENTRY_SIZE;
-	}
+	}//getMaxDirectoryEntries
 	
 	public int getBytesPerBlock(){
 		return this.blockSizeInBytes;
+	}//getBytesPerBlock
+	
+	public Queue<Integer> storageFromBlock(int blockNumber){
+		Queue<Integer> ans =  new LinkedList<Integer>();
+		int firstDirectorySector = this.getDirectoryStartSector();
+		int sector = firstDirectorySector + ( blockNumber * this.sectorsPerBlock);
+		for ( int i = 0; i< this.sectorsPerBlock; i++){
+			ans.offer(sector++);
+		}//for		
+		return ans;
+	
+	
 	}
+	
+	public ArrayList<Integer> sectorsFromBlock(int blockNumber){
+		ArrayList<Integer> ans  = new ArrayList<Integer>();
+		int firstDirectorySector = this.getDirectoryStartSector();
+		int sector = firstDirectorySector + ( blockNumber * this.sectorsPerBlock);
+		for ( int i = 0; i< this.sectorsPerBlock; i++){
+			ans.add(sector++);
+		}//for		
+		return ans;
+	}//sectorsFromBlock
+
 
 }

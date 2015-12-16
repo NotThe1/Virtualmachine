@@ -64,8 +64,8 @@ public class CPMDirectory {
 	public int getLogicalRecordIndex(int directoryEntryNumber) {
 		return directoryEntryNumber % entriesPerSector;
 	}
-	
-	public byte[] getRawDirectoryEntry(int directoryIndex){
+
+	public byte[] getRawDirectoryEntry(int directoryIndex) {
 		return dirEntries.get(directoryIndex).getRawDirectory();
 	}
 
@@ -86,7 +86,7 @@ public class CPMDirectory {
 	}
 
 	public int updateEntry(String fullName) {
-		return updateEntry(0, fullName,  0);
+		return updateEntry(0, fullName, 0);
 	}
 
 	public int updateEntry(int userNumber, String fullName) {
@@ -96,23 +96,24 @@ public class CPMDirectory {
 	public int updateEntry(int userNumber, String fullName, int extentNumber) {
 		int entryLocation = this.getNextAvailableEntry();
 		CPMDirectoryEntry currentEntry = dirEntries.get(entryLocation);
+		currentEntry.resetEntry();
 		currentEntry.setFilenameAndType(fullName);
 		currentEntry.setUserNumber((byte) (userNumber & 0xFF));
 		currentEntry.setActualExtentNumber(extentNumber);
-//		currentEntry.addBlock(this.getNextAvailableBlock());
 		this.allocateBlocks(entryLocation);
 		return entryLocation;
 	}
-	public int getNextDirectoryExtent(int directoryIndex){
+
+	public int getNextDirectoryExtent(int directoryIndex) {
 		CPMDirectoryEntry currentEntry = dirEntries.get(directoryIndex);
 		int currentExtent = currentEntry.getActualExtentNumber();
 		byte userNo = currentEntry.getUserNumber();
 		String fullName = currentEntry.getNameAndTypePeriod();
-	    return this.updateEntry(userNo, fullName, currentExtent+1);
+		return this.updateEntry(userNo, fullName, currentExtent + 1);
 	}
-	
-	public int getMoreStorage(int directoryIndex){
-		int nextBlock =this.getNextAvailableBlock();
+
+	public int getMoreStorage(int directoryIndex) {
+		int nextBlock = this.getNextAvailableBlock();
 		dirEntries.get(directoryIndex).addBlock(nextBlock);
 		allocationTable.put(nextBlock, true);
 		return nextBlock;
@@ -201,10 +202,10 @@ public class CPMDirectory {
 	private int getNextAvailableBlock() {
 		int ans = -1;
 		for (Integer i = 0; i < maxBlocks + 1; i++) {
-			if (!allocationTable.containsKey(i)){
+			if (!allocationTable.containsKey(i)) {
 				ans = i;
-			break;
-			}//if
+				break;
+			}// if
 		}// for
 		return ans;
 	}// getNextAvailableBlock
@@ -215,6 +216,10 @@ public class CPMDirectory {
 
 	public int getAvailableBlockCount() {
 		return maxBlocks - getAllocatedBlockCount();
+	}
+
+	public void incrementRc(int directoryIndex, int amount) {
+		dirEntries.get(directoryIndex).incrementRc(amount);
 	}
 
 	public int getTotalRecordCount(String target) {
@@ -249,7 +254,8 @@ public class CPMDirectory {
 		}// for
 		return result;
 	}
-	public boolean isEntryFull(int directoryIndex){
+
+	public boolean isEntryFull(int directoryIndex) {
 		return dirEntries.get(directoryIndex).isEntryFull();
 	}
 

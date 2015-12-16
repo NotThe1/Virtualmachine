@@ -166,8 +166,6 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			}// if
 			deleteFile = true;
 		}
-		System.out.printf("cpmTarget = %s,  cbCpmTarget.getSelectedIndex() = %s%n", cpmFile,
-				cbCpmFile.getSelectedIndex());
 		// do we have enough space on the CP/M disk to do this?
 		if (!enoughSpaceOnCPM(deleteFile)) {
 			return;
@@ -180,8 +178,8 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		// now we have all the pieces needed to actually move the file
 		// now we need to get a directory entry and some storage for the file
 
-		int newDirectoryIndex = directory.updateEntry(cpmFile);
-		Queue<Integer> sectorsToUse = getMoreSectorsToUse(newDirectoryIndex);
+		int directoryIndex = directory.updateEntry(cpmFile);
+		Queue<Integer> sectorsToUse = getMoreSectorsToUse(directoryIndex);
 		FileChannel fcIn = null;
 		try {
 			FileInputStream fout = new FileInputStream(nativeFile);
@@ -194,41 +192,43 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		ByteBuffer inBuffer = ByteBuffer.allocate(sectorSize);
 		byte[] sectorData = new byte[sectorSize];
 		int readCount = 0;
+		int logicalRecordCount = diskMetrics.getLSperPS();
+		
 		Integer writeSector = -1;
 		try {
 			readCount = fcIn.read(inBuffer);
 			while (readCount != -1) {
 				if (readCount != sectorSize) {
 					sectorData = new byte[sectorSize];
-				}
+					logicalRecordCount = (int) Math.ceil(readCount/(float)Disk.LOGICAL_SECTOR_SIZE);
+				}//if
 				inBuffer.flip();
 				inBuffer.get(sectorData, 0, readCount);
-				// System.out.printf("%s", new String(sectorData));
 				inBuffer.clear();
 				try {
 					writeSector = sectorsToUse.remove();
 				} catch (NoSuchElementException nsee) {
-					// TODO - see if we need another directory entry ---
-					sectorsToUse = getMoreSectorsToUse(newDirectoryIndex);
+					if (directory.isEntryFull(directoryIndex)) {
+						directoryIndex = directory.getNextDirectoryExtent(directoryIndex);
+					}// if need a new directory entry ?
+					sectorsToUse = getMoreSectorsToUse(directoryIndex);
 					writeSector = sectorsToUse.remove();
 				}// try
 				diskDrive.setCurrentAbsoluteSector(writeSector);
-				System.out.printf("%n%nwriteSector = %d, %04X%n", writeSector, writeSector);
 				diskDrive.write(sectorData);
-
+				directory.incrementRc(directoryIndex, logicalRecordCount);
 				readCount = fcIn.read(inBuffer);
 			} // while (readCount != -1);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}//try
 		overwriteDirectory();
+		openDisk();
 	}// copyToCPM
 
 	private Queue<Integer> getMoreSectorsToUse(int directoryIndex) {
-		if (directory.isEntryFull(directoryIndex)) {
-			directoryIndex = directory.getNextDirectoryExtent(directoryIndex);
-		}
+
 		return diskMetrics.storageFromBlock(directory.getMoreStorage(directoryIndex));
 	}
 
@@ -691,9 +691,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				byte[] anEntry = directory.getRawDirectoryEntry(directoryIndex++);
 				sector = concat(sector,anEntry);
 			}//for
-int a = 0;
 			diskDrive.setCurrentAbsoluteSector(s);
-			System.out.printf("Sector = %d - %02X%n",s,s);
 			diskDrive.write(sector);
 		}// for -s
 
@@ -921,11 +919,9 @@ int a = 0;
 			getNativeFile();
 			break;
 		case AC_BTN_COPY_TO_CPM:
-			menuChoice = AC_BTN_COPY_TO_CPM;
 			copyToCPM();
 			break;
 		case AC_BTN_COPY_TO_NATIVE:
-			menuChoice = AC_BTN_COPY_TO_NATIVE;
 			copyToNative();
 			break;
 

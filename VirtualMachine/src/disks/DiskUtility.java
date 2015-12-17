@@ -7,8 +7,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+//import javax.swing.event.ChangeEvent;
+//import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -26,7 +26,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
-import javax.swing.SpinnerModel;
+//import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 
 import java.awt.GridBagLayout;
@@ -71,23 +71,19 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
-import com.jgoodies.forms.factories.DefaultComponentFactory;
+//import com.jgoodies.forms.factories.DefaultComponentFactory;
 
-//import disks.NativeDiskTool.DirEntry;
-//import disks.NativeDiskTool.RowListener;
-
-import disks.NativeDiskTool.DirEntry;
-import disks.NativeDiskTool.FileCpmModel;
 
 import javax.swing.SwingConstants;
 import javax.swing.JComboBox;
-import javax.swing.DefaultComboBoxModel;
+//import javax.swing.DefaultComboBoxModel;
+
 
 import java.awt.Component;
 
 import javax.swing.Box;
 
-public class DiskUtility implements ActionListener, ChangeListener {
+public class DiskUtility implements ActionListener {
 
 	private JFrame frmDiskUtility;
 
@@ -181,8 +177,9 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		int directoryIndex = directory.updateEntry(cpmFile);
 		Queue<Integer> sectorsToUse = getMoreSectorsToUse(directoryIndex);
 		FileChannel fcIn = null;
+		FileInputStream fout = null;
 		try {
-			FileInputStream fout = new FileInputStream(nativeFile);
+			 fout = new FileInputStream(nativeFile);
 			fcIn = fout.getChannel();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -214,15 +211,24 @@ public class DiskUtility implements ActionListener, ChangeListener {
 					sectorsToUse = getMoreSectorsToUse(directoryIndex);
 					writeSector = sectorsToUse.remove();
 				}// try
+				System.out.printf("Sector = %s, byte[0] = %02X%n",writeSector,sectorData[0]);
 				diskDrive.setCurrentAbsoluteSector(writeSector);
 				diskDrive.write(sectorData);
 				directory.incrementRc(directoryIndex, logicalRecordCount);
 				readCount = fcIn.read(inBuffer);
 			} // while (readCount != -1);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			// ignore
 			e.printStackTrace();
 		}//try
+		if(fout!=null){
+			try {
+				fout.close();
+			} catch (IOException e) {
+				// ignore
+				e.printStackTrace();
+			}//try
+		}//if
 		overwriteDirectory();
 		openDisk();
 	}// copyToCPM
@@ -248,6 +254,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 
 	private void getNativeFile() {
 		nativeFile = pickNativeFile();
+		if(nativeFile == null){ return;}
 		lblNativeSource.setText(nativeFile.getName());
 		nativeFileAbsoluteName = nativeFile.getAbsolutePath();
 		lblNativeSource.setToolTipText(nativeFileAbsoluteName);
@@ -270,13 +277,13 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		return pickNativeFile(false);
 	}// pickNativeFile
 
-	private void getCpmTarget() {
-		if (cbFileNames.getItemCount() == 0) {
-			cpmFile = null;
-		}// if
-		DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
-		cpmFile = de.fileName;
-	}// getCpmTarget
+//	private void getCpmTarget() {
+//		if (cbFileNames.getItemCount() == 0) {
+//			cpmFile = null;
+//		}// if
+//		DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
+//		cpmFile = de.fileName;
+//	}// getCpmTarget
 
 	// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 	private void showDirectoryDetail(int entryNumber) {
@@ -344,7 +351,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				docPhysical.insertString(docPhysical.getLength(), formatLine(i), null);
 			}
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
+			// ignore
 			e.printStackTrace();
 		}// try
 		txtSector.setCaretPosition(0);
@@ -490,10 +497,10 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			diskMetrics = DiskMetrics.diskMetric(diskType);
 		}// if
 
-		currentHead = 0;
-		currentTrack = 0;
-		;
-		currentSector = 1;
+//		currentHead = 0;
+//		currentTrack = 0;
+//		;
+//		currentSector = 1;
 		currentAbsoluteSector = 0;
 
 		heads = state ? diskMetrics.heads : 0;
@@ -567,6 +574,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		}
 	}// closeDisk
 
+	@SuppressWarnings("serial")
 	private void makeDirectoryTable() {
 		if (fileCpmModel != null) {
 			fileCpmModel = null;
@@ -625,6 +633,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		tableColumn.getColumn(5).setCellRenderer(centerAlign);
 	}// adjustTableLook
 
+	@SuppressWarnings("unchecked")
 	private void fillDirectoryTable(JTable table) {
 		String name, type;
 		int user, seqNumber, count, blocks;
@@ -686,7 +695,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		int entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
 		int directoryIndex = 0;
 		for (int s = firstDirectorySector; s < lastDirectorySector + 1; s++) {
-			byte[] sector={},dummyArray ;
+			byte[] sector={} ;
 			for (int i = 0; i < entriesPerSector; i ++){
 				byte[] anEntry = directory.getRawDirectoryEntry(directoryIndex++);
 				sector = concat(sector,anEntry);
@@ -770,7 +779,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				FileOutputStream fout = new FileOutputStream(nativeFile);
 				fcOut = fout.getChannel();
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
+				// ignore
 				e.printStackTrace();
 			}// try
 
@@ -806,7 +815,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 				try {
 					fcOut.write(outBuffer);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
+					// ignore
 					e.printStackTrace();
 				}// try
 
@@ -816,7 +825,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 			try {
 				fcOut.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				// ignore
 				e.printStackTrace();
 			}// try
 		}// if fc not null
@@ -831,7 +840,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		try {
 			docFile.insertString(docFile.getLength(), formatLine(lineNumber), null);
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
+			// ignore
 			e.printStackTrace();
 		}// try
 	}// displayRecord
@@ -844,18 +853,13 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 	@Override
-	public void stateChanged(ChangeEvent arg0) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public void actionPerformed(ActionEvent ae) {
 		String menuChoice = null;
 		selectedAbsolutePath = null;
 
 		switch (ae.getActionCommand()) {
 		case AC_MNU_FILE_NEW:
-			menuChoice = AC_MNU_FILE_NEW;
+			MakeNewDisk.makeNewDisk();
 			break;
 		case AC_MNU_FILE_LOAD:
 			selectedAbsolutePath = getDisk();
@@ -1002,6 +1006,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	private final static int CHARACTERS_PER_LINE = 16;
 
 	// +++++++++++++++++ Constants ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 	private String diskType;
 	private DiskMetrics diskMetrics;
 	private RawDiskDrive diskDrive;
@@ -1009,9 +1014,9 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	private String fileNamePath;
 	private String selectedAbsolutePath;
 
-	private int currentHead;
-	private int currentTrack;
-	private int currentSector;
+//	private int currentHead;
+//	private int currentTrack;
+//	private int currentSector;
 	private int currentAbsoluteSector;
 
 	private int heads;
@@ -1084,8 +1089,8 @@ public class DiskUtility implements ActionListener, ChangeListener {
 	private JButton btnNext;
 	private JButton btnLast;
 	private JScrollPane scrollDirectoryTable;
-	private JComboBox cbFileNames;
-	private JComboBox cbCpmFile;
+	private JComboBox<DirEntry> cbFileNames;
+	private JComboBox<DirEntry> cbCpmFile;
 	private JLabel lblRawUser;
 	private JLabel lblRawName;
 	private JLabel lblRawType;
@@ -1734,7 +1739,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		gbl_panelFileSelection.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
 		panelFileSelection.setLayout(gbl_panelFileSelection);
 
-		cbFileNames = new JComboBox();
+		cbFileNames = new JComboBox<DirEntry>();
 		GridBagConstraints gbc_cbFileNames = new GridBagConstraints();
 		gbc_cbFileNames.insets = new Insets(0, 0, 0, 5);
 		gbc_cbFileNames.anchor = GridBagConstraints.NORTHWEST;
@@ -1842,7 +1847,7 @@ public class DiskUtility implements ActionListener, ChangeListener {
 		gbc_lblCpmFIle.gridy = 3;
 		panel_2.add(lblCpmFIle, gbc_lblCpmFIle);
 
-		cbCpmFile = new JComboBox();
+		cbCpmFile = new JComboBox<DirEntry>();
 		cbCpmFile.setEditable(true);
 		cbCpmFile.setActionCommand(AC_CB_CPM_FILE);
 		cbCpmFile.addActionListener(this);

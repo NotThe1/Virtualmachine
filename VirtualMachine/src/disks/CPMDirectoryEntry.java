@@ -323,9 +323,12 @@ public class CPMDirectoryEntry {
 		}//if
 	}//setSystemFile
 	
+//	public boolean isEntryFull(){
+//		int limit = isBigDisk()?Disk.DIRECTORY_ALLOC_SIZE_BIG:Disk.DIRECTORY_ALLOC_SIZE_SMALL;
+//		return allocatedBlocks.size()>= limit;
+//	}//isEntryFull
 	public boolean isEntryFull(){
-		int limit = isBigDisk()?Disk.DIRECTORY_ALLOC_SIZE_BIG:Disk.DIRECTORY_ALLOC_SIZE_SMALL;
-		return allocatedBlocks.size()>= limit;
+		return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
 	}//isEntryFull
 
 	public boolean isEmpty() {

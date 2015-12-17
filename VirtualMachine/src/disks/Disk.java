@@ -24,6 +24,7 @@ public class Disk {
 	static final int DIRECTORY_ENTRYS_PER_LOGICAL_SECTOR = LOGICAL_SECTOR_SIZE / DIRECTORY_ENTRY_SIZE;
 	static final int DIRECTORY_ALLOC_SIZE_SMALL = 16;
 	static final int DIRECTORY_ALLOC_SIZE_BIG = DIRECTORY_ALLOC_SIZE_SMALL / 2;
+	static final int DIRECTORY_ENTRY_RECORD_LIMIT = 0X80;		// 128
 
 	static final byte NULL_BYTE = (byte) 0x00;
 	static final byte EMPTY_ENTRY = (byte) 0xE5;

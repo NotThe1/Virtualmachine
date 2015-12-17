@@ -142,6 +142,7 @@ public class DiskDrive {
 			setSectorPosition();
 			// disk.put(writeSector);
 			disk.put(sector);
+			System.out.printf("[DiskDrive]  Sector = %d, byte[0] = %02X%n",this.currentAbsoluteSector,sector[0]);
 		}// if
 
 	}// write

@@ -61,6 +61,7 @@ import myComponents.Hex64KSpinner;
 
 import javax.swing.JButton;
 import javax.swing.JList;
+import javax.swing.JTabbedPane;
 
 public class manualDisassembler implements ActionListener {
 
@@ -97,15 +98,15 @@ public class manualDisassembler implements ActionListener {
 
 	}
 	private void mnuSave(String cfFileName){
-		try {
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileName + FILE_SUFFIX_PERIOD));
-			oos.writeObject(ccr);
-			oos.writeObject(wrs);
-			oos.writeObject(core);
-			oos.close();
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-		}// try - write objects
+//		try {
+//			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileName + FILE_SUFFIX_PERIOD));
+//			oos.writeObject(ccr);
+//			oos.writeObject(wrs);
+//			oos.writeObject(core);
+//			oos.close();
+//		} catch (IOException ioe) {
+//			ioe.printStackTrace();
+//		}// try - write objects
 
 	}
 
@@ -302,26 +303,29 @@ public class manualDisassembler implements ActionListener {
 		gbc_panelMain.gridy = 0;
 		frmManualDisassembler.getContentPane().add(panelMain, gbc_panelMain);
 		GridBagLayout gbl_panelMain = new GridBagLayout();
-		gbl_panelMain.columnWidths = new int[] { 0, 0, 0, 0, 0, 0 };
-		gbl_panelMain.rowHeights = new int[] { 0, 0, 0 };
-		gbl_panelMain.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
-		gbl_panelMain.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelMain.columnWidths = new int[] { 0, 0, 0, 0 };
+		gbl_panelMain.rowHeights = new int[] { 0, 0 };
+		gbl_panelMain.columnWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelMain.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		panelMain.setLayout(gbl_panelMain);
+		
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
+		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
+		gbc_tabbedPane.insets = new Insets(0, 0, 0, 5);
+		gbc_tabbedPane.gridx = 0;
+		gbc_tabbedPane.gridy = 0;
+		panelMain.add(tabbedPane, gbc_tabbedPane);
 
-		JPanel panelTypes = new JPanel();
-		panelTypes.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
-		GridBagConstraints gbc_panelTypes = new GridBagConstraints();
-		gbc_panelTypes.insets = new Insets(0, 0, 0, 5);
-		gbc_panelTypes.fill = GridBagConstraints.BOTH;
-		gbc_panelTypes.gridx = 1;
-		gbc_panelTypes.gridy = 1;
-		panelMain.add(panelTypes, gbc_panelTypes);
-		GridBagLayout gbl_panelTypes = new GridBagLayout();
-		gbl_panelTypes.columnWidths = new int[] { 0, 0, 0 };
-		gbl_panelTypes.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_panelTypes.columnWeights = new double[] { 1.0, 0.0, Double.MIN_VALUE };
-		gbl_panelTypes.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
-		panelTypes.setLayout(gbl_panelTypes);
+		JPanel panelFragments = new JPanel();
+		tabbedPane.addTab("Fragments", null, panelFragments, null);
+		panelFragments.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
+		GridBagLayout gbl_panelFragments = new GridBagLayout();
+		gbl_panelFragments.columnWidths = new int[] { 0, 0, 0 };
+		gbl_panelFragments.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		gbl_panelFragments.columnWeights = new double[] { 1.0, 0.0, Double.MIN_VALUE };
+		gbl_panelFragments.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
+		panelFragments.setLayout(gbl_panelFragments);
 
 		JPanel panelTypeManipulation = new JPanel();
 		GridBagConstraints gbc_panelTypeManipulation = new GridBagConstraints();
@@ -329,7 +333,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_panelTypeManipulation.fill = GridBagConstraints.VERTICAL;
 		gbc_panelTypeManipulation.gridx = 0;
 		gbc_panelTypeManipulation.gridy = 0;
-		panelTypes.add(panelTypeManipulation, gbc_panelTypeManipulation);
+		panelFragments.add(panelTypeManipulation, gbc_panelTypeManipulation);
 
 		JLabel lblStart = new JLabel("Start");
 		panelTypeManipulation.add(lblStart);
@@ -340,14 +344,14 @@ public class manualDisassembler implements ActionListener {
 		gbc_hex64KSpinner.insets = new Insets(0, 0, 5, 0);
 		gbc_hex64KSpinner.gridx = 1;
 		gbc_hex64KSpinner.gridy = 0;
-		panelTypes.add(hex64KSpinner, gbc_hex64KSpinner);
+		panelFragments.add(hex64KSpinner, gbc_hex64KSpinner);
 
 		JLabel lblEnd = new JLabel("End");
 		GridBagConstraints gbc_lblEnd = new GridBagConstraints();
 		gbc_lblEnd.insets = new Insets(0, 0, 5, 5);
 		gbc_lblEnd.gridx = 0;
 		gbc_lblEnd.gridy = 1;
-		panelTypes.add(lblEnd, gbc_lblEnd);
+		panelFragments.add(lblEnd, gbc_lblEnd);
 
 		Hex64KSpinner hex64KSpinner_1 = new Hex64KSpinner();
 		GridBagConstraints gbc_hex64KSpinner_1 = new GridBagConstraints();
@@ -355,7 +359,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_hex64KSpinner_1.insets = new Insets(0, 0, 5, 0);
 		gbc_hex64KSpinner_1.gridx = 1;
 		gbc_hex64KSpinner_1.gridy = 1;
-		panelTypes.add(hex64KSpinner_1, gbc_hex64KSpinner_1);
+		panelFragments.add(hex64KSpinner_1, gbc_hex64KSpinner_1);
 
 		JRadioButton rdbtnCode = new JRadioButton("Code");
 		GridBagConstraints gbc_rdbtnCode = new GridBagConstraints();
@@ -363,7 +367,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_rdbtnCode.insets = new Insets(0, 0, 5, 5);
 		gbc_rdbtnCode.gridx = 0;
 		gbc_rdbtnCode.gridy = 2;
-		panelTypes.add(rdbtnCode, gbc_rdbtnCode);
+		panelFragments.add(rdbtnCode, gbc_rdbtnCode);
 
 		JRadioButton rdbtnCnstant = new JRadioButton("Constant");
 		GridBagConstraints gbc_rdbtnCnstant = new GridBagConstraints();
@@ -371,7 +375,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_rdbtnCnstant.insets = new Insets(0, 0, 5, 5);
 		gbc_rdbtnCnstant.gridx = 0;
 		gbc_rdbtnCnstant.gridy = 3;
-		panelTypes.add(rdbtnCnstant, gbc_rdbtnCnstant);
+		panelFragments.add(rdbtnCnstant, gbc_rdbtnCnstant);
 
 		JRadioButton rdbtnReserved = new JRadioButton("Reserved");
 		GridBagConstraints gbc_rdbtnReserved = new GridBagConstraints();
@@ -379,7 +383,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_rdbtnReserved.anchor = GridBagConstraints.WEST;
 		gbc_rdbtnReserved.gridx = 0;
 		gbc_rdbtnReserved.gridy = 4;
-		panelTypes.add(rdbtnReserved, gbc_rdbtnReserved);
+		panelFragments.add(rdbtnReserved, gbc_rdbtnReserved);
 
 		JButton btnAdd = new JButton("Add");
 		btnAdd.setActionCommand(AC_BTN_ADD);
@@ -389,7 +393,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_btnAdd.insets = new Insets(0, 0, 5, 5);
 		gbc_btnAdd.gridx = 0;
 		gbc_btnAdd.gridy = 5;
-		panelTypes.add(btnAdd, gbc_btnAdd);
+		panelFragments.add(btnAdd, gbc_btnAdd);
 
 		JButton btnRemove = new JButton("Remove");
 		btnRemove.setActionCommand(AC_BTN_REMOVE);
@@ -398,7 +402,7 @@ public class manualDisassembler implements ActionListener {
 		gbc_btnRemove.insets = new Insets(0, 0, 5, 0);
 		gbc_btnRemove.gridx = 1;
 		gbc_btnRemove.gridy = 5;
-		panelTypes.add(btnRemove, gbc_btnRemove);
+		panelFragments.add(btnRemove, gbc_btnRemove);
 
 		listCodeTypes = new JList();
 		listCodeTypes.setBorder(new LineBorder(Color.BLUE));
@@ -408,15 +412,24 @@ public class manualDisassembler implements ActionListener {
 		gbc_listCodeTypes.fill = GridBagConstraints.BOTH;
 		gbc_listCodeTypes.gridx = 0;
 		gbc_listCodeTypes.gridy = 7;
-		panelTypes.add(listCodeTypes, gbc_listCodeTypes);
+		panelFragments.add(listCodeTypes, gbc_listCodeTypes);
+		
+		JPanel panelSymbols = new JPanel();
+		tabbedPane.addTab("Symbols", null, panelSymbols, null);
+		GridBagLayout gbl_panelSymbols = new GridBagLayout();
+		gbl_panelSymbols.columnWidths = new int[]{0};
+		gbl_panelSymbols.rowHeights = new int[]{0};
+		gbl_panelSymbols.columnWeights = new double[]{Double.MIN_VALUE};
+		gbl_panelSymbols.rowWeights = new double[]{Double.MIN_VALUE};
+		panelSymbols.setLayout(gbl_panelSymbols);
 
 		JScrollPane scrollPaneBinary = new JScrollPane();
 		scrollPaneBinary.setPreferredSize(new Dimension(680, 400));
 		GridBagConstraints gbc_scrollPaneBinary = new GridBagConstraints();
 		gbc_scrollPaneBinary.insets = new Insets(0, 0, 0, 5);
 		gbc_scrollPaneBinary.fill = GridBagConstraints.BOTH;
-		gbc_scrollPaneBinary.gridx = 2;
-		gbc_scrollPaneBinary.gridy = 1;
+		gbc_scrollPaneBinary.gridx = 1;
+		gbc_scrollPaneBinary.gridy = 0;
 		panelMain.add(scrollPaneBinary, gbc_scrollPaneBinary);
 
 		JTextArea textAreaBinary = new JTextArea();
@@ -432,8 +445,8 @@ public class manualDisassembler implements ActionListener {
 		panelASM.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
 		GridBagConstraints gbc_panelASM = new GridBagConstraints();
 		gbc_panelASM.fill = GridBagConstraints.BOTH;
-		gbc_panelASM.gridx = 4;
-		gbc_panelASM.gridy = 1;
+		gbc_panelASM.gridx = 2;
+		gbc_panelASM.gridy = 0;
 		panelMain.add(panelASM, gbc_panelASM);
 		GridBagLayout gbl_panelASM = new GridBagLayout();
 		gbl_panelASM.columnWidths = new int[] { 111, 2, 0 };

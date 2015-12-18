@@ -73,11 +73,9 @@ import java.util.Queue;
 
 //import com.jgoodies.forms.factories.DefaultComponentFactory;
 
-
 import javax.swing.SwingConstants;
 import javax.swing.JComboBox;
 //import javax.swing.DefaultComboBoxModel;
-
 
 import java.awt.Component;
 
@@ -179,7 +177,7 @@ public class DiskUtility implements ActionListener {
 		FileChannel fcIn = null;
 		FileInputStream fout = null;
 		try {
-			 fout = new FileInputStream(nativeFile);
+			fout = new FileInputStream(nativeFile);
 			fcIn = fout.getChannel();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -190,15 +188,15 @@ public class DiskUtility implements ActionListener {
 		byte[] sectorData = new byte[sectorSize];
 		int readCount = 0;
 		int logicalRecordCount = diskMetrics.getLSperPS();
-		
+
 		Integer writeSector = -1;
 		try {
 			readCount = fcIn.read(inBuffer);
 			while (readCount != -1) {
 				if (readCount != sectorSize) {
 					sectorData = new byte[sectorSize];
-					logicalRecordCount = (int) Math.ceil(readCount/(float)Disk.LOGICAL_SECTOR_SIZE);
-				}//if
+					logicalRecordCount = (int) Math.ceil(readCount / (float) Disk.LOGICAL_SECTOR_SIZE);
+				}// if
 				inBuffer.flip();
 				inBuffer.get(sectorData, 0, readCount);
 				inBuffer.clear();
@@ -211,7 +209,7 @@ public class DiskUtility implements ActionListener {
 					sectorsToUse = getMoreSectorsToUse(directoryIndex);
 					writeSector = sectorsToUse.remove();
 				}// try
-				System.out.printf("Sector = %s, byte[0] = %02X%n",writeSector,sectorData[0]);
+				System.out.printf("Sector = %s, byte[0] = %02X%n", writeSector, sectorData[0]);
 				diskDrive.setCurrentAbsoluteSector(writeSector);
 				diskDrive.write(sectorData);
 				directory.incrementRc(directoryIndex, logicalRecordCount);
@@ -220,15 +218,15 @@ public class DiskUtility implements ActionListener {
 		} catch (IOException e) {
 			// ignore
 			e.printStackTrace();
-		}//try
-		if(fout!=null){
+		}// try
+		if (fout != null) {
 			try {
 				fout.close();
 			} catch (IOException e) {
 				// ignore
 				e.printStackTrace();
-			}//try
-		}//if
+			}// try
+		}// if
 		overwriteDirectory();
 		openDisk();
 	}// copyToCPM
@@ -254,7 +252,9 @@ public class DiskUtility implements ActionListener {
 
 	private void getNativeFile() {
 		nativeFile = pickNativeFile();
-		if(nativeFile == null){ return;}
+		if (nativeFile == null) {
+			return;
+		}
 		lblNativeSource.setText(nativeFile.getName());
 		nativeFileAbsoluteName = nativeFile.getAbsolutePath();
 		lblNativeSource.setToolTipText(nativeFileAbsoluteName);
@@ -277,13 +277,13 @@ public class DiskUtility implements ActionListener {
 		return pickNativeFile(false);
 	}// pickNativeFile
 
-//	private void getCpmTarget() {
-//		if (cbFileNames.getItemCount() == 0) {
-//			cpmFile = null;
-//		}// if
-//		DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
-//		cpmFile = de.fileName;
-//	}// getCpmTarget
+	// private void getCpmTarget() {
+	// if (cbFileNames.getItemCount() == 0) {
+	// cpmFile = null;
+	// }// if
+	// DirEntry de = (DirEntry) cbFileNames.getSelectedItem();
+	// cpmFile = de.fileName;
+	// }// getCpmTarget
 
 	// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 	private void showDirectoryDetail(int entryNumber) {
@@ -497,10 +497,10 @@ public class DiskUtility implements ActionListener {
 			diskMetrics = DiskMetrics.diskMetric(diskType);
 		}// if
 
-//		currentHead = 0;
-//		currentTrack = 0;
-//		;
-//		currentSector = 1;
+		// currentHead = 0;
+		// currentTrack = 0;
+		// ;
+		// currentSector = 1;
 		currentAbsoluteSector = 0;
 
 		heads = state ? diskMetrics.heads : 0;
@@ -695,11 +695,11 @@ public class DiskUtility implements ActionListener {
 		int entriesPerSector = bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
 		int directoryIndex = 0;
 		for (int s = firstDirectorySector; s < lastDirectorySector + 1; s++) {
-			byte[] sector={} ;
-			for (int i = 0; i < entriesPerSector; i ++){
+			byte[] sector = {};
+			for (int i = 0; i < entriesPerSector; i++) {
 				byte[] anEntry = directory.getRawDirectoryEntry(directoryIndex++);
-				sector = concat(sector,anEntry);
-			}//for
+				sector = concat(sector, anEntry);
+			}// for
 			diskDrive.setCurrentAbsoluteSector(s);
 			diskDrive.write(sector);
 		}// for -s
@@ -795,12 +795,9 @@ public class DiskUtility implements ActionListener {
 							% logicalRecordsPerSector;
 
 			if (targetFileName == null) {
-				for (int j = 0; j < recordCount * linesPerLogicalRecord; j++) {
-					if (targetFileName == null) {
-						displayRecord(j);
-					} else {
-						writeRecord(j);
-					}// if
+				for (int j = 0; j < numberOfLogicalRecordsToProcess * linesPerLogicalRecord; j++) {
+					int lineNumber = ( i * linesPerLogicalRecord * logicalRecordsPerSector) + j;
+					displayRecord(lineNumber);
 				}// for - j each logical 128-byte record
 				recordCount -= logicalRecordsPerSector;
 				if (recordCount < 1) {
@@ -845,11 +842,6 @@ public class DiskUtility implements ActionListener {
 		}// try
 	}// displayRecord
 
-	private void writeRecord(int lineNumber) {
-		// ByteBuffer outBuffer = ByteBuffer.allocate(Disk.)
-
-	}
-
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 	@Override
@@ -886,12 +878,12 @@ public class DiskUtility implements ActionListener {
 		case AC_MNU_TOOLS_TEST:
 			overwriteDirectory();
 			break;
-			
+
 		case AC_MNU_CP_BOOTABLE:
 			menuChoice = AC_MNU_CP_BOOTABLE;
 			break;
 
-			// Physical View
+		// Physical View
 		case AC_BTN_DISPLAY_PHYSICAL:
 			btnDisplayPhysicalSector();
 			break;
@@ -1014,9 +1006,9 @@ public class DiskUtility implements ActionListener {
 	private String fileNamePath;
 	private String selectedAbsolutePath;
 
-//	private int currentHead;
-//	private int currentTrack;
-//	private int currentSector;
+	// private int currentHead;
+	// private int currentTrack;
+	// private int currentSector;
 	private int currentAbsoluteSector;
 
 	private int heads;
@@ -1178,7 +1170,7 @@ public class DiskUtility implements ActionListener {
 		mnuToolsNumberBase.addActionListener(this);
 		mnuToolsNumberBase.setSelected(true);
 		mnuTools.add(mnuToolsNumberBase);
-		
+
 		JMenuItem mnuToolsTest = new JMenuItem("Test");
 		mnuToolsTest.setActionCommand(AC_MNU_TOOLS_TEST);
 		mnuToolsTest.addActionListener(this);

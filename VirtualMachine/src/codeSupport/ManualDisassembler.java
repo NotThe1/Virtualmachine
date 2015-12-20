@@ -107,6 +107,64 @@ public class ManualDisassembler implements ActionListener {
 		});
 	}
 
+	private void addFragement() {
+		int startLocNew = (int) spinnerStartFragment.getValue();
+		int endLocNew = (int) spinnerEndFragment.getValue();
+
+		String message = String.format("Not contained in any other fragement%n");
+		
+		int containerIndex = codeFragmentModel.withinFragement(startLocNew);
+		if (containerIndex != -1) {
+			CodeFragment cfContainer = codeFragmentModel.getElementAt(containerIndex);
+			message = String.format("%04X between %04X and  %04X%n",startLocNew, cfContainer.startLoc,
+					cfContainer.endLoc);
+			int containerStartLoc = cfContainer.startLoc;
+			int containerEndLoc = cfContainer.endLoc;
+			String containerType = cfContainer.type;
+			codeFragmentModel.removeItem(containerIndex);
+			
+			if( (startLocNew != containerStartLoc) & (endLocNew != containerEndLoc) ){
+//				codeFragmentModel
+				
+			} else if (startLocNew == containerStartLoc){
+				
+			}else if (endLocNew == containerEndLoc){
+				
+			}else{
+				
+			}//if else
+			
+			
+			
+			
+			
+		}// if - there is a container;
+		
+		
+		System.out.println(message);
+		codeFragmentModel.addItem(new CodeFragment(startLocNew, endLocNew, getFragementType()));
+		// listCodeFragments.updateUI();
+	}
+
+	private String getFragementType() {
+		String type = null;
+
+		if (rbCode.isSelected()) {
+			type = CodeFragment.CODE;
+		} else if (rbConstant.isSelected()) {
+			type = CodeFragment.CONSTANT;
+		} else if (rbLiteral.isSelected()) {
+			type = CodeFragment.LITERAL;
+		} else if (rbReserved.isSelected()) {
+			type = CodeFragment.RESERVED;
+		} else if (rbReserved.isSelected()) {
+			type = CodeFragment.RESERVED;
+		} else {
+			type = CodeFragment.UNKNOWN;
+		}// if - else..
+		return type;
+	}// getFragementType
+
 	private void actionStart() {
 		try {
 			asmDoc.remove(0, asmDoc.getLength());
@@ -117,8 +175,8 @@ public class ManualDisassembler implements ActionListener {
 		int lastLocation = binaryData.capacity();
 		CodeFragment cf = new CodeFragment(0X0100, lastLocation, CodeFragment.UNKNOWN);
 
-		codeFragmentModel.add(cf);
-		listCodeFragments.updateUI();
+		codeFragmentModel.addItem(cf);
+		// listCodeFragments.updateUI();
 
 		// Collections.sort((List<CodeFragment>) codeFragmentModel);
 		// listCodeTypes.setModel(codeFragmentModel);
@@ -224,11 +282,11 @@ public class ManualDisassembler implements ActionListener {
 			actionStart();
 			break;
 
-		case AC_BTN_ADD:
-			message = AC_BTN_ADD;
+		case AC_BTN_ADD_FRAGMENT:
+			addFragement();
 			break;
-		case AC_BTN_REMOVE:
-			message = AC_BTN_REMOVE;
+		case AC_BTN_REMOVE_FRAGMENT:
+			message = AC_BTN_REMOVE_FRAGMENT;
 			break;
 
 		case AC_BTN_ADD_SYMBOL:
@@ -257,10 +315,10 @@ public class ManualDisassembler implements ActionListener {
 	}// appClose
 
 	private void loadSomeData() {
-		codeFragmentModel.add(new CodeFragment(0X0100, 0X400, CodeFragment.CODE));
-		// codeFragmentModel.add(new CodeType(0X75, 0X50, CodeType.RESERVED));
-		codeFragmentModel.add(new CodeFragment(0X000, 0X000, CodeFragment.CODE));
-		codeFragmentModel.add(new CodeFragment(0X0025, 0X50, CodeFragment.CONSTANT));
+		codeFragmentModel.addItem(new CodeFragment(0X0000, 0X000, CodeFragment.RESERVED));
+		// codeFragmentModel.add(new CodeFragment(0X75, 0X50, CodeFragment.RESERVED));
+		// codeFragmentModel.add(new CodeFragment(0X000, 0X000, CodeFragment.CODE));
+		codeFragmentModel.addItem(new CodeFragment(0XFFFF, 0XFFFF, CodeFragment.RESERVED));
 
 		symbolDisModel.add(new SymbolDis("0000", SymbolDis.LABEL, 0, false));
 		symbolDisModel.add(new SymbolDis("5678", SymbolDis.VALUE, 5, true));
@@ -329,8 +387,8 @@ public class ManualDisassembler implements ActionListener {
 	private final static String AC_MNU_CODE_SAVE = "mnuCodeFragmentSave";
 	private final static String AC_MNU_CODE_SAVE_AS = "mnuCodeFragmentSaveAs";
 
-	private final static String AC_BTN_ADD = "btnAdd";
-	private final static String AC_BTN_REMOVE = "btnRemove";
+	private final static String AC_BTN_ADD_FRAGMENT = "btnAddFragment";
+	private final static String AC_BTN_REMOVE_FRAGMENT = "btnRemoveFragment";
 
 	private final static String AC_BTN_ADD_SYMBOL = "btnAddSymbol";
 	private final static String AC_BTN_REMOVE_SYMBOL = "btnRemoveSymbol";
@@ -354,6 +412,8 @@ public class ManualDisassembler implements ActionListener {
 	private JComboBox comboReferences;
 	private JTextArea txtASM;
 	private JRadioButton rbUnknown;
+	private Hex64KSpinner spinnerStartFragment;
+	private Hex64KSpinner spinnerEndFragment;
 
 	/**
 	 * Initialize the contents of the frame.
@@ -487,13 +547,13 @@ public class ManualDisassembler implements ActionListener {
 		JLabel lblStart = new JLabel("Start");
 		panelTypeManipulation.add(lblStart);
 
-		Hex64KSpinner hex64KSpinner = new Hex64KSpinner();
-		GridBagConstraints gbc_hex64KSpinner = new GridBagConstraints();
-		gbc_hex64KSpinner.anchor = GridBagConstraints.EAST;
-		gbc_hex64KSpinner.insets = new Insets(0, 0, 5, 5);
-		gbc_hex64KSpinner.gridx = 1;
-		gbc_hex64KSpinner.gridy = 0;
-		panelFragments.add(hex64KSpinner, gbc_hex64KSpinner);
+		spinnerStartFragment = new Hex64KSpinner();
+		GridBagConstraints gbc_spinnerStartFragment = new GridBagConstraints();
+		gbc_spinnerStartFragment.anchor = GridBagConstraints.EAST;
+		gbc_spinnerStartFragment.insets = new Insets(0, 0, 5, 5);
+		gbc_spinnerStartFragment.gridx = 1;
+		gbc_spinnerStartFragment.gridy = 0;
+		panelFragments.add(spinnerStartFragment, gbc_spinnerStartFragment);
 
 		JLabel lblEnd = new JLabel("End");
 		GridBagConstraints gbc_lblEnd = new GridBagConstraints();
@@ -502,13 +562,13 @@ public class ManualDisassembler implements ActionListener {
 		gbc_lblEnd.gridy = 1;
 		panelFragments.add(lblEnd, gbc_lblEnd);
 
-		Hex64KSpinner hex64KSpinner_1 = new Hex64KSpinner();
-		GridBagConstraints gbc_hex64KSpinner_1 = new GridBagConstraints();
-		gbc_hex64KSpinner_1.anchor = GridBagConstraints.EAST;
-		gbc_hex64KSpinner_1.insets = new Insets(0, 0, 5, 5);
-		gbc_hex64KSpinner_1.gridx = 1;
-		gbc_hex64KSpinner_1.gridy = 1;
-		panelFragments.add(hex64KSpinner_1, gbc_hex64KSpinner_1);
+		spinnerEndFragment = new Hex64KSpinner();
+		GridBagConstraints gbc_spinnerEndFragment = new GridBagConstraints();
+		gbc_spinnerEndFragment.anchor = GridBagConstraints.EAST;
+		gbc_spinnerEndFragment.insets = new Insets(0, 0, 5, 5);
+		gbc_spinnerEndFragment.gridx = 1;
+		gbc_spinnerEndFragment.gridy = 1;
+		panelFragments.add(spinnerEndFragment, gbc_spinnerEndFragment);
 
 		JPanel panel_1 = new JPanel();
 		panel_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Fragement Type",
@@ -567,26 +627,27 @@ public class ManualDisassembler implements ActionListener {
 		gbc_rbUnknown.gridy = 2;
 		panel_1.add(rbUnknown, gbc_rbUnknown);
 
-		JButton btnAdd = new JButton("Add");
-		btnAdd.setActionCommand(AC_BTN_ADD);
-		btnAdd.addActionListener(this);
-		GridBagConstraints gbc_btnAdd = new GridBagConstraints();
-		gbc_btnAdd.anchor = GridBagConstraints.NORTH;
-		gbc_btnAdd.insets = new Insets(0, 0, 5, 5);
-		gbc_btnAdd.gridx = 0;
-		gbc_btnAdd.gridy = 3;
-		panelFragments.add(btnAdd, gbc_btnAdd);
+		JButton btnAddFragement = new JButton("Add/Update");
+		btnAddFragement.setActionCommand(AC_BTN_ADD_FRAGMENT);
+		btnAddFragement.addActionListener(this);
+		GridBagConstraints gbc_btnAddFragement = new GridBagConstraints();
+		gbc_btnAddFragement.anchor = GridBagConstraints.NORTH;
+		gbc_btnAddFragement.insets = new Insets(0, 0, 5, 5);
+		gbc_btnAddFragement.gridx = 0;
+		gbc_btnAddFragement.gridy = 3;
+		panelFragments.add(btnAddFragement, gbc_btnAddFragement);
 
-		JButton btnRemove = new JButton("Remove");
-		btnRemove.setActionCommand(AC_BTN_REMOVE);
-		btnRemove.addActionListener(this);
-		GridBagConstraints gbc_btnRemove = new GridBagConstraints();
-		gbc_btnRemove.insets = new Insets(0, 0, 5, 5);
-		gbc_btnRemove.gridx = 1;
-		gbc_btnRemove.gridy = 3;
-		panelFragments.add(btnRemove, gbc_btnRemove);
+		JButton btnRemoveFragement = new JButton("Remove");
+		btnRemoveFragement.setActionCommand(AC_BTN_REMOVE_FRAGMENT);
+		btnRemoveFragement.addActionListener(this);
+		GridBagConstraints gbc_btnRemoveFragement = new GridBagConstraints();
+		gbc_btnRemoveFragement.insets = new Insets(0, 0, 5, 5);
+		gbc_btnRemoveFragement.gridx = 1;
+		gbc_btnRemoveFragement.gridy = 3;
+		panelFragments.add(btnRemoveFragement, gbc_btnRemoveFragement);
 
 		listCodeFragments = new JList<CodeFragment>();
+		listCodeFragments.setFont(new Font("Courier New", Font.BOLD, 12));
 		listCodeFragments.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		// scrollPaneFragements.setViewportView(listCodeFragments);
 		listCodeFragments.setVisibleRowCount(28);
@@ -716,6 +777,7 @@ public class ManualDisassembler implements ActionListener {
 		panel.add(btnRemoveSymbol, gbc_btnRemoveSymbol);
 
 		listSymbols = new JList();
+		listSymbols.setFont(new Font("Courier New", Font.BOLD, 12));
 		GridBagConstraints gbc_listSymbols = new GridBagConstraints();
 		gbc_listSymbols.fill = GridBagConstraints.BOTH;
 		gbc_listSymbols.gridx = 0;
@@ -794,6 +856,7 @@ public class ManualDisassembler implements ActionListener {
 
 		public static final String CODE = "code";
 		public static final String CONSTANT = "constant";
+		public static final String LITERAL = "literal";
 		public static final String RESERVED = "reserved";
 		public static final String UNKNOWN = "unknown";
 
@@ -829,10 +892,17 @@ public class ManualDisassembler implements ActionListener {
 			return codeFragements.get(index);
 		}// getElementAt
 
-		public void add(CodeFragment codeFragment) {
+		public void addItem(CodeFragment codeFragment) {
 			codeFragements.add(insertAt(codeFragment.startLoc), codeFragment);
+			listCodeFragments.updateUI();
 			return;
 		}// addItem
+		
+		public void removeItem(int index){
+			codeFragements.remove(index);
+			listCodeFragments.updateUI();
+			return;
+		}
 
 		private int insertAt(int location) {
 			int loc = codeFragements.size();
@@ -844,24 +914,40 @@ public class ManualDisassembler implements ActionListener {
 			}// for
 			return loc;
 		}//
-
+/**
+ * 
+ * @param location
+ * @return fragment that contains location , or -1 for no container
+ */
 		private int withinFragement(int location) {
-			int loc = -1;
-			for (int i = 0; i < codeFragements.size(); i++) {
-				if (location < codeFragements.get(i).startLoc) {
-					continue;
-				} else {
-					if (location > codeFragements.get(i).startLoc) {
-						break; // we are done - not here!
-					} else {
-						if (location < codeFragements.get(i).endLoc) {
-							loc = i;
-						}// if - and end loc <
-					}// if start loc >
-				}// outter if
-			}// for
-			return loc;
-		}
+			int lowerIndex = -1;
+			
+			for ( int i = 0; i < codeFragements.size();i++){
+				if (location <= codeFragements.get(i).startLoc ){
+					lowerIndex = (i == 0)?0:i-1;
+					break;
+				}//if
+			}//for - find lower boundary
+			
+			if(lowerIndex == -1){
+				return -1;  // not within any fragment
+			}//
+			int loLoc;
+			int hiLoc = codeFragements.get(lowerIndex).startLoc;
+			
+			for( int i = lowerIndex +1; i < codeFragements.size();i++){
+				loLoc = hiLoc;
+				hiLoc = codeFragements.get(i).startLoc;
+				if((location >= loLoc) & ( location <= hiLoc)){
+					if (location <= codeFragements.get(i-1).endLoc){
+						return i-1;
+					}//if
+				}else if(location > hiLoc){
+					break; //too far
+				}// if between lo & hi
+			}//for
+			return -1;
+		}//withinFragement
 
 		@Override
 		public int getSize() {

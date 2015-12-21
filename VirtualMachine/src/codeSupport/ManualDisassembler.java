@@ -3,6 +3,7 @@ package codeSupport;
 import java.awt.EventQueue;
 
 import javax.swing.AbstractListModel;
+import javax.swing.ButtonGroup;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
@@ -14,6 +15,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.ListModel;
 import javax.swing.event.ListDataListener;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 //import disks.DiskMetrics;
@@ -102,70 +104,23 @@ public class ManualDisassembler implements ActionListener {
 					window.frmManualDisassembler.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
-				}
-			}
+				}// try
+			}// run
 		});
 	}
 
 	private void addFragement() {
 		int startLocNew = (int) spinnerStartFragment.getValue();
 		int endLocNew = (int) spinnerEndFragment.getValue();
-
-		String message = String.format("Not contained in any other fragement%n");
-		
-		int containerIndex = codeFragmentModel.withinFragement(startLocNew);
-		if (containerIndex != -1) {
-			CodeFragment cfContainer = codeFragmentModel.getElementAt(containerIndex);
-			message = String.format("%04X between %04X and  %04X%n",startLocNew, cfContainer.startLoc,
-					cfContainer.endLoc);
-			int containerStartLoc = cfContainer.startLoc;
-			int containerEndLoc = cfContainer.endLoc;
-			String containerType = cfContainer.type;
-			codeFragmentModel.removeItem(containerIndex);
-			
-			if( (startLocNew != containerStartLoc) & (endLocNew != containerEndLoc) ){
-//				codeFragmentModel
-				
-			} else if (startLocNew == containerStartLoc){
-				
-			}else if (endLocNew == containerEndLoc){
-				
-			}else{
-				
-			}//if else
-			
-			
-			
-			
-			
-		}// if - there is a container;
-		
-		
-		System.out.println(message);
-		codeFragmentModel.addItem(new CodeFragment(startLocNew, endLocNew, getFragementType()));
-		// listCodeFragments.updateUI();
-	}
-
-	private String getFragementType() {
-		String type = null;
-
-		if (rbCode.isSelected()) {
-			type = CodeFragment.CODE;
-		} else if (rbConstant.isSelected()) {
-			type = CodeFragment.CONSTANT;
-		} else if (rbLiteral.isSelected()) {
-			type = CodeFragment.LITERAL;
-		} else if (rbReserved.isSelected()) {
-			type = CodeFragment.RESERVED;
-		} else if (rbReserved.isSelected()) {
-			type = CodeFragment.RESERVED;
-		} else {
-			type = CodeFragment.UNKNOWN;
-		}// if - else..
-		return type;
-	}// getFragementType
+		String type = type = bgFragments.getSelection().getActionCommand();
+		codeFragmentModel.addItem(new CodeFragment(startLocNew, endLocNew, type));
+	}// addFragement
 
 	private void actionStart() {
+		try1();
+	}
+
+	private void try1() {
 		try {
 			asmDoc.remove(0, asmDoc.getLength());
 		} catch (BadLocationException e) {
@@ -173,25 +128,72 @@ public class ManualDisassembler implements ActionListener {
 			e.printStackTrace();
 		}
 		int lastLocation = binaryData.capacity();
-		CodeFragment cf = new CodeFragment(0X0100, lastLocation, CodeFragment.UNKNOWN);
 
-		codeFragmentModel.addItem(cf);
-		// listCodeFragments.updateUI();
-
-		// Collections.sort((List<CodeFragment>) codeFragmentModel);
-		// listCodeTypes.setModel(codeFragmentModel);
+		beenThere = new HashMap<Integer, Boolean>();
+		beenThere.put(5, true);
+		beenThere.put(0, true);
 
 		entryPoints = new Stack<Integer>();
-		entryPoints.add(0);
-		currentLocation = entryPoints.pop();
+		entryPoints.push(OFFSET);
+		int counter = 0;
+		while (!entryPoints.isEmpty()) {
+			buildFragments();
+		}// while
+	}// try1
 
-		currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
-		pcAction = currentOpCode.getPcAction();
-		opCodeSize = currentOpCode.getSize();
-		currentValue0 = binaryData.get(currentLocation);
-		currentValue1 = binaryData.get(currentLocation + 1);
-		currentValue2 = binaryData.get(currentLocation + 2);
+	private void buildFragments() {
+		int startLocation = 0;
 
+		startLocation = entryPoints.pop();
+		currentLocation = startLocation;
+		boolean keepGoing = true;
+		while (keepGoing) {
+
+			if (beenThere.put(currentLocation, true) != null) {
+				System.out.printf("already visited %04X%n", startLocation);
+				return;
+			}//
+
+			currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
+			System.out.printf("Location = %04X, opcode = %s%n", currentLocation, currentOpCode.instruction);
+			pcAction = currentOpCode.getPcAction();
+			// opCodeSize = currentOpCode.getSize();
+			// currentValue0 = binaryData.get(currentLocation);
+			// currentValue1 = binaryData.get(currentLocation + 1);
+			// currentValue2 = binaryData.get(currentLocation + 2);
+			switch (pcAction) {
+			case OperationStructure.NORMAL: // regular opcodes and conditional RETURNS
+				currentLocation += currentOpCode.getSize();
+				keepGoing = true;
+				break;
+			case OperationStructure.CONTINUATION: // All CALLs and all Conditional RETURNS
+				entryPoints.push(makeTargetAddress(currentLocation));
+				currentLocation += currentOpCode.getSize();
+				keepGoing = true;
+				break;
+			case OperationStructure.TERMINATES: // RET
+				keepGoing = false;
+				break;
+			case OperationStructure.TOTAL: // JUMP POP & PCHL
+				if (currentOpCode.instruction.equals("JMP")) { // only for JMP
+					entryPoints.push(makeTargetAddress(currentLocation));
+				}
+				currentLocation += currentOpCode.getSize();
+				keepGoing = false;
+				break;
+			}// switch
+		}// - keep going
+		codeFragmentModel.addItem(new CodeFragment(startLocation, (currentLocation - 1), CodeFragment.CODE));
+		// codeDestiation = currentOpCode.getDestination();
+
+		return;
+	}// followCode
+
+	private int makeTargetAddress(int currentLocation) {
+		int hi = (binaryData.get(currentLocation + 2) & 0xFF) * 256;
+		int lo = binaryData.get(currentLocation + 1);
+		int v = hi + lo;
+		return ((binaryData.get(currentLocation + 2) & 0xFF) * 256) + (binaryData.get(currentLocation + 1) & 0xFF);
 	}
 
 	// ------------------------------------------------------------------------------------------
@@ -217,7 +219,10 @@ public class ManualDisassembler implements ActionListener {
 			e.printStackTrace();
 		}
 		long fileSize = binaryFile.length();
-		binaryData = ByteBuffer.allocate((int) fileSize);
+		binaryData = ByteBuffer.allocate((int) fileSize + OFFSET);
+		binaryData.position(OFFSET);
+		codeFragmentModel.addItem(new CodeFragment(OFFSET, (int) (fileSize + OFFSET), CodeFragment.UNKNOWN));
+		codeFragmentModel.addItem(new CodeFragment(0xFFFF, 0xFFFF, CodeFragment.UNKNOWN));
 		// byte[] sectorData = new byte[sectorSize];
 		try {
 			fcIn.read(binaryData);
@@ -315,10 +320,10 @@ public class ManualDisassembler implements ActionListener {
 	}// appClose
 
 	private void loadSomeData() {
-		codeFragmentModel.addItem(new CodeFragment(0X0000, 0X000, CodeFragment.RESERVED));
-		// codeFragmentModel.add(new CodeFragment(0X75, 0X50, CodeFragment.RESERVED));
-		// codeFragmentModel.add(new CodeFragment(0X000, 0X000, CodeFragment.CODE));
-		codeFragmentModel.addItem(new CodeFragment(0XFFFF, 0XFFFF, CodeFragment.RESERVED));
+		// codeFragmentModel.addItem(new CodeFragment(0X0000, 0X000, CodeFragment.RESERVED));
+		// // codeFragmentModel.add(new CodeFragment(0X75, 0X50, CodeFragment.RESERVED));
+		// // codeFragmentModel.add(new CodeFragment(0X000, 0X000, CodeFragment.CODE));
+		// codeFragmentModel.addItem(new CodeFragment(0XFFFF, 0XFFFF, CodeFragment.RESERVED));
 
 		symbolDisModel.add(new SymbolDis("0000", SymbolDis.LABEL, 0, false));
 		symbolDisModel.add(new SymbolDis("5678", SymbolDis.VALUE, 5, true));
@@ -328,8 +333,10 @@ public class ManualDisassembler implements ActionListener {
 
 	@SuppressWarnings("unchecked")
 	private void appInit() {
+
 		makeOpcodeMap();
 		codeFragmentModel = new CodeFragmentModel();
+
 		symbolDisModel = new SymbolDisModel();
 
 		loadSomeData();
@@ -357,9 +364,11 @@ public class ManualDisassembler implements ActionListener {
 		appInit();
 	}
 
+	private final static int OFFSET = 0X0100; // adjusted to TPA
 	private final static int LINE_WIDTH = 54; // calculated by hand for now
 	private ByteBuffer binaryData;
 	private int currentLocation;
+	private int codeDestiation;
 	private OperationStructure currentOpCode;
 	int opCodeSize;
 	int pcAction;
@@ -369,6 +378,7 @@ public class ManualDisassembler implements ActionListener {
 	String linePart1, linePart2, linePart3;
 	Stack<Integer> entryPoints;
 	Document asmDoc;
+	private HashMap<Integer, Boolean> beenThere;
 
 	private File binaryFile;
 	private String binaryFilePath;
@@ -397,6 +407,7 @@ public class ManualDisassembler implements ActionListener {
 	private final static String AC_BTN_START = "btnStart";
 
 	// ++++++++++++++++++++++++++++++++++
+	private ButtonGroup bgFragments;
 	private JLabel lblBinaryFileName;
 	private JList<CodeFragment> listCodeFragments;
 	private JList listSymbols;
@@ -570,62 +581,76 @@ public class ManualDisassembler implements ActionListener {
 		gbc_spinnerEndFragment.gridy = 1;
 		panelFragments.add(spinnerEndFragment, gbc_spinnerEndFragment);
 
-		JPanel panel_1 = new JPanel();
-		panel_1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Fragement Type",
+		JPanel panelRadioButtons1 = new JPanel();
+		panelRadioButtons1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null),
+				"Fragement Type",
 				TitledBorder.LEADING, TitledBorder.BELOW_TOP, null, null));
-		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
-		gbc_panel_1.gridwidth = 2;
-		gbc_panel_1.insets = new Insets(0, 0, 5, 5);
-		gbc_panel_1.fill = GridBagConstraints.BOTH;
-		gbc_panel_1.gridx = 0;
-		gbc_panel_1.gridy = 2;
-		panelFragments.add(panel_1, gbc_panel_1);
-		GridBagLayout gbl_panel_1 = new GridBagLayout();
-		gbl_panel_1.columnWidths = new int[] { 0, 0, 0 };
-		gbl_panel_1.rowHeights = new int[] { 0, 0, 0, 0 };
-		gbl_panel_1.columnWeights = new double[] { 1.0, 1.0, Double.MIN_VALUE };
-		gbl_panel_1.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		panel_1.setLayout(gbl_panel_1);
+		GridBagConstraints gbc_panelRadioButtons1 = new GridBagConstraints();
+		gbc_panelRadioButtons1.gridwidth = 2;
+		gbc_panelRadioButtons1.insets = new Insets(0, 0, 5, 5);
+		gbc_panelRadioButtons1.fill = GridBagConstraints.BOTH;
+		gbc_panelRadioButtons1.gridx = 0;
+		gbc_panelRadioButtons1.gridy = 2;
+		panelFragments.add(panelRadioButtons1, gbc_panelRadioButtons1);
+		GridBagLayout gbl_panelRadioButtons1 = new GridBagLayout();
+		gbl_panelRadioButtons1.columnWidths = new int[] { 0, 0, 0 };
+		gbl_panelRadioButtons1.rowHeights = new int[] { 0, 0, 0, 0 };
+		gbl_panelRadioButtons1.columnWeights = new double[] { 1.0, 1.0, Double.MIN_VALUE };
+		gbl_panelRadioButtons1.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		panelRadioButtons1.setLayout(gbl_panelRadioButtons1);
 
 		rbCode = new JRadioButton("Code");
+		rbCode.setActionCommand(CodeFragment.CODE);
 		GridBagConstraints gbc_rbCode = new GridBagConstraints();
 		gbc_rbCode.anchor = GridBagConstraints.WEST;
 		gbc_rbCode.insets = new Insets(0, 0, 5, 5);
 		gbc_rbCode.gridx = 0;
 		gbc_rbCode.gridy = 0;
-		panel_1.add(rbCode, gbc_rbCode);
+		panelRadioButtons1.add(rbCode, gbc_rbCode);
 
 		rbConstant = new JRadioButton("Constant");
+		rbConstant.setActionCommand(CodeFragment.CONSTANT);
 		GridBagConstraints gbc_rbConstant = new GridBagConstraints();
 		gbc_rbConstant.anchor = GridBagConstraints.WEST;
 		gbc_rbConstant.insets = new Insets(0, 0, 5, 0);
 		gbc_rbConstant.gridx = 1;
 		gbc_rbConstant.gridy = 0;
-		panel_1.add(rbConstant, gbc_rbConstant);
+		panelRadioButtons1.add(rbConstant, gbc_rbConstant);
 
 		rbLiteral = new JRadioButton("Literal");
+		rbLiteral.setActionCommand(CodeFragment.LITERAL);
 		GridBagConstraints gbc_rbLiteral = new GridBagConstraints();
 		gbc_rbLiteral.anchor = GridBagConstraints.WEST;
 		gbc_rbLiteral.insets = new Insets(0, 0, 5, 5);
 		gbc_rbLiteral.gridx = 0;
 		gbc_rbLiteral.gridy = 1;
-		panel_1.add(rbLiteral, gbc_rbLiteral);
+		panelRadioButtons1.add(rbLiteral, gbc_rbLiteral);
 
 		rbReserved = new JRadioButton("Reserved");
+		rbReserved.setActionCommand(CodeFragment.RESERVED);
 		GridBagConstraints gbc_rbReserved = new GridBagConstraints();
 		gbc_rbReserved.anchor = GridBagConstraints.WEST;
 		gbc_rbReserved.insets = new Insets(0, 0, 5, 0);
 		gbc_rbReserved.gridx = 1;
 		gbc_rbReserved.gridy = 1;
-		panel_1.add(rbReserved, gbc_rbReserved);
+		panelRadioButtons1.add(rbReserved, gbc_rbReserved);
 
 		rbUnknown = new JRadioButton("Unknown");
+		rbUnknown.setActionCommand(CodeFragment.UNKNOWN);
 		GridBagConstraints gbc_rbUnknown = new GridBagConstraints();
 		gbc_rbUnknown.anchor = GridBagConstraints.WEST;
 		gbc_rbUnknown.insets = new Insets(0, 0, 0, 5);
 		gbc_rbUnknown.gridx = 0;
 		gbc_rbUnknown.gridy = 2;
-		panel_1.add(rbUnknown, gbc_rbUnknown);
+		panelRadioButtons1.add(rbUnknown, gbc_rbUnknown);
+
+		bgFragments = new ButtonGroup();
+		bgFragments.add(rbCode);
+		bgFragments.add(rbLiteral);
+		bgFragments.add(rbUnknown);
+		bgFragments.add(rbConstant);
+		bgFragments.add(rbReserved);
+		rbUnknown.setSelected(true);
 
 		JButton btnAddFragement = new JButton("Add/Update");
 		btnAddFragement.setActionCommand(AC_BTN_ADD_FRAGMENT);
@@ -862,8 +887,12 @@ public class ManualDisassembler implements ActionListener {
 
 		public CodeFragment(int startLoc, int endLoc, String type) {
 			this.startLoc = startLoc;
-			this.endLoc = startLoc > endLoc ? -1 : endLoc;
-			this.type = type == null ? CODE : type;
+			this.endLoc = endLoc;
+			this.type = (type == null) ? UNKNOWN : type;
+			if (startLoc > endLoc) {
+				this.endLoc = startLoc;
+				this.type = UNKNOWN;
+			}//
 		}// Constructor
 
 		public int size() {
@@ -871,7 +900,7 @@ public class ManualDisassembler implements ActionListener {
 		}// size
 
 		public String toString() {
-			return String.format("%04X : %04X ; (%04X) %s", startLoc, endLoc, size(), type);
+			return String.format("%04X : %04X ; (%04X) %s", startLoc, endLoc, size(), this.type);
 		}// toString
 
 		@Override
@@ -885,20 +914,65 @@ public class ManualDisassembler implements ActionListener {
 
 		public CodeFragmentModel() {
 			codeFragements = new ArrayList<CodeFragment>();
+			// codeFragements.add(new CodeFragment(0X0000, 0X000, CodeFragment.RESERVED));
+			// codeFragements.add(new CodeFragment(0XFFFF, 0XFFFF, CodeFragment.RESERVED));
 		}// Constructor
+
+		// public void addListDataListener(ManualDisassembler manualDisassembler) {
+		// // TODO Auto-generated method stub
+		//
+		// }
 
 		@Override
 		public CodeFragment getElementAt(int index) {
 			return codeFragements.get(index);
 		}// getElementAt
 
-		public void addItem(CodeFragment codeFragment) {
-			codeFragements.add(insertAt(codeFragment.startLoc), codeFragment);
+		public boolean addItem(CodeFragment codeFragment) {
+			boolean result = true;
+			int startLocNew = codeFragment.startLoc;
+			int endLocNew = codeFragment.endLoc;
+			String typeNew = codeFragment.type;
+
+			int containerIndex = codeFragmentModel.withinFragement(startLocNew);
+
+			if (containerIndex != -1) {// there is a container
+				CodeFragment cfContainer = codeFragmentModel.getElementAt(containerIndex);
+				CodeFragment cfToAdd;
+				int containerStartLoc = cfContainer.startLoc;
+				int containerEndLoc = cfContainer.endLoc;
+				String containerType = cfContainer.type;
+				this.removeItem(containerIndex);
+
+				if ((startLocNew != containerStartLoc) & (endLocNew != containerEndLoc)) {
+					cfToAdd = new CodeFragment(containerStartLoc, startLocNew - 1, containerType);
+					codeFragements.add(insertAt(containerStartLoc), cfToAdd);
+					cfToAdd = new CodeFragment(startLocNew, endLocNew, typeNew);
+					codeFragements.add(insertAt(startLocNew), cfToAdd);
+					cfToAdd = new CodeFragment(endLocNew + 1, containerEndLoc, containerType);
+					codeFragements.add(insertAt(endLocNew + 1), cfToAdd);
+				} else if (startLocNew == containerStartLoc) {
+					cfToAdd = new CodeFragment(startLocNew, endLocNew, typeNew);
+					codeFragements.add(insertAt(startLocNew), cfToAdd);
+					cfToAdd = new CodeFragment(endLocNew + 1, containerEndLoc, containerType);
+					codeFragements.add(insertAt(endLocNew + 1), cfToAdd);
+				} else if (endLocNew == containerEndLoc) {
+					cfToAdd = new CodeFragment(containerStartLoc, startLocNew - 1, containerType);
+					codeFragements.add(insertAt(containerStartLoc), cfToAdd);
+					cfToAdd = new CodeFragment(startLocNew, containerEndLoc, typeNew);
+					codeFragements.add(insertAt(startLocNew), cfToAdd);
+				} else {
+					result = false;
+				}// if else
+
+			} else { // NO container
+				codeFragements.add(insertAt(startLocNew), codeFragment);
+			}// if - container ?
 			listCodeFragments.updateUI();
-			return;
+			return result;
 		}// addItem
-		
-		public void removeItem(int index){
+
+		public void removeItem(int index) {
 			codeFragements.remove(index);
 			listCodeFragments.updateUI();
 			return;
@@ -914,40 +988,41 @@ public class ManualDisassembler implements ActionListener {
 			}// for
 			return loc;
 		}//
-/**
- * 
- * @param location
- * @return fragment that contains location , or -1 for no container
- */
+
+		/**
+		 * 
+		 * @param location
+		 * @return fragment that contains location , or -1 for no container
+		 */
 		private int withinFragement(int location) {
 			int lowerIndex = -1;
-			
-			for ( int i = 0; i < codeFragements.size();i++){
-				if (location <= codeFragements.get(i).startLoc ){
-					lowerIndex = (i == 0)?0:i-1;
+
+			for (int i = 0; i < codeFragements.size(); i++) {
+				if (location <= codeFragements.get(i).startLoc) {
+					lowerIndex = (i == 0) ? 0 : i - 1;
 					break;
-				}//if
-			}//for - find lower boundary
-			
-			if(lowerIndex == -1){
-				return -1;  // not within any fragment
+				}// if
+			}// for - find lower boundary
+
+			if (lowerIndex == -1) {
+				return -1; // not within any fragment
 			}//
 			int loLoc;
 			int hiLoc = codeFragements.get(lowerIndex).startLoc;
-			
-			for( int i = lowerIndex +1; i < codeFragements.size();i++){
+
+			for (int i = lowerIndex + 1; i < codeFragements.size(); i++) {// lowerIndex + 1
 				loLoc = hiLoc;
 				hiLoc = codeFragements.get(i).startLoc;
-				if((location >= loLoc) & ( location <= hiLoc)){
-					if (location <= codeFragements.get(i-1).endLoc){
-						return i-1;
-					}//if
-				}else if(location > hiLoc){
-					break; //too far
+				if ((location >= loLoc) & (location <= hiLoc)) {
+					if (location <= codeFragements.get(i - 1).endLoc) {
+						return i - 1;
+					}// if
+				} else if (location > hiLoc) {
+					break; // too far
 				}// if between lo & hi
-			}//for
+			}// for
 			return -1;
-		}//withinFragement
+		}// withinFragement
 
 		@Override
 		public int getSize() {
@@ -1032,7 +1107,7 @@ public class ManualDisassembler implements ActionListener {
 		public final static int NORMAL = 0;
 		public final static int TOTAL = 1; // JMP POP L
 		public final static int CONTINUATION = 2; // CALL and All conditionals
-		public final static int TERMINATES = 2; // RET
+		public final static int TERMINATES = 3; // RET
 
 		OperationStructure(byte opCode, int size,
 				String instruction, String destination, String source) {
@@ -1326,7 +1401,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XBE, new OperationStructure((byte) 0XBE, 1, "CMP", "M", ""));
 		opcodeMap.put((byte) 0XBF, new OperationStructure((byte) 0XBF, 1, "CMP", "A", ""));
 
-		opcodeMap.put((byte) 0XC0, new OperationStructure((byte) 0XC0, 1, "RNZ", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XC0, new OperationStructure((byte) 0XC0, 1, "RNZ", "", ""));
 		opcodeMap.put((byte) 0XC1, new OperationStructure((byte) 0XC1, 1, "POP", "B", ""));
 		opcodeMap.put((byte) 0XC2, new OperationStructure((byte) 0XC2, 3, "JNZ", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XC3, new OperationStructure((byte) 0XC3, 3, "JMP", "addr", "", TOTAL));
@@ -1334,7 +1409,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XC5, new OperationStructure((byte) 0XC5, 1, "PUSH", "B", ""));
 		opcodeMap.put((byte) 0XC6, new OperationStructure((byte) 0XC6, 2, "ADI", "D8", ""));
 		opcodeMap.put((byte) 0XC7, new OperationStructure((byte) 0XC7, 1, "RST", "0", "", CONTINUATION));
-		opcodeMap.put((byte) 0XC8, new OperationStructure((byte) 0XC8, 1, "RZ", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XC8, new OperationStructure((byte) 0XC8, 1, "RZ", "", ""));
 		opcodeMap.put((byte) 0XC9, new OperationStructure((byte) 0XC9, 1, "RET", "", "", TERMINATES));
 		opcodeMap.put((byte) 0XCA, new OperationStructure((byte) 0XCA, 3, "JZ", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XCB, new OperationStructure((byte) 0XCB, 3, "Alt", "addr", "", TOTAL));
@@ -1343,7 +1418,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XCE, new OperationStructure((byte) 0XCE, 2, "ACI", "D8", ""));
 		opcodeMap.put((byte) 0XCF, new OperationStructure((byte) 0XCF, 1, "RST", "1", "", CONTINUATION));
 
-		opcodeMap.put((byte) 0XD0, new OperationStructure((byte) 0XD0, 1, "RNC", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XD0, new OperationStructure((byte) 0XD0, 1, "RNC", "", ""));
 		opcodeMap.put((byte) 0XD1, new OperationStructure((byte) 0XD1, 1, "POP", "D", ""));
 		opcodeMap.put((byte) 0XD2, new OperationStructure((byte) 0XD2, 3, "JNC", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XD3, new OperationStructure((byte) 0XD3, 2, "OUT", "D8", "")); // Special
@@ -1351,7 +1426,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XD5, new OperationStructure((byte) 0XD5, 1, "PUSH", "D", ""));
 		opcodeMap.put((byte) 0XD6, new OperationStructure((byte) 0XD6, 2, "SUI", "D8", ""));
 		opcodeMap.put((byte) 0XD7, new OperationStructure((byte) 0XD7, 1, "RST", "2", "", CONTINUATION));
-		opcodeMap.put((byte) 0XD8, new OperationStructure((byte) 0XD8, 1, "RC", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XD8, new OperationStructure((byte) 0XD8, 1, "RC", "", ""));
 		opcodeMap.put((byte) 0XD9, new OperationStructure((byte) 0XD9, 1, "RET*", "", "", TOTAL));
 		opcodeMap.put((byte) 0XDA, new OperationStructure((byte) 0XDA, 3, "JC", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XDB, new OperationStructure((byte) 0XDB, 2, "IN", "D8", "")); // Special
@@ -1360,7 +1435,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XDE, new OperationStructure((byte) 0XDE, 2, "SBI", "D8", ""));
 		opcodeMap.put((byte) 0XDF, new OperationStructure((byte) 0XDF, 1, "RST", "3", "", CONTINUATION));
 
-		opcodeMap.put((byte) 0XE0, new OperationStructure((byte) 0XE0, 1, "RPO", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XE0, new OperationStructure((byte) 0XE0, 1, "RPO", "", ""));
 		opcodeMap.put((byte) 0XE1, new OperationStructure((byte) 0XE1, 1, "POP", "H", ""));
 		opcodeMap.put((byte) 0XE2, new OperationStructure((byte) 0XE2, 3, "JPO", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XE3, new OperationStructure((byte) 0XE3, 1, "XTHL", "", ""));
@@ -1368,7 +1443,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XE5, new OperationStructure((byte) 0XE5, 1, "PUSH", "H", ""));
 		opcodeMap.put((byte) 0XE6, new OperationStructure((byte) 0XE6, 2, "ANI", "D8", ""));
 		opcodeMap.put((byte) 0XE7, new OperationStructure((byte) 0XE7, 1, "RST", "4", "", CONTINUATION));
-		opcodeMap.put((byte) 0XE8, new OperationStructure((byte) 0XE8, 1, "RPE", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XE8, new OperationStructure((byte) 0XE8, 1, "RPE", "", ""));
 		opcodeMap.put((byte) 0XE9, new OperationStructure((byte) 0XE9, 1, "PCHL", "", "", TOTAL));
 		opcodeMap.put((byte) 0XEA, new OperationStructure((byte) 0XEA, 3, "JPE", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XEB, new OperationStructure((byte) 0XEB, 1, "XCHG", "", "")); // Special
@@ -1377,7 +1452,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XEE, new OperationStructure((byte) 0XEE, 2, "XRI", "D8", ""));
 		opcodeMap.put((byte) 0XEF, new OperationStructure((byte) 0XEF, 1, "RST", "5", "", CONTINUATION));
 
-		opcodeMap.put((byte) 0XF0, new OperationStructure((byte) 0XF0, 1, "RP", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XF0, new OperationStructure((byte) 0XF0, 1, "RP", "", ""));
 		opcodeMap.put((byte) 0XF1, new OperationStructure((byte) 0XF1, 1, "POP", "PSW", "", TOTAL));
 		opcodeMap.put((byte) 0XF2, new OperationStructure((byte) 0XF2, 3, "JP", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XF3, new OperationStructure((byte) 0XF3, 1, "DI", "", "")); // Special
@@ -1385,7 +1460,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XF5, new OperationStructure((byte) 0XF5, 1, "PUSH", "PSW", ""));
 		opcodeMap.put((byte) 0XF6, new OperationStructure((byte) 0XF6, 2, "ORI", "D8", ""));
 		opcodeMap.put((byte) 0XF7, new OperationStructure((byte) 0XF7, 1, "RST", "6", "", CONTINUATION));
-		opcodeMap.put((byte) 0XF8, new OperationStructure((byte) 0XF8, 1, "RM", "", "", CONTINUATION));
+		opcodeMap.put((byte) 0XF8, new OperationStructure((byte) 0XF8, 1, "RM", "", ""));
 		opcodeMap.put((byte) 0XF9, new OperationStructure((byte) 0XF9, 1, "SPHL", "", ""));
 		opcodeMap.put((byte) 0XFA, new OperationStructure((byte) 0XFA, 3, "JM", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XFB, new OperationStructure((byte) 0XFB, 1, "EI", "", "")); // Special

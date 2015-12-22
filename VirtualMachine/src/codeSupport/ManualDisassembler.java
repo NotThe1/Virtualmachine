@@ -15,6 +15,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.ListModel;
 import javax.swing.event.ListDataListener;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -50,6 +51,7 @@ import java.util.SortedSet;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import javax.swing.JPanel;
 
@@ -89,7 +91,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.ListSelectionModel;
 
-public class ManualDisassembler implements ActionListener {
+public class ManualDisassembler implements ActionListener, ListSelectionListener {
 
 	private JFrame frmManualDisassembler;
 
@@ -116,7 +118,34 @@ public class ManualDisassembler implements ActionListener {
 		codeFragmentModel.addItem(new CodeFragment(startLocNew, endLocNew, type));
 	}// addFragement
 
+	private void removeFragment() {
+		int index = listCodeFragments.getSelectedIndex();
+		if (index == -1) {
+			return;
+		}
+		// System.out.printf("<removeFragment> getSelectedIndex() =  %s%n", listCodeFragments.getSelectedIndex());
+		codeFragmentModel.removeItem(listCodeFragments.getSelectedIndex());
+		if (index > codeFragmentModel.getSize() - 1) {
+			listCodeFragments.setSelectedIndex(codeFragmentModel.getSize() - 1);
+		}
+	}// removeFragment
+
+	private void processFragment() {
+		int index = listCodeFragments.getSelectedIndex();
+		CodeFragment cf = codeFragmentModel.getElementAt(index);
+		if (!cf.type.equals(CodeFragment.UNKNOWN)) {
+			return;
+		}// if
+		System.out.printf("<processFragment> - DoIt!%n");
+		entryPoints.push(cf.startLoc);
+		buildFragments();
+	}//
+
 	private void actionStart() {
+		btnProcessFragment.setEnabled(true);
+		btnAddFragment.setEnabled(true);
+		btnRemoveFragment.setEnabled(true);
+
 		try1();
 	}
 
@@ -137,9 +166,46 @@ public class ManualDisassembler implements ActionListener {
 		entryPoints.push(OFFSET);
 		int counter = 0;
 		while (!entryPoints.isEmpty()) {
-			buildFragments();
+			if (!beenThere.containsKey(entryPoints.peek())) {
+				buildFragments();
+			} else {
+				entryPoints.pop(); // toss the entry point , been there!
+			}
 		}// while
+		factorFragments();
 	}// try1
+
+	private void factorFragments() {
+		ArrayList<CodeFragment> tempFragments = new ArrayList<CodeFragment>();
+		;
+
+		if (codeFragmentModel.getSize() < 2) {
+			return;
+		}
+		CodeFragment cfOriginal = null;
+		CodeFragment cfNew = codeFragmentModel.getElementAt(0);
+
+		for (int i = 1; i < codeFragmentModel.getSize(); i++) {
+			cfOriginal = codeFragmentModel.getElementAt(i);
+			if (!cfOriginal.type.equals(cfNew.type)) {
+				tempFragments.add(cfNew);
+				cfNew = codeFragmentModel.getElementAt(i);
+			} else if (cfOriginal.startLoc == cfNew.endLoc + 1) {
+				cfNew.endLoc = cfOriginal.endLoc;
+			} else {
+				tempFragments.add(cfNew);
+				cfNew = codeFragmentModel.getElementAt(i);
+			}// if
+		}
+		tempFragments.add(cfNew);
+
+		codeFragmentModel.clear();
+		for (int i = 0; i < tempFragments.size(); i++) {
+			codeFragmentModel.addItem(tempFragments.get(i));
+		}// for - rebuild codeFragments
+
+		int a = 0;
+	}
 
 	private void buildFragments() {
 		int startLocation = 0;
@@ -148,9 +214,12 @@ public class ManualDisassembler implements ActionListener {
 		currentLocation = startLocation;
 		boolean keepGoing = true;
 		while (keepGoing) {
+			int a = currentLocation;
 
 			if (beenThere.put(currentLocation, true) != null) {
 				System.out.printf("already visited %04X%n", startLocation);
+				codeFragmentModel.addItem(new CodeFragment(startLocation, (currentLocation - 1), CodeFragment.CODE));
+
 				return;
 			}//
 
@@ -172,9 +241,10 @@ public class ManualDisassembler implements ActionListener {
 				keepGoing = true;
 				break;
 			case OperationStructure.TERMINATES: // RET
+				currentLocation += currentOpCode.getSize();
 				keepGoing = false;
 				break;
-			case OperationStructure.TOTAL: // JUMP POP & PCHL
+			case OperationStructure.TOTAL: // JUMP PCHL
 				if (currentOpCode.instruction.equals("JMP")) { // only for JMP
 					entryPoints.push(makeTargetAddress(currentLocation));
 				}
@@ -231,6 +301,7 @@ public class ManualDisassembler implements ActionListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}// try
+		haveFile(true);
 	}
 
 	private void mnuSave(String cfFileName) {
@@ -245,6 +316,25 @@ public class ManualDisassembler implements ActionListener {
 		// }// try - write objects
 
 	}
+
+	private void haveFile(boolean state) {
+		btnStart.setEnabled(state);
+		tabPaneFragments.setEnabled(state);
+		spinnerStartFragment.setEnabled(state);
+		spinnerEndFragment.setEnabled(state);
+		rbCode.setEnabled(state);
+		rbConstant.setEnabled(state);
+		rbLiteral.setEnabled(state);
+		rbReserved.setEnabled(state);
+		rbUnknown.setEnabled(state);
+		if (state) {
+
+		} else {
+			btnProcessFragment.setEnabled(state);
+			btnAddFragment.setEnabled(state);
+			btnRemoveFragment.setEnabled(state);
+		}
+	}//
 
 	// ------------------------------------------------------------------------------------------
 
@@ -291,7 +381,10 @@ public class ManualDisassembler implements ActionListener {
 			addFragement();
 			break;
 		case AC_BTN_REMOVE_FRAGMENT:
-			message = AC_BTN_REMOVE_FRAGMENT;
+			removeFragment();
+			break;
+		case AC_BTN_PROCESS_FRAGMENT:
+			processFragment();
 			break;
 
 		case AC_BTN_ADD_SYMBOL:
@@ -315,20 +408,50 @@ public class ManualDisassembler implements ActionListener {
 
 	}// actionPerformed
 
+	@Override
+	public void valueChanged(ListSelectionEvent lse) {
+		if (lse.getValueIsAdjusting()) {
+			return;
+		}
+		int index = ((JList) lse.getSource()).getSelectedIndex();
+		CodeFragment cf = codeFragmentModel.getElementAt(index);
+		spinnerStartFragment.setValue(cf.startLoc);
+		spinnerEndFragment.setValue(cf.endLoc);
+		setFragmentRadioButton(cf.type);
+		// System.out.printf("<valueChanged> - SelectedIndex =  %d %n", index);
+		// System.out.printf("<valueChanged> - firstIndex =  %d ; lastIndex =  %d%n", lse.getFirstIndex(),
+		// lse.getLastIndex());
+		// System.out.printf("<valueChanged> - ValueIsAdjusting =  %s%n", lse.getValueIsAdjusting());
+	}
+
+	private void setFragmentRadioButton(String type) {
+		switch (type) {
+		case CodeFragment.CODE:
+			rbCode.setSelected(true);
+			break;
+		case CodeFragment.CONSTANT:
+			rbConstant.setSelected(true);
+			break;
+		case CodeFragment.LITERAL:
+			rbLiteral.setSelected(true);
+			break;
+		case CodeFragment.RESERVED:
+			rbReserved.setSelected(true);
+			break;
+		case CodeFragment.UNKNOWN:
+			rbUnknown.setSelected(true);
+			break;
+		}
+	}
+
 	private void appClose() {
 		System.exit(0);
 	}// appClose
 
 	private void loadSomeData() {
-		// codeFragmentModel.addItem(new CodeFragment(0X0000, 0X000, CodeFragment.RESERVED));
-		// // codeFragmentModel.add(new CodeFragment(0X75, 0X50, CodeFragment.RESERVED));
-		// // codeFragmentModel.add(new CodeFragment(0X000, 0X000, CodeFragment.CODE));
-		// codeFragmentModel.addItem(new CodeFragment(0XFFFF, 0XFFFF, CodeFragment.RESERVED));
-
 		symbolDisModel.add(new SymbolDis("0000", SymbolDis.LABEL, 0, false));
 		symbolDisModel.add(new SymbolDis("5678", SymbolDis.VALUE, 5, true));
 		symbolDisModel.add(new SymbolDis("1234", SymbolDis.LABEL, 10, true));
-
 	}
 
 	@SuppressWarnings("unchecked")
@@ -343,7 +466,6 @@ public class ManualDisassembler implements ActionListener {
 
 		// Collections.sort( (List<T>) codeFragmentModel);
 		listCodeFragments.setModel(codeFragmentModel);
-
 		Collections.sort(symbolDisModel);
 		listSymbols.setModel(symbolDisModel);
 
@@ -354,6 +476,7 @@ public class ManualDisassembler implements ActionListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		haveFile(false);
 	}// appInit
 
 	/**
@@ -366,6 +489,7 @@ public class ManualDisassembler implements ActionListener {
 
 	private final static int OFFSET = 0X0100; // adjusted to TPA
 	private final static int LINE_WIDTH = 54; // calculated by hand for now
+
 	private ByteBuffer binaryData;
 	private int currentLocation;
 	private int codeDestiation;
@@ -375,9 +499,9 @@ public class ManualDisassembler implements ActionListener {
 	byte currentValue0;
 	byte currentValue1;
 	byte currentValue2;
-	String linePart1, linePart2, linePart3;
-	Stack<Integer> entryPoints;
-	Document asmDoc;
+	private String linePart1, linePart2, linePart3;
+	private Stack<Integer> entryPoints;
+	private Document asmDoc;
 	private HashMap<Integer, Boolean> beenThere;
 
 	private File binaryFile;
@@ -399,6 +523,7 @@ public class ManualDisassembler implements ActionListener {
 
 	private final static String AC_BTN_ADD_FRAGMENT = "btnAddFragment";
 	private final static String AC_BTN_REMOVE_FRAGMENT = "btnRemoveFragment";
+	private final static String AC_BTN_PROCESS_FRAGMENT = "btnProcessFragment";
 
 	private final static String AC_BTN_ADD_SYMBOL = "btnAddSymbol";
 	private final static String AC_BTN_REMOVE_SYMBOL = "btnRemoveSymbol";
@@ -425,6 +550,11 @@ public class ManualDisassembler implements ActionListener {
 	private JRadioButton rbUnknown;
 	private Hex64KSpinner spinnerStartFragment;
 	private Hex64KSpinner spinnerEndFragment;
+	private JButton btnStart;
+	private JTabbedPane tabPaneFragments;
+	private JButton btnAddFragment;
+	private JButton btnRemoveFragment;
+	private JButton btnProcessFragment;
 
 	/**
 	 * Initialize the contents of the frame.
@@ -509,77 +639,126 @@ public class ManualDisassembler implements ActionListener {
 		mnuCodeFragment.add(mnuCodeFragementsSaveAs);
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 0, 0 };
-		gridBagLayout.rowHeights = new int[] { 0, 0, 0 };
+		gridBagLayout.rowHeights = new int[] { 0, 0, 0, 0 };
 		gridBagLayout.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gridBagLayout.rowWeights = new double[] { 1.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
 		frmManualDisassembler.getContentPane().setLayout(gridBagLayout);
+
+		JPanel panel_1 = new JPanel();
+		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
+		gbc_panel_1.insets = new Insets(0, 0, 5, 0);
+		gbc_panel_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1.gridx = 0;
+		gbc_panel_1.gridy = 0;
+		frmManualDisassembler.getContentPane().add(panel_1, gbc_panel_1);
+		GridBagLayout gbl_panel_1 = new GridBagLayout();
+		gbl_panel_1.columnWidths = new int[] { 0, 0 };
+		gbl_panel_1.rowHeights = new int[] { 0, 0, 0 };
+		gbl_panel_1.columnWeights = new double[] { 0.0, Double.MIN_VALUE };
+		gbl_panel_1.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		panel_1.setLayout(gbl_panel_1);
+
+		btnStart = new JButton("Start");
+		GridBagConstraints gbc_btnStart = new GridBagConstraints();
+		gbc_btnStart.gridx = 0;
+		gbc_btnStart.gridy = 1;
+		panel_1.add(btnStart, gbc_btnStart);
+		btnStart.setActionCommand(AC_BTN_START);
+		btnStart.addActionListener(this);
 
 		JPanel panelMain = new JPanel();
 		GridBagConstraints gbc_panelMain = new GridBagConstraints();
 		gbc_panelMain.insets = new Insets(0, 0, 5, 0);
 		gbc_panelMain.fill = GridBagConstraints.BOTH;
 		gbc_panelMain.gridx = 0;
-		gbc_panelMain.gridy = 0;
+		gbc_panelMain.gridy = 1;
 		frmManualDisassembler.getContentPane().add(panelMain, gbc_panelMain);
 		GridBagLayout gbl_panelMain = new GridBagLayout();
-		gbl_panelMain.columnWidths = new int[] { 235, 0, 0, 0 };
+		gbl_panelMain.columnWidths = new int[] { 278, 0, 0, 0 };
 		gbl_panelMain.rowHeights = new int[] { 0, 0 };
 		gbl_panelMain.columnWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		gbl_panelMain.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		panelMain.setLayout(gbl_panelMain);
 
-		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setPreferredSize(new Dimension(0, 0));
-		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
-		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
-		gbc_tabbedPane.insets = new Insets(0, 0, 0, 5);
-		gbc_tabbedPane.gridx = 0;
-		gbc_tabbedPane.gridy = 0;
-		panelMain.add(tabbedPane, gbc_tabbedPane);
+		tabPaneFragments = new JTabbedPane(JTabbedPane.TOP);
+		tabPaneFragments.setPreferredSize(new Dimension(0, 0));
+		GridBagConstraints gbc_tabPaneFragments = new GridBagConstraints();
+		gbc_tabPaneFragments.fill = GridBagConstraints.BOTH;
+		gbc_tabPaneFragments.insets = new Insets(0, 0, 0, 5);
+		gbc_tabPaneFragments.gridx = 0;
+		gbc_tabPaneFragments.gridy = 0;
+		panelMain.add(tabPaneFragments, gbc_tabPaneFragments);
 
 		JPanel panelFragments = new JPanel();
-		tabbedPane.addTab("Fragments", null, panelFragments, null);
-		panelFragments.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
+		tabPaneFragments.addTab("Fragments", null, panelFragments, null);
+		panelFragments.setBorder(null);
 		GridBagLayout gbl_panelFragments = new GridBagLayout();
-		gbl_panelFragments.columnWidths = new int[] { 100, 100, 0 };
-		gbl_panelFragments.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
-		gbl_panelFragments.columnWeights = new double[] { 1.0, 0.0, Double.MIN_VALUE };
-		gbl_panelFragments.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelFragments.columnWidths = new int[] { 0, 200, 0 };
+		gbl_panelFragments.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		gbl_panelFragments.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_panelFragments.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		panelFragments.setLayout(gbl_panelFragments);
 
 		JPanel panelTypeManipulation = new JPanel();
 		GridBagConstraints gbc_panelTypeManipulation = new GridBagConstraints();
 		gbc_panelTypeManipulation.insets = new Insets(0, 0, 5, 5);
-		gbc_panelTypeManipulation.fill = GridBagConstraints.VERTICAL;
+		gbc_panelTypeManipulation.fill = GridBagConstraints.BOTH;
 		gbc_panelTypeManipulation.gridx = 0;
 		gbc_panelTypeManipulation.gridy = 0;
 		panelFragments.add(panelTypeManipulation, gbc_panelTypeManipulation);
 
-		JLabel lblStart = new JLabel("Start");
-		panelTypeManipulation.add(lblStart);
+		JPanel panelFragmentBoundary = new JPanel();
+		GridBagConstraints gbc_panelFragmentBoundary = new GridBagConstraints();
+		gbc_panelFragmentBoundary.gridwidth = 2;
+		gbc_panelFragmentBoundary.insets = new Insets(0, 0, 5, 0);
+		gbc_panelFragmentBoundary.fill = GridBagConstraints.BOTH;
+		gbc_panelFragmentBoundary.gridx = 0;
+		gbc_panelFragmentBoundary.gridy = 1;
+		panelFragments.add(panelFragmentBoundary, gbc_panelFragmentBoundary);
+		GridBagLayout gbl_panelFragmentBoundary = new GridBagLayout();
+		gbl_panelFragmentBoundary.columnWidths = new int[] { 0, 0, 0, 0, 0 };
+		gbl_panelFragmentBoundary.rowHeights = new int[] { 0, 0 };
+		gbl_panelFragmentBoundary.columnWeights = new double[] { 1.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gbl_panelFragmentBoundary.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		panelFragmentBoundary.setLayout(gbl_panelFragmentBoundary);
+
+		JLabel lblStart = new JLabel("    Start   ");
+		lblStart.setMinimumSize(new Dimension(30, 18));
+		lblStart.setPreferredSize(new Dimension(30, 18));
+		GridBagConstraints gbc_lblStart = new GridBagConstraints();
+		gbc_lblStart.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblStart.insets = new Insets(0, 0, 0, 5);
+		gbc_lblStart.gridx = 0;
+		gbc_lblStart.gridy = 0;
+		panelFragmentBoundary.add(lblStart, gbc_lblStart);
 
 		spinnerStartFragment = new Hex64KSpinner();
+		spinnerStartFragment.setMinimumSize(new Dimension(50, 18));
+		spinnerStartFragment.setPreferredSize(new Dimension(50, 18));
 		GridBagConstraints gbc_spinnerStartFragment = new GridBagConstraints();
-		gbc_spinnerStartFragment.anchor = GridBagConstraints.EAST;
-		gbc_spinnerStartFragment.insets = new Insets(0, 0, 5, 5);
+		gbc_spinnerStartFragment.insets = new Insets(0, 0, 0, 5);
 		gbc_spinnerStartFragment.gridx = 1;
 		gbc_spinnerStartFragment.gridy = 0;
-		panelFragments.add(spinnerStartFragment, gbc_spinnerStartFragment);
+		panelFragmentBoundary.add(spinnerStartFragment, gbc_spinnerStartFragment);
 
-		JLabel lblEnd = new JLabel("End");
+		JLabel lblEnd = new JLabel("     End  ");
+		lblEnd.setMinimumSize(new Dimension(30, 18));
+		lblEnd.setPreferredSize(new Dimension(30, 18));
 		GridBagConstraints gbc_lblEnd = new GridBagConstraints();
-		gbc_lblEnd.insets = new Insets(0, 0, 5, 5);
-		gbc_lblEnd.gridx = 0;
-		gbc_lblEnd.gridy = 1;
-		panelFragments.add(lblEnd, gbc_lblEnd);
+		gbc_lblEnd.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblEnd.insets = new Insets(0, 0, 0, 5);
+		gbc_lblEnd.gridx = 2;
+		gbc_lblEnd.gridy = 0;
+		panelFragmentBoundary.add(lblEnd, gbc_lblEnd);
 
 		spinnerEndFragment = new Hex64KSpinner();
+		spinnerEndFragment.setPreferredSize(new Dimension(50, 18));
+		spinnerEndFragment.setMinimumSize(new Dimension(50, 18));
 		GridBagConstraints gbc_spinnerEndFragment = new GridBagConstraints();
-		gbc_spinnerEndFragment.anchor = GridBagConstraints.EAST;
-		gbc_spinnerEndFragment.insets = new Insets(0, 0, 5, 5);
-		gbc_spinnerEndFragment.gridx = 1;
-		gbc_spinnerEndFragment.gridy = 1;
-		panelFragments.add(spinnerEndFragment, gbc_spinnerEndFragment);
+		gbc_spinnerEndFragment.anchor = GridBagConstraints.WEST;
+		gbc_spinnerEndFragment.gridx = 3;
+		gbc_spinnerEndFragment.gridy = 0;
+		panelFragmentBoundary.add(spinnerEndFragment, gbc_spinnerEndFragment);
 
 		JPanel panelRadioButtons1 = new JPanel();
 		panelRadioButtons1.setBorder(new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null),
@@ -587,7 +766,7 @@ public class ManualDisassembler implements ActionListener {
 				TitledBorder.LEADING, TitledBorder.BELOW_TOP, null, null));
 		GridBagConstraints gbc_panelRadioButtons1 = new GridBagConstraints();
 		gbc_panelRadioButtons1.gridwidth = 2;
-		gbc_panelRadioButtons1.insets = new Insets(0, 0, 5, 5);
+		gbc_panelRadioButtons1.insets = new Insets(0, 0, 5, 0);
 		gbc_panelRadioButtons1.fill = GridBagConstraints.BOTH;
 		gbc_panelRadioButtons1.gridx = 0;
 		gbc_panelRadioButtons1.gridy = 2;
@@ -652,41 +831,74 @@ public class ManualDisassembler implements ActionListener {
 		bgFragments.add(rbReserved);
 		rbUnknown.setSelected(true);
 
-		JButton btnAddFragement = new JButton("Add/Update");
-		btnAddFragement.setActionCommand(AC_BTN_ADD_FRAGMENT);
-		btnAddFragement.addActionListener(this);
-		GridBagConstraints gbc_btnAddFragement = new GridBagConstraints();
-		gbc_btnAddFragement.anchor = GridBagConstraints.NORTH;
-		gbc_btnAddFragement.insets = new Insets(0, 0, 5, 5);
-		gbc_btnAddFragement.gridx = 0;
-		gbc_btnAddFragement.gridy = 3;
-		panelFragments.add(btnAddFragement, gbc_btnAddFragement);
+		JPanel panelFragmentButtons = new JPanel();
+		GridBagConstraints gbc_panelFragmentButtons = new GridBagConstraints();
+		gbc_panelFragmentButtons.gridwidth = 2;
+		gbc_panelFragmentButtons.insets = new Insets(0, 0, 5, 5);
+		gbc_panelFragmentButtons.fill = GridBagConstraints.BOTH;
+		gbc_panelFragmentButtons.gridx = 0;
+		gbc_panelFragmentButtons.gridy = 3;
+		panelFragments.add(panelFragmentButtons, gbc_panelFragmentButtons);
+		GridBagLayout gbl_panelFragmentButtons = new GridBagLayout();
+		gbl_panelFragmentButtons.columnWidths = new int[] { 0, 0, 0 };
+		gbl_panelFragmentButtons.rowHeights = new int[] { 0, 0, 0 };
+		gbl_panelFragmentButtons.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panelFragmentButtons.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		panelFragmentButtons.setLayout(gbl_panelFragmentButtons);
 
-		JButton btnRemoveFragement = new JButton("Remove");
-		btnRemoveFragement.setActionCommand(AC_BTN_REMOVE_FRAGMENT);
-		btnRemoveFragement.addActionListener(this);
-		GridBagConstraints gbc_btnRemoveFragement = new GridBagConstraints();
-		gbc_btnRemoveFragement.insets = new Insets(0, 0, 5, 5);
-		gbc_btnRemoveFragement.gridx = 1;
-		gbc_btnRemoveFragement.gridy = 3;
-		panelFragments.add(btnRemoveFragement, gbc_btnRemoveFragement);
+		btnAddFragment = new JButton("Add/Update");
+		btnAddFragment.setActionCommand(AC_BTN_ADD_FRAGMENT);
+		btnAddFragment.addActionListener(this);
+		GridBagConstraints gbc_btnAddFragment = new GridBagConstraints();
+		gbc_btnAddFragment.insets = new Insets(0, 0, 5, 5);
+		gbc_btnAddFragment.gridx = 0;
+		gbc_btnAddFragment.gridy = 0;
+		panelFragmentButtons.add(btnAddFragment, gbc_btnAddFragment);
+
+		btnRemoveFragment = new JButton("Remove");
+		btnRemoveFragment.setActionCommand(AC_BTN_REMOVE_FRAGMENT);
+		btnRemoveFragment.addActionListener(this);
+		GridBagConstraints gbc_btnRemoveFragment = new GridBagConstraints();
+		gbc_btnRemoveFragment.insets = new Insets(0, 0, 5, 0);
+		gbc_btnRemoveFragment.gridx = 1;
+		gbc_btnRemoveFragment.gridy = 0;
+		panelFragmentButtons.add(btnRemoveFragment, gbc_btnRemoveFragment);
+
+		btnProcessFragment = new JButton("Process");
+		btnProcessFragment.setActionCommand(AC_BTN_PROCESS_FRAGMENT);
+		btnProcessFragment.addActionListener(this);
+		GridBagConstraints gbc_btnProcessFragment = new GridBagConstraints();
+		gbc_btnProcessFragment.insets = new Insets(0, 0, 0, 5);
+		gbc_btnProcessFragment.gridx = 0;
+		gbc_btnProcessFragment.gridy = 1;
+		panelFragmentButtons.add(btnProcessFragment, gbc_btnProcessFragment);
+
+		JScrollPane scrollPaneFragments = new JScrollPane();
+		GridBagConstraints gbc_scrollPaneFragments = new GridBagConstraints();
+		gbc_scrollPaneFragments.fill = GridBagConstraints.BOTH;
+		gbc_scrollPaneFragments.gridwidth = 2;
+		gbc_scrollPaneFragments.gridx = 0;
+		gbc_scrollPaneFragments.gridy = 5;
+		panelFragments.add(scrollPaneFragments, gbc_scrollPaneFragments);
 
 		listCodeFragments = new JList<CodeFragment>();
+		scrollPaneFragments.setViewportView(listCodeFragments);
 		listCodeFragments.setFont(new Font("Courier New", Font.BOLD, 12));
 		listCodeFragments.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		listCodeFragments.addListSelectionListener(this);
+		listCodeFragments.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
 		// scrollPaneFragements.setViewportView(listCodeFragments);
 		listCodeFragments.setVisibleRowCount(28);
 		listCodeFragments.setBorder(new LineBorder(Color.BLUE));
-		GridBagConstraints gbc_listCodeFragments = new GridBagConstraints();
-		gbc_listCodeFragments.fill = GridBagConstraints.BOTH;
-		gbc_listCodeFragments.gridwidth = 2;
-		gbc_listCodeFragments.insets = new Insets(0, 0, 0, 5);
-		gbc_listCodeFragments.gridx = 0;
-		gbc_listCodeFragments.gridy = 4;
-		panelFragments.add(listCodeFragments, gbc_listCodeFragments);
+
+		JLabel lblNewLabel = new JLabel("Start   End    Len     Type");
+		lblNewLabel.setForeground(Color.BLUE);
+		lblNewLabel.setFont(new Font("Courier New", Font.PLAIN, 12));
+		scrollPaneFragments.setColumnHeaderView(lblNewLabel);
 
 		JPanel panelSymbols = new JPanel();
-		tabbedPane.addTab("Symbols", null, panelSymbols, null);
+		tabPaneFragments.addTab("Symbols", null, panelSymbols, null);
 		GridBagLayout gbl_panelSymbols = new GridBagLayout();
 		gbl_panelSymbols.columnWidths = new int[] { 0, 0 };
 		gbl_panelSymbols.rowHeights = new int[] { 0, 0, 0 };
@@ -809,14 +1021,33 @@ public class ManualDisassembler implements ActionListener {
 		gbc_listSymbols.gridy = 1;
 		panelSymbols.add(listSymbols, gbc_listSymbols);
 
+		JTabbedPane tabbedPaneMain = new JTabbedPane(JTabbedPane.TOP);
+		GridBagConstraints gbc_tabbedPaneMain = new GridBagConstraints();
+		gbc_tabbedPaneMain.fill = GridBagConstraints.BOTH;
+		gbc_tabbedPaneMain.insets = new Insets(0, 0, 0, 5);
+		gbc_tabbedPaneMain.gridx = 1;
+		gbc_tabbedPaneMain.gridy = 0;
+		panelMain.add(tabbedPaneMain, gbc_tabbedPaneMain);
+
+		JPanel panelWIP = new JPanel();
+		tabbedPaneMain.addTab("W.I.P", null, panelWIP, null);
+		GridBagLayout gbl_panelWIP = new GridBagLayout();
+		gbl_panelWIP.columnWidths = new int[] { 0 };
+		gbl_panelWIP.rowHeights = new int[] { 0 };
+		gbl_panelWIP.columnWeights = new double[] { Double.MIN_VALUE };
+		gbl_panelWIP.rowWeights = new double[] { Double.MIN_VALUE };
+		panelWIP.setLayout(gbl_panelWIP);
+
+		JScrollPane scrollPaneASM = new JScrollPane();
+		tabbedPaneMain.addTab("Assembler Code", null, scrollPaneASM, null);
+		scrollPaneASM.setPreferredSize(new Dimension(300, 4));
+
+		txtASM = new JTextArea();
+		scrollPaneASM.setViewportView(txtASM);
+
 		JScrollPane scrollPaneBinary = new JScrollPane();
+		tabbedPaneMain.addTab("Binary", null, scrollPaneBinary, null);
 		scrollPaneBinary.setPreferredSize(new Dimension(680, 400));
-		GridBagConstraints gbc_scrollPaneBinary = new GridBagConstraints();
-		gbc_scrollPaneBinary.insets = new Insets(0, 0, 0, 5);
-		gbc_scrollPaneBinary.fill = GridBagConstraints.BOTH;
-		gbc_scrollPaneBinary.gridx = 1;
-		gbc_scrollPaneBinary.gridy = 0;
-		panelMain.add(scrollPaneBinary, gbc_scrollPaneBinary);
 
 		JTextArea textAreaBinary = new JTextArea();
 		textAreaBinary.setFont(new Font("Courier New", Font.PLAIN, 15));
@@ -827,24 +1058,13 @@ public class ManualDisassembler implements ActionListener {
 		label.setFont(new Font("Courier New", Font.PLAIN, 15));
 		scrollPaneBinary.setColumnHeaderView(label);
 
-		JScrollPane scrollPaneASM = new JScrollPane();
-		scrollPaneASM.setPreferredSize(new Dimension(300, 4));
-		GridBagConstraints gbc_scrollPaneASM = new GridBagConstraints();
-		gbc_scrollPaneASM.fill = GridBagConstraints.BOTH;
-		gbc_scrollPaneASM.gridx = 2;
-		gbc_scrollPaneASM.gridy = 0;
-		panelMain.add(scrollPaneASM, gbc_scrollPaneASM);
-
-		txtASM = new JTextArea();
-		scrollPaneASM.setViewportView(txtASM);
-
 		JPanel toolBar = new JPanel();
 		toolBar.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 		GridBagConstraints gbc_toolBar = new GridBagConstraints();
 		gbc_toolBar.fill = GridBagConstraints.HORIZONTAL;
 		gbc_toolBar.anchor = GridBagConstraints.SOUTH;
 		gbc_toolBar.gridx = 0;
-		gbc_toolBar.gridy = 1;
+		gbc_toolBar.gridy = 2;
 		frmManualDisassembler.getContentPane().add(toolBar, gbc_toolBar);
 		GridBagLayout gbl_toolBar = new GridBagLayout();
 		gbl_toolBar.columnWidths = new int[] { 476, 46, 0 };
@@ -852,16 +1072,6 @@ public class ManualDisassembler implements ActionListener {
 		gbl_toolBar.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		gbl_toolBar.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
 		toolBar.setLayout(gbl_toolBar);
-
-		JButton btnStart = new JButton("Start");
-		btnStart.setActionCommand(AC_BTN_START);
-		btnStart.addActionListener(this);
-		GridBagConstraints gbc_btnStart = new GridBagConstraints();
-		gbc_btnStart.anchor = GridBagConstraints.WEST;
-		gbc_btnStart.insets = new Insets(0, 0, 0, 5);
-		gbc_btnStart.gridx = 0;
-		gbc_btnStart.gridy = 0;
-		toolBar.add(btnStart, gbc_btnStart);
 
 		lblBinaryFileName = new JLabel("New label");
 		GridBagConstraints gbc_lblBinaryFileName = new GridBagConstraints();
@@ -891,6 +1101,7 @@ public class ManualDisassembler implements ActionListener {
 			this.type = (type == null) ? UNKNOWN : type;
 			if (startLoc > endLoc) {
 				this.endLoc = startLoc;
+				System.out.printf("<Constructor - CodeFragment startLoc = %04X, endLoc = %04X%n", startLoc, endLoc);
 				this.type = UNKNOWN;
 			}//
 		}// Constructor
@@ -942,7 +1153,9 @@ public class ManualDisassembler implements ActionListener {
 				int containerStartLoc = cfContainer.startLoc;
 				int containerEndLoc = cfContainer.endLoc;
 				String containerType = cfContainer.type;
-				this.removeItem(containerIndex);
+				if (containerIndex < codeFragmentModel.getSize()) {
+					this.removeItem(containerIndex);
+				}// if last element
 
 				if ((startLocNew != containerStartLoc) & (endLocNew != containerEndLoc)) {
 					cfToAdd = new CodeFragment(containerStartLoc, startLocNew - 1, containerType);
@@ -954,8 +1167,10 @@ public class ManualDisassembler implements ActionListener {
 				} else if (startLocNew == containerStartLoc) {
 					cfToAdd = new CodeFragment(startLocNew, endLocNew, typeNew);
 					codeFragements.add(insertAt(startLocNew), cfToAdd);
-					cfToAdd = new CodeFragment(endLocNew + 1, containerEndLoc, containerType);
-					codeFragements.add(insertAt(endLocNew + 1), cfToAdd);
+					if (endLocNew != containerEndLoc) {
+						cfToAdd = new CodeFragment(endLocNew + 1, containerEndLoc, containerType);
+						codeFragements.add(insertAt(endLocNew + 1), cfToAdd);
+					}// inner if
 				} else if (endLocNew == containerEndLoc) {
 					cfToAdd = new CodeFragment(containerStartLoc, startLocNew - 1, containerType);
 					codeFragements.add(insertAt(containerStartLoc), cfToAdd);
@@ -976,7 +1191,7 @@ public class ManualDisassembler implements ActionListener {
 			codeFragements.remove(index);
 			listCodeFragments.updateUI();
 			return;
-		}
+		}// removeItem
 
 		private int insertAt(int location) {
 			int loc = codeFragements.size();
@@ -987,7 +1202,11 @@ public class ManualDisassembler implements ActionListener {
 				}// if
 			}// for
 			return loc;
-		}//
+		}// insertAt
+
+		private void clear() {
+			codeFragements.clear();
+		}// clear
 
 		/**
 		 * 
@@ -1028,6 +1247,9 @@ public class ManualDisassembler implements ActionListener {
 		public int getSize() {
 			return codeFragements.size();
 		} // getSize
+
+		// // ListSelectionModel
+		// private Vector<ListSelectionListener> listSelectionListeners = new Vector<ListSelectionListener>();
 
 	}// class CodeFragmentModel
 
@@ -1453,7 +1675,7 @@ public class ManualDisassembler implements ActionListener {
 		opcodeMap.put((byte) 0XEF, new OperationStructure((byte) 0XEF, 1, "RST", "5", "", CONTINUATION));
 
 		opcodeMap.put((byte) 0XF0, new OperationStructure((byte) 0XF0, 1, "RP", "", ""));
-		opcodeMap.put((byte) 0XF1, new OperationStructure((byte) 0XF1, 1, "POP", "PSW", "", TOTAL));
+		opcodeMap.put((byte) 0XF1, new OperationStructure((byte) 0XF1, 1, "POP", "PSW", ""));
 		opcodeMap.put((byte) 0XF2, new OperationStructure((byte) 0XF2, 3, "JP", "addr", "", CONTINUATION));
 		opcodeMap.put((byte) 0XF3, new OperationStructure((byte) 0XF3, 1, "DI", "", "")); // Special
 		opcodeMap.put((byte) 0XF4, new OperationStructure((byte) 0XF4, 3, "CP", "addr", "", CONTINUATION));

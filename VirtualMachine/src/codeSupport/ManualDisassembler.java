@@ -31,8 +31,12 @@ import java.awt.Component;
 import javax.swing.Box;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.BevelBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Document;
+import javax.swing.text.Highlighter;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JList;
@@ -60,7 +64,9 @@ import javax.swing.ButtonGroup;
 import codeSupport.ManualDisassembler0.CodeFragment;
 import codeSupport.ManualDisassembler0.OperationStructure;
 
-public class ManualDisassembler implements ActionListener {
+import javax.swing.JSplitPane;
+
+public class ManualDisassembler implements ActionListener, ListSelectionListener {
 
 	private JFrame frame;
 
@@ -79,26 +85,26 @@ public class ManualDisassembler implements ActionListener {
 			}
 		});
 	}
-	
+
 	private void addFragement() {
 		int startLocNew = (int) spinnerBeginFragment.getValue();
 		int endLocNew = (int) spinnerEndFragment.getValue();
 		String type = groupFragment.getSelection().getActionCommand();
 		codeFragmentModel.addItem(new CodeFragment(startLocNew, endLocNew, type));
 	}// addFragement
-	
+
 	private void removeFragment() {
 		int index = listCodeFragments.getSelectedIndex();
 		if (index == -1) {
 			return;
-		}//if
-		// System.out.printf("<removeFragment> getSelectedIndex() =  %s%n", listCodeFragments.getSelectedIndex());
+		}// if
+			// System.out.printf("<removeFragment> getSelectedIndex() =  %s%n", listCodeFragments.getSelectedIndex());
 		codeFragmentModel.removeItem(listCodeFragments.getSelectedIndex());
 		if (index > codeFragmentModel.getSize() - 1) {
 			listCodeFragments.setSelectedIndex(codeFragmentModel.getSize() - 1);
-		}//if
+		}// if
 	}// removeFragment
-	
+
 	private void processFragment() {
 		int index = listCodeFragments.getSelectedIndex();
 		CodeFragment cf = codeFragmentModel.getElementAt(index);
@@ -109,7 +115,6 @@ public class ManualDisassembler implements ActionListener {
 		entryPoints.push(cf.startLoc);
 		buildFragments();
 	}//
-
 
 	private void actionStart() {
 		btnProcessFragment.setEnabled(true);
@@ -132,7 +137,8 @@ public class ManualDisassembler implements ActionListener {
 				entryPoints.pop(); // toss the entry point , been there!
 			}
 		}// while
-			 factorFragments();
+		factorFragments();
+		tabPaneDisplays.setSelectedIndex(TAB_WIP);
 	}// actionStart
 
 	private void try1() {
@@ -143,7 +149,7 @@ public class ManualDisassembler implements ActionListener {
 		// e.printStackTrace();
 		// }
 	}// try1
-	
+
 	private void factorFragments() {
 		ArrayList<CodeFragment> tempFragments = new ArrayList<CodeFragment>();
 
@@ -178,7 +184,6 @@ public class ManualDisassembler implements ActionListener {
 	private void buildFragments() {
 		int startLocation = 0;
 		int currentLocation = 0;
-		Opcodes8080 opcodeMap = Opcodes8080.makeCodeMap();
 		OpcodeStructure8080 currentOpCode = null;
 		;
 		int pcAction = 0;
@@ -191,14 +196,14 @@ public class ManualDisassembler implements ActionListener {
 			int a = currentLocation;
 
 			if (beenThere.put(currentLocation, 0) != null) {
-				System.out.printf("already visited %04X%n", startLocation);
+				// System.out.printf("already visited %04X%n", startLocation);
 				codeFragmentModel.addItem(new CodeFragment(startLocation, (currentLocation - 1), CodeFragment.CODE));
 
 				return;
 			}//
 
 			currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
-			System.out.printf("Location = %04X, opcode = %s%n", currentLocation, currentOpCode.getInstruction());
+			// System.out.printf("Location = %04X, opcode = %s%n", currentLocation, currentOpCode.getInstruction());
 			pcAction = currentOpCode.getPcAction();
 
 			// opCodeSize = currentOpCode.getSize();
@@ -236,7 +241,7 @@ public class ManualDisassembler implements ActionListener {
 		int hi = (binaryData.get(currentLocation + 2) & 0xFF) * 256;
 		int lo = binaryData.get(currentLocation + 1);
 		int v = hi + lo;
-//		System.out.printf("<makeTargetAddress> target = %04X from currentLocation %04X%n", v, currentLocation);
+		// System.out.printf("<makeTargetAddress> target = %04X from currentLocation %04X%n", v, currentLocation);
 		return ((binaryData.get(currentLocation + 2) & 0xFF) * 256) + (binaryData.get(currentLocation + 1) & 0xFF);
 	}
 
@@ -263,7 +268,7 @@ public class ManualDisassembler implements ActionListener {
 			e.printStackTrace();
 		}
 		long fileSize = binaryFile.length();
-		int roundedFileSize = ((((int) fileSize + OFFSET) / CHARACTERS_PER_LINE) + 1) * CHARACTERS_PER_LINE;
+		int roundedFileSize = ((((int) fileSize + OFFSET) / CHARACTERS_PER_LINE)) * CHARACTERS_PER_LINE;
 		binaryData = ByteBuffer.allocate(roundedFileSize);
 		binaryData.position(OFFSET);
 		// byte[] sectorData = new byte[sectorSize];
@@ -276,6 +281,8 @@ public class ManualDisassembler implements ActionListener {
 		}// try
 			// binaryData.flip();
 		displayBinaryFile(binaryData, (int) roundedFileSize);
+		codeFragmentModel.removeItem(0);
+		codeFragmentModel.addItem(new CodeFragment(OFFSET, (int) fileSize + OFFSET, CodeFragment.UNKNOWN));
 		haveBinanryFile(true);
 		frame.setTitle(APP_NAME + " - " + binaryFileName);
 		tabPaneDisplays.setSelectedIndex(TAB_BINARY_FILE);
@@ -284,29 +291,40 @@ public class ManualDisassembler implements ActionListener {
 	private void displayBinaryFile(ByteBuffer binaryData, int roundedFileSize) {
 		clearDocument(docBinary);
 		docBinary = txtBinaryFile.getDocument();
-		int linesToDisplay = ((roundedFileSize) / CHARACTERS_PER_LINE); // + 1
+		txtWIPbinary.setDocument(docBinary);
+		byte[] displayLine = new byte[CHARACTERS_PER_LINE];
+		binaryData.position(OFFSET);
 		try {
-			for (int i = 0x0010; i < linesToDisplay; i++) {
-				docBinary.insertString(docBinary.getLength(), formatLine(binaryData, i), null);
-			}
+			int lineNumber = OFFSET / CHARACTERS_PER_LINE;
+			while (binaryData.position() + CHARACTERS_PER_LINE <= binaryData.capacity()) {
+				// System.out.printf("<displayBinaryFile> lineNumber = %d,  position = %d%n", lineNumber,
+				// binaryData.position());
+				binaryData.get(displayLine, 0, CHARACTERS_PER_LINE);
+				docBinary.insertString(docBinary.getLength(), formatLine(displayLine, lineNumber++), null);
+			}// while
 		} catch (BadLocationException badLocationException) {
 			badLocationException.printStackTrace();
+
+		} catch (IndexOutOfBoundsException indexOutOfBoundsException) {
+			indexOutOfBoundsException.printStackTrace();
 		}
+		binaryData.rewind();
 		txtBinaryFile.setCaretPosition(0);
+		txtWIPbinary.setCaretPosition(0);
 	}// displayBinaryFile
 
-	private String formatLine(ByteBuffer binaryData, int lineNumber) {
+	private String formatLine(byte[] lineToDisplay, int lineNumber) {
 		StringBuilder sbHex = new StringBuilder();
 		StringBuilder sbDot = new StringBuilder();
 
-		byte[] lineOfBytes = new byte[CHARACTERS_PER_LINE];
+		// byte[] lineOfBytes = new byte[CHARACTERS_PER_LINE];
 		byte subject;
 
 		sbHex.append(String.format("%04X: ", lineNumber * CHARACTERS_PER_LINE));
-		int bufferIndex;
-		for (int i = 0; i < lineOfBytes.length; i++) {
-			bufferIndex = (lineNumber * CHARACTERS_PER_LINE) + i;
-			subject = binaryData.get(bufferIndex);
+		// int bufferIndex;
+		for (int i = 0; i < lineToDisplay.length; i++) {
+			// bufferIndex = (lineNumber * CHARACTERS_PER_LINE) + i;
+			subject = lineToDisplay[i];
 			sbHex.append(String.format("%02X ", subject));
 			sbDot.append((subject >= 0x20 && subject <= 0x7F) ? (char) subject : ".");
 			if (i == 7) {
@@ -343,10 +361,116 @@ public class ManualDisassembler implements ActionListener {
 			btnAddFragment.setEnabled(state);
 			btnRemoveFragment.setEnabled(state);
 			btnProcessFragment.setEnabled(state);
-		}
+		}// if
+	}// haveBinanryFile
 
-		// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	}
+	private void setFragmentRadioButton(String type) {
+		switch (type) {
+		case CodeFragment.CODE:
+			rbCode.setSelected(true);
+			break;
+		case CodeFragment.CONSTANT:
+			rbConstant.setSelected(true);
+			break;
+		case CodeFragment.LITERAL:
+			rbLiteral.setSelected(true);
+			break;
+		case CodeFragment.RESERVED:
+			rbReserved.setSelected(true);
+			break;
+		case CodeFragment.UNKNOWN:
+			rbUnknown.setSelected(true);
+			break;
+		}// switch
+	}// //
+
+	private void displayFragmenBinary(JTextArea txtArea, int startLocation, int endLocation) {
+		Highlighter.HighlightPainter yellowPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.yellow);
+
+		try {
+			int lineStart = txtArea.getLineStartOffset((startLocation / CHARACTERS_PER_LINE));
+			int lineEnd = txtArea.getLineEndOffset((endLocation / CHARACTERS_PER_LINE));
+
+			txtArea.getHighlighter().removeAllHighlights();
+			txtArea.getHighlighter().addHighlight(lineStart, lineEnd, yellowPainter);
+			txtArea.setCaretPosition(lineStart);
+		} catch (BadLocationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}//
+	}// displayFragmentSource
+
+	private void displayFragmentSource(JTextArea txtArea, CodeFragment codeFragment) {
+		String type = codeFragment.type;
+		switch (type) {
+		case CodeFragment.CODE:
+			showFragmentCode(txtArea, codeFragment);
+			break;
+		case CodeFragment.CONSTANT:
+			break;
+		case CodeFragment.LITERAL:
+			break;
+		case CodeFragment.RESERVED:
+			break;
+		case CodeFragment.UNKNOWN:
+			break;
+		default:
+		}// switch
+	}// displayFragmentSource
+
+	private void showFragmentCode(JTextArea txtArea, CodeFragment codeFragment) {
+		int startLocation = codeFragment.startLoc;
+		int endLocation = codeFragment.endLoc;
+		int codeSize = codeFragment.size();
+		Document doc = txtArea.getDocument();
+		clearDocument(doc);
+		OpcodeStructure8080 currentOpCode = null;
+
+		int currentLocation = startLocation;
+		int opCodeSize;
+		byte currentValue0, currentValue1, currentValue2;
+		String part1, part2, part3;
+		while (currentLocation < endLocation) {
+			currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
+			currentValue0 = binaryData.get(currentLocation);
+			opCodeSize = currentOpCode.getSize();
+			currentValue1 = opCodeSize > 1 ? binaryData.get(currentLocation + 1) : 0;
+			currentValue2 = opCodeSize > 2 ? binaryData.get(currentLocation + 2) : 0;
+			try {
+
+				part1 = String.format("%04X%4s", currentLocation, "");
+				doc.insertString(doc.getLength(), part1, null);
+				switch (opCodeSize) {
+				case 1:
+					part2 = String.format("%02X%8s", currentValue0, "");
+					doc.insertString(doc.getLength(), part2, null);
+					part3 = String.format("%s%n", currentOpCode.getAssemblerCode());
+					doc.insertString(doc.getLength(), part3, null);
+					break;
+				case 2:
+					part2 = String.format("%02X%02X%6s", currentValue0,currentValue1, "");
+					doc.insertString(doc.getLength(), part2, null);
+					part3 = String.format("%s%n",currentOpCode.getAssemblerCode(currentValue1));
+					doc.insertString(doc.getLength(), part3, null);
+					break;
+				case 3:
+					part2 = String.format("%02X%02X%02X%4s", currentValue0,currentValue1,currentValue2, "");
+					doc.insertString(doc.getLength(), part2, null);
+					part3 = String.format("%s%n",currentOpCode.getAssemblerCode(currentValue1,currentValue2));
+					doc.insertString(doc.getLength(), part3, null);
+					break;
+				default:
+				}// switch
+			} catch (BadLocationException badLocationException) {
+				badLocationException.printStackTrace();
+			}
+			currentLocation += opCodeSize;
+
+		}// while opcodeMap
+
+	}// showFragmentCode
+
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	@Override
 	public void actionPerformed(ActionEvent actionEvent) {
@@ -399,9 +523,22 @@ public class ManualDisassembler implements ActionListener {
 		}// switch
 		if (message != null) {
 			System.out.printf("<actionPerformed> actionCommand = %s%n", actionCommand);
-		}
+		}// if
+	}// actionPerformed
 
-	}
+	@Override
+	public void valueChanged(ListSelectionEvent lse) {
+		if (lse.getValueIsAdjusting()) {
+			return;
+		}
+		int index = ((JList) lse.getSource()).getSelectedIndex();
+		CodeFragment codeFragment = codeFragmentModel.getElementAt(index);
+		spinnerBeginFragment.setValue(codeFragment.startLoc);
+		spinnerEndFragment.setValue(codeFragment.endLoc);
+		setFragmentRadioButton(codeFragment.type);
+		displayFragmenBinary(txtWIPbinary, codeFragment.startLoc - OFFSET, codeFragment.endLoc - OFFSET);
+		displayFragmentSource(txtWIPsource, codeFragment);
+	}// valueChanged
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	private void appClose() {
@@ -409,9 +546,11 @@ public class ManualDisassembler implements ActionListener {
 	}// appClose
 
 	private void appInit() {
-		 codeFragmentModel = new CodeFragmentModel();
+		opcodeMap = Opcodes8080.makeCodeMap();
+		docWIPbinary = txtWIPsource.getDocument();
+		codeFragmentModel = new CodeFragmentModel();
 		listCodeFragments.setModel(codeFragmentModel);
-	
+
 		haveBinanryFile(false);
 		frame.setTitle(APP_NAME + binaryFileName);
 	}// appInit
@@ -430,7 +569,10 @@ public class ManualDisassembler implements ActionListener {
 	private String binaryFileName = "";
 	private ByteBuffer binaryData;
 	private CodeFragmentModel codeFragmentModel;
+	private Opcodes8080 opcodeMap;
 	private Document docBinary;
+	private Document docWIPbinary;
+	private Document docWIPsource;
 
 	private Stack<Integer> entryPoints;
 	// private Document asmDoc;
@@ -476,6 +618,9 @@ public class ManualDisassembler implements ActionListener {
 	private JPanel panelFragmentTypes;
 	private JTextArea txtBinaryFile;
 	private JTabbedPane tabPaneDisplays;
+	private JTextArea txtWIPbinary;
+	private JScrollPane scrollPaneWIPbinary;
+	private JTextArea txtWIPsource;
 
 	// ------------------------------------------------------------------------------
 
@@ -708,6 +853,8 @@ public class ManualDisassembler implements ActionListener {
 		panelFragments.add(scrollPaneFragments, gbc_scrollPaneFragments);
 
 		listCodeFragments = new JList();
+		listCodeFragments.addListSelectionListener(this);
+		listCodeFragments.setFont(new Font("Courier New", Font.PLAIN, 12));
 		scrollPaneFragments.setViewportView(listCodeFragments);
 
 		JLabel lblNewLabel = new JLabel("Start   End    Len     Type");
@@ -727,11 +874,40 @@ public class ManualDisassembler implements ActionListener {
 		JPanel panelWIP = new JPanel();
 		tabPaneDisplays.addTab("WIP", null, panelWIP, null);
 		GridBagLayout gbl_panelWIP = new GridBagLayout();
-		gbl_panelWIP.columnWidths = new int[] { 0 };
-		gbl_panelWIP.rowHeights = new int[] { 0 };
-		gbl_panelWIP.columnWeights = new double[] { Double.MIN_VALUE };
-		gbl_panelWIP.rowWeights = new double[] { Double.MIN_VALUE };
+		gbl_panelWIP.columnWidths = new int[] { 0, 0 };
+		gbl_panelWIP.rowHeights = new int[] { 0, 0 };
+		gbl_panelWIP.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_panelWIP.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		panelWIP.setLayout(gbl_panelWIP);
+
+		JSplitPane splitPane = new JSplitPane();
+		splitPane.setOneTouchExpandable(true);
+		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		GridBagConstraints gbc_splitPane = new GridBagConstraints();
+		gbc_splitPane.fill = GridBagConstraints.BOTH;
+		gbc_splitPane.gridx = 0;
+		gbc_splitPane.gridy = 0;
+		panelWIP.add(splitPane, gbc_splitPane);
+
+		scrollPaneWIPbinary = new JScrollPane();
+		splitPane.setLeftComponent(scrollPaneWIPbinary);
+
+		txtWIPbinary = new JTextArea();
+		txtWIPbinary.setEditable(false);
+		txtWIPbinary.setFont(new Font("Courier New", Font.PLAIN, 15));
+		scrollPaneWIPbinary.setViewportView(txtWIPbinary);
+
+		JLabel label_1 = new JLabel("      00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F");
+		label_1.setForeground(Color.BLUE);
+		label_1.setFont(new Font("Courier New", Font.PLAIN, 15));
+		scrollPaneWIPbinary.setColumnHeaderView(label_1);
+
+		JScrollPane scrollPaneWIPsource = new JScrollPane();
+		splitPane.setRightComponent(scrollPaneWIPsource);
+
+		txtWIPsource = new JTextArea();
+		scrollPaneWIPsource.setViewportView(txtWIPsource);
+		splitPane.setDividerLocation(300);
 
 		JPanel panelBinanryFile = new JPanel();
 		tabPaneDisplays.addTab("Binary File", null, panelBinanryFile, null);
@@ -751,6 +927,7 @@ public class ManualDisassembler implements ActionListener {
 		panelBinanryFile.add(scrollPane, gbc_scrollPane);
 
 		txtBinaryFile = new JTextArea();
+		txtBinaryFile.setEditable(false);
 		txtBinaryFile.setFont(new Font("Courier New", Font.PLAIN, 15));
 		scrollPane.setViewportView(txtBinaryFile);
 
@@ -806,7 +983,7 @@ public class ManualDisassembler implements ActionListener {
 		}// Constructor
 
 		public int size() {
-			return endLoc - startLoc;
+			return endLoc - startLoc + 1;
 		}// size
 
 		public String toString() {

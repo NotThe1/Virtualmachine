@@ -254,7 +254,7 @@ public class Opcodes8080 {
 		opcodeMap.put((byte) 0XC8, new OpcodeStructure8080((byte) 0XC8, 1, "RZ", "", "", "if Z, ret"));
 		opcodeMap.put((byte) 0XC9, new OpcodeStructure8080((byte) 0XC9, 1, "RET", "", "", "PC<-(SP); SP<-SP+2", TERMINATES));
 		opcodeMap.put((byte) 0XCA, new OpcodeStructure8080((byte) 0XCA, 3, "JZ", "addr", "", "if Z,PC<-addr", CONTINUATION));
-		opcodeMap.put((byte) 0XCB, new OpcodeStructure8080((byte) 0XCB, 3, "Alt", "addr", "", "Alt RET PC<-addr", TOTAL));
+		opcodeMap.put((byte) 0XCB, new OpcodeStructure8080((byte) 0XCB, 3, "Alt", "addr", "", "Alt JMP PC<-addr", TOTAL));
 		opcodeMap.put((byte) 0XCC, new OpcodeStructure8080((byte) 0XCC, 3, "CZ", "addr", "", "if Z,CALL addr", CONTINUATION));
 		opcodeMap.put((byte) 0XCD, new OpcodeStructure8080((byte) 0XCD, 3, "CALL", "addr", "", "CALL addr", CONTINUATION));
 		opcodeMap.put((byte) 0XCE, new OpcodeStructure8080((byte) 0XCE, 2, "ACI", "D8", "", "A<- A + data + cy"));
@@ -264,7 +264,7 @@ public class Opcodes8080 {
 		opcodeMap.put((byte) 0XD1, new OpcodeStructure8080((byte) 0XD1, 1, "POP", "D", "", ""));
 		opcodeMap.put((byte) 0XD2, new OpcodeStructure8080((byte) 0XD2, 3, "JNC", "addr", "", "if NCY,PC<-addr", CONTINUATION));
 		opcodeMap.put((byte) 0XD3, new OpcodeStructure8080((byte) 0XD3, 2, "OUT", "D8", "", "i/O")); // Special
-		opcodeMap.put((byte) 0XD4, new OpcodeStructure8080((byte) 0XD4, 3, "CNC", "addr", "", "if NC,CALL addr, CONTINUATION"));
+		opcodeMap.put((byte) 0XD4, new OpcodeStructure8080((byte) 0XD4, 3, "CNC", "addr", "", "if NC,CALL addr", CONTINUATION));
 		opcodeMap.put((byte) 0XD5, new OpcodeStructure8080((byte) 0XD5, 1, "PUSH", "D", "", ""));
 		opcodeMap.put((byte) 0XD6, new OpcodeStructure8080((byte) 0XD6, 2, "SUI", "D8", "", "A<-A - byte2"));
 		opcodeMap.put((byte) 0XD7, new OpcodeStructure8080((byte) 0XD7, 1, "RST", "2", "", "CALL $10", CONTINUATION));

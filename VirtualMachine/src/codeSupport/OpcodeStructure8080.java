@@ -68,10 +68,10 @@ public class OpcodeStructure8080 {
 	public String getAssemblerCode(byte plusOne) {
 		String ans;
 		if (getDestination().equals("D8")) {
-			ans = String.format("%-4s %02X",
+			ans = String.format("%-4s 0%02XH",
 					getInstruction(), plusOne);
 		} else {
-			ans = String.format("%-4s %s,%02X",
+			ans = String.format("%-4s %s,0%02XH",
 					getInstruction(), getDestination(), plusOne);
 		}
 		return ans;
@@ -80,10 +80,10 @@ public class OpcodeStructure8080 {
 	public String getAssemblerCode(byte plusOne, byte plusTwo) {
 		String ans;
 		if (getDestination().equals("addr")) {
-			ans = String.format("%-4s %02X%02X",
+			ans = String.format("%-4s 0%02X%02XH",
 					getInstruction(), plusTwo, plusOne);
 		} else {
-			ans = String.format("%-4s %s,%02X%02X", getInstruction(), getDestination(), plusTwo, plusOne);
+			ans = String.format("%-4s %s,0%02X%02XH", getInstruction(), getDestination(), plusTwo, plusOne);
 		}
 		return ans;
 	}// getAssemblerCode

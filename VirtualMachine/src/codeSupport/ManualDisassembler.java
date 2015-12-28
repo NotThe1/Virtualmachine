@@ -16,6 +16,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.JPanel;
+import javax.swing.JTextPane;
 import javax.swing.ListModel;
 
 import java.awt.GridBagConstraints;
@@ -44,6 +45,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Document;
 import javax.swing.text.Highlighter;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JList;
@@ -173,8 +176,26 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 	}// actionStart
 
 	private void try1() {
-
+		//
 	}// try1
+
+	private SimpleAttributeSet[] makeAttributes() {
+		int baseFontSize = txtWIPsource.getFont().getSize();
+		SimpleAttributeSet baseAttributes = new SimpleAttributeSet();
+		StyleConstants.setFontFamily(baseAttributes, "Courier New");
+
+		SimpleAttributeSet[] workingSets = new SimpleAttributeSet[4];
+		workingSets[ATTR_ADDRESS] = new SimpleAttributeSet(baseAttributes);
+		workingSets[ATTR_BINARY_CODE] = new SimpleAttributeSet(baseAttributes);
+		workingSets[ATTR_ASM_CODE] = new SimpleAttributeSet(baseAttributes);
+		workingSets[ATTR_FUNCTION] = new SimpleAttributeSet(baseAttributes);
+
+		StyleConstants.setForeground(workingSets[ATTR_ADDRESS], Color.GRAY);
+		StyleConstants.setForeground(workingSets[ATTR_BINARY_CODE], Color.BLUE);
+		StyleConstants.setForeground(workingSets[ATTR_ASM_CODE], Color.RED);
+		StyleConstants.setForeground(workingSets[ATTR_FUNCTION], Color.GRAY);
+		return workingSets;
+	}
 
 	private void combineFragments() {
 		ArrayList<CodeFragment> tempFragments = new ArrayList<CodeFragment>();
@@ -284,9 +305,10 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 					, "openBinaryFile()",
 					JOptionPane.ERROR_MESSAGE);
 			return;
-		}//if 
+		}// if
 		codeFragmentModel.removeItem(0);
-		codeFragmentModel.addItem(new CodeFragment(OFFSET, (int) (binaryFile.length() + OFFSET) - 1, CodeFragment.UNKNOWN));
+		codeFragmentModel.addItem(new CodeFragment(OFFSET, (int) (binaryFile.length() + OFFSET) - 1,
+				CodeFragment.UNKNOWN));
 
 	}// openBinaryFile
 
@@ -450,7 +472,7 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		}//
 	}// displayFragmentSource
 
-	private void displayFragmentSource(JTextArea txtArea, CodeFragment codeFragment) {
+	private void displayFragmentSource(JTextPane txtArea, CodeFragment codeFragment) {
 		String type = codeFragment.type;
 		switch (type) {
 		case CodeFragment.CODE:
@@ -477,6 +499,13 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		clearDocument(doc);
 		OpcodeStructure8080 currentOpCode = null;
 
+		// workingSets[ATTR_ADDRESS] = new SimpleAttributeSet(baseAttributes);
+		// workingSets[ATTR_BINARY_CODE] = new SimpleAttributeSet(baseAttributes);
+		// workingSets[ATTR_ASM_CODE] = new SimpleAttributeSet(baseAttributes);
+		// workingSets[ATTR_FUNCTION] = new SimpleAttributeSet(baseAttributes);
+
+		SimpleAttributeSet[] attributeSets = makeAttributes();
+
 		int currentLocation = startLocation;
 		int opCodeSize;
 		byte currentValue0, currentValue1, currentValue2;
@@ -490,30 +519,30 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 			try {
 
 				part1 = String.format("%04X%4s", currentLocation, "");
-				doc.insertString(doc.getLength(), part1, null);
+				doc.insertString(doc.getLength(), part1, attributeSets[ATTR_ADDRESS]);
 				switch (opCodeSize) {
 				case 1:
 					part2 = String.format("%02X%8s", currentValue0, "");
-					doc.insertString(doc.getLength(), part2, null);
+					doc.insertString(doc.getLength(), part2, attributeSets[ATTR_BINARY_CODE]);
 					part3 = String.format("%-15s", currentOpCode.getAssemblerCode());
-					doc.insertString(doc.getLength(), part3, null);
+					doc.insertString(doc.getLength(), part3, attributeSets[ATTR_ASM_CODE]);
 					break;
 				case 2:
 					part2 = String.format("%02X%02X%6s", currentValue0, currentValue1, "");
-					doc.insertString(doc.getLength(), part2, null);
+					doc.insertString(doc.getLength(), part2, attributeSets[ATTR_BINARY_CODE]);
 					part3 = String.format("%-15s", currentOpCode.getAssemblerCode(currentValue1));
-					doc.insertString(doc.getLength(), part3, null);
+					doc.insertString(doc.getLength(), part3, attributeSets[ATTR_ASM_CODE]);
 					break;
 				case 3:
 					part2 = String.format("%02X%02X%02X%4s", currentValue0, currentValue1, currentValue2, "");
-					doc.insertString(doc.getLength(), part2, null);
+					doc.insertString(doc.getLength(), part2, attributeSets[ATTR_BINARY_CODE]);
 					part3 = String.format("%-15s", currentOpCode.getAssemblerCode(currentValue1, currentValue2));
-					doc.insertString(doc.getLength(), part3, null);
+					doc.insertString(doc.getLength(), part3, attributeSets[ATTR_ASM_CODE]);
 					break;
 				default:
 				}// switch
 				part4 = String.format("%s%n", currentOpCode.getFunction());
-				doc.insertString(doc.getLength(), part4, null);
+				doc.insertString(doc.getLength(), part4, attributeSets[ATTR_FUNCTION]);
 			} catch (BadLocationException badLocationException) {
 				badLocationException.printStackTrace();
 			}
@@ -598,6 +627,11 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 	}// buildASM
 
 	private void buildLiteralFragment(Document doc, CodeFragment codeFragment) {
+		HashMap<Byte, String> literals = new HashMap();
+		literals.put((byte) 0x0A, "LF");
+		literals.put((byte) 0x0D, "CR");
+		literals.put((byte) 0x24, "QMARK");
+		literals.put((byte) 0x3F, "DOLLAR");
 
 		buildFragmentHeader(doc, codeFragment);
 		byte[] literalValues = new byte[codeFragment.size()];
@@ -605,15 +639,42 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		binaryData.get(literalValues, 0, codeFragment.size());
 		int crCount = 0;
 		int lfCount = 0;
-
-		if (codeFragment.size() > 3) { // look for line terminators
-
-		}
-
-		String literalData = new String(literalValues);
-		System.out.println(literalData);
-		String displayText = String.format("%17s  '%s'%n", "DB", literalData);
-		appendToDocASM(displayText);
+		String literalData = null;
+		int subFragmentStart = 0;
+		int subLength = 0;
+		for (int i = 0; i < codeFragment.size(); i++) {
+			switch (literalValues[i]) {
+			case 0x0A: // LF
+			case 0x0D: // CR
+			case 0x24: // QMARK
+			case 0x3F: // DOLLAR
+				subLength = i - subFragmentStart;
+				if (subLength > 0) {
+					byte[] subFragmentString = new byte[subLength];
+					for (int j = 0; j < subLength; j++) {
+						subFragmentString[j] = literalValues[j + subFragmentStart];
+					}// for
+					literalData = new String(subFragmentString);
+					String displayText = String.format("%17s  '%s'%n", "DB", literalData);
+					appendToDocASM(displayText);
+				}// if
+				String displayText = String.format("%17s  %s%n", "DB", literals.get(literalValues[i]));
+				appendToDocASM(displayText);
+				subFragmentStart = i + 1;
+				break;
+			default:
+			}// switch
+		}// for
+		int remainder = codeFragment.size() - subFragmentStart;
+		if (remainder > 0) {
+			byte[] subFragmentString = new byte[remainder];
+			for (int k = 0; k < remainder; k++) {
+				subFragmentString[k] = literalValues[k + subFragmentStart];
+			}// for
+			literalData = new String(subFragmentString);
+			String displayText = String.format("%17s  '%s'%n", "DB", literalData);
+			appendToDocASM(displayText);
+		}// if - remaing data
 
 	}// buildUnknownFragent
 
@@ -797,8 +858,7 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 					, "openBinaryFile()",
 					JOptionPane.ERROR_MESSAGE);
 			return;
-		}//if
-		
+		}// if
 
 		btnProcessFragment.setEnabled(true);
 		btnAddFragment.setEnabled(true);
@@ -986,6 +1046,11 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 	private final int TAB_BINARY_FILE = 1;
 	private final int TAB_ASM = 2;
 
+	private final int ATTR_ADDRESS = 0;
+	private final int ATTR_BINARY_CODE = 1;
+	private final int ATTR_ASM_CODE = 2;
+	private final int ATTR_FUNCTION = 3;
+
 	// private final static String AC_MNU_FILE_NEW = "mnuFileNew";
 	private final static String AC_MNU_FILE_OPEN = "mnuFileOpen";
 	private final static String AC_MNU_FILE_LOAD_WIP = "mnuFileLoadWIP";
@@ -1034,7 +1099,7 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 	private JTabbedPane tabPaneDisplays;
 	private JTextArea txtWIPbinary;
 	private JScrollPane scrollPaneWIPbinary;
-	private JTextArea txtWIPsource;
+	private JTextPane txtWIPsource;
 	private JButton btnCombineFragments;
 	private JButton btnBuildASM;
 	private JTextArea txtASM;
@@ -1346,7 +1411,7 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		JScrollPane scrollPaneWIPsource = new JScrollPane();
 		splitPane.setRightComponent(scrollPaneWIPsource);
 
-		txtWIPsource = new JTextArea();
+		txtWIPsource = new JTextPane();
 		txtWIPsource.setFont(new Font("Courier New", Font.PLAIN, 16));
 		scrollPaneWIPsource.setViewportView(txtWIPsource);
 		splitPane.setDividerLocation(300);

@@ -21,7 +21,8 @@ public class Test1 {
 	 */
 	public static void main(String[] args) {
 
-		new Test1().doIt7(); // test Random.nextInt(bound);
+		new Test1().doIt8(); // test Random.nextInt(bound);
+//		new Test1().doIt7(); // test Random.nextInt(bound);
 		//new Test1().doIt6(); // test Random.nextInt(bound);
 		// new Test1().doIt5(); // Check DCU & core w/ trap
 		// new Test1().doIt4(); // invoke make new disk to check return value
@@ -30,6 +31,16 @@ public class Test1 {
 		// new Test1().doIt1(); // list all elements of DiskLayout- to check validity
 
 	}// main
+	private void doIt8(){
+		float l = (float) 1325;
+		float s = (float) 792;
+		float ans = s/l;
+		ans = (1.00f - ans) * 100;
+		int r = (int)ans;
+		String result = String.format("%2d", (int)ans);
+		int a = 0;
+
+	}
 	private void doIt7(){
 		byte[] rawData = new byte[]{(byte) 0x00,(byte) 0x41,(byte) 0x42,(byte) 0x43,(byte) 0x44,
 		                          (byte) 0x45,(byte) 0x00,(byte) 0x31,(byte) 0x32,(byte) 0x33,(byte) 0x34,(byte) 0x35};

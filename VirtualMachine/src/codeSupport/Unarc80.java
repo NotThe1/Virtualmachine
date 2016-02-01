@@ -87,38 +87,44 @@ public class Unarc80 implements ActionListener{
 		
 		FileChannel fcIn = null;
 		FileInputStream fIn = null;
+		byte[] arcHeaderRaw;
+		MappedByteBuffer mbb;
+		int arcHeaderBase =0;
 		try {
 			fIn = new FileInputStream(sourceFile);
 			fcIn = fIn.getChannel();
+			arcHeaderRaw = new byte[ARC_HEADER_SIZE];
+			mbb = fcIn.map(FileChannel.MapMode.READ_ONLY, 0, sourceSize);
+			
+			while(isHeader(mbb,arcHeaderBase)){
+				mbb.position(arcHeaderBase);
+				mbb.get(arcHeaderRaw, 0, ARC_HEADER_SIZE);
+				ArcHeader arcHeader = new ArcHeader(arcHeaderBase,arcHeaderRaw);
+				String name = arcHeader.getName();
+				int stored = arcHeader.getStored();
+				int length = arcHeader.getLength();
+				int saved = arcHeader.getSaved();
+				
+				System.out.printf("File name is : %s, base is : %06X Length is : %,7d, Stored is :%,7d%n",
+						arcHeader.getNameFixed(),arcHeader.getBaseAddress(),length,stored);
+				
+				arcHeaderBase +=stored + ARC_HEADER_SIZE;
+				int a = 0;
+
+			}//while
+			fcIn.close();
+			fIn.close();
+			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-		
-//		ByteBuffer inBuffer = ByteBuffer.allocate(ARC_HEADER_SIZE);
-		byte[] arcHeaderRaw = new byte[ARC_HEADER_SIZE-2];
-		/////////////
-//		int readCount = 0;
-		try {
-		MappedByteBuffer mbb = fcIn.map(FileChannel.MapMode.READ_ONLY, 0, sourceSize);
-		int arcHeaderStart =0;
-		while (isHeader(mbb,arcHeaderStart)){
-			//mbb.position(0);
-			mbb.get(arcHeaderRaw, arcHeaderStart, ARC_HEADER_SIZE-2);
-			ArcHeader arcHeader = new ArcHeader(arcHeaderRaw);
-			String name = arcHeader.getName();
-			Long stored = arcHeader.getStored();
-			Long length = arcHeader.getLength();
-			int saved = arcHeader.getSaved();
-			int a = 0;
-			
-		}
-		
-		} catch (IOException e) {
+		}catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-//		boolean isHeader = true;
+				
+
+
 		
 		
 	}
@@ -127,9 +133,9 @@ public class Unarc80 implements ActionListener{
 		if (arcHeaderStart >= (sourceSize-2)){
 			return false;		// end of file
 		}
-		
+		mbb.position(arcHeaderStart);
 		byte[] type = new byte[2];
-		mbb.get(type, arcHeaderStart, 2);
+		mbb.get(type, 0, 2);
 		if (Arrays.equals(type, HEADER_FLAG)){
 			return true;
 		}else{
@@ -298,8 +304,9 @@ public class Unarc80 implements ActionListener{
 	//------------------------------------------------------------
 
 public class ArcHeader{
-	byte[] rawData = new byte[ARC_HEADER_SIZE-2];
+	byte[] rawData = new byte[ARC_HEADER_SIZE];
 
+	private int baseAddress;
 	private String disk;
 	private String method;
 	private String ver;
@@ -308,17 +315,26 @@ public class ArcHeader{
 	private int crc;
 	public boolean isValid;
 	
-	private ArcHeader(byte[] rawData){
-		if (rawData.length != (ARC_HEADER_SIZE-2)){
+	private ArcHeader(int baseAddress,byte[] rawData){
+		if (rawData.length != (ARC_HEADER_SIZE)){
 			this.isValid = false;
 			return;
 		}//
 		this.isValid = true;
+		this.baseAddress= baseAddress;
 		this.rawData = rawData;
 	}//constructor
 	
+	public String toString(){
+		return getNameFixed();
+	}//toString
+	
+	public int getBaseAddress(){
+		return this.baseAddress;
+	}//getBaseAddress
+	
 	public String getName(){
-		int index = 0;
+		int index = 2;
 		StringBuilder sb = new StringBuilder();
 		while (rawData[index] != 00){
 			sb.append((char)rawData[index++]);
@@ -326,17 +342,31 @@ public class ArcHeader{
 		return sb.toString();
 	}//getName
 	
-	public long getLength(){
-		return calculateValue( 0x1A);
+	public String getNameFixed(){
+	String[] nameParts = getName().split("\\.");
+	String left = nameParts[0];
+	String right = (nameParts.length > 1)?nameParts[1]:"";
+	return String.format("%-8s.%-3s",left,right);
+	}//getNameFixed
+	
+	public int getLength(){
+		return calculateValue( 0x19);
 	}// getLength
 	
-	public long getStored(){
+	public int getStored(){
 		return calculateValue( 0x0F);
 	}//getStored
 	
-	public long calculateValue(int index){
-		long ans = rawData[index];
-		ans += rawData[index +1] * 256;
+	private int calculateValue(int index){
+		int ans = rawData[index] & 0xFF;
+		ans |= (rawData[index +1] << 8)  & 0xFFFF;
+		ans |= (rawData[index +2] << 16)  & 0xFFFFFF;
+		ans |= (rawData[index +3] << 24)  & 0xFFFFFFFF;
+		
+		// |rawData[index +2] << 16 | rawData[index +3] << 24;
+		
+//		int ans = rawData[index];
+//		ans += rawData[index +1] * 256;
 		
 //		ans += rawData[index +2] * 256 * 256;    ??
 //		ans += rawData[index +3] * 256 * 256 * 256;		??

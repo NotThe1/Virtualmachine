@@ -116,18 +116,12 @@ public class Unarc80 implements ActionListener{
 			fIn.close();
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-				
-
-
-		
-		
-	}
+		}//try		
+	}//openSourceFile
+	
 	boolean isHeader(MappedByteBuffer mbb,  int arcHeaderStart){
 				
 		if (arcHeaderStart >= (sourceSize-2)){
@@ -362,14 +356,6 @@ public class ArcHeader{
 		ans |= (rawData[index +1] << 8)  & 0xFFFF;
 		ans |= (rawData[index +2] << 16)  & 0xFFFFFF;
 		ans |= (rawData[index +3] << 24)  & 0xFFFFFFFF;
-		
-		// |rawData[index +2] << 16 | rawData[index +3] << 24;
-		
-//		int ans = rawData[index];
-//		ans += rawData[index +1] * 256;
-		
-//		ans += rawData[index +2] * 256 * 256;    ??
-//		ans += rawData[index +3] * 256 * 256 * 256;		??
 		return ans;	
 	}//calculateValue
 	
@@ -385,14 +371,35 @@ public class ArcHeader{
 		//TODO getDisk
 		return "?K";
 	}//getDisk
+	
 	public String getMethod(){
-		//TODO getMethod
-		return "method ?";
+		String ans = "   Error";
+		switch (rawData[1]){
+		case (byte)0x00:
+			ans = " InValid";
+			break;
+		case (byte)0x01: case (byte)0x02:
+			ans = "Unpacked";
+			break;
+		case (byte)0x04:
+			ans = "Squeezed";
+			break;
+		case (byte)0x03:
+		case (byte)0x05: case (byte)0x06:
+		case (byte)0x07: case (byte)0x08:
+			ans = "Crunched";
+			break;
+		default:
+			ans = " Unknown";
+			break;	
+		}//switch
+		return ans;
 	}//getMethod
+	
 	public String getVer(){
-		//TODO getVer
-		return "?";
+		return Integer.valueOf(rawData[1]).toString();
 	}//getVer
+	
 	public String getDate(){
 		//TODO getDate
 		return "00 abc 00";

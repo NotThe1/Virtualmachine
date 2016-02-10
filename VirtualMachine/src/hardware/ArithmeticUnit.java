@@ -214,6 +214,7 @@ public class ArithmeticUnit {
 		byte result = (byte) (operand1 | operand2);
 		this.setCarryFlag(false);
 		ccr.setZSP(result);
+		ccr.setAuxilaryCarryFlag(false);		// problem found by cpuDiag 2/9/2016
 		return result;
 	}// logicalAnd
 	public byte decimalAdjustByte(byte value){

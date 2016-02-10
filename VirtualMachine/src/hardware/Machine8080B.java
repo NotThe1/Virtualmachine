@@ -61,7 +61,6 @@ import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
 
-
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
@@ -124,6 +123,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private MaskFormatter format4HexDigits;
 
 	private String currentMachineName = DEFAULT_STATE_FILE;
+
+	private String cmdPutty = "\"C:\\Program Files (x86)\\PuTTY\\putty.exe\" -load \"COM1\" ";
+	private Process putty;
 
 	/**
 	 * Launch the application.
@@ -467,7 +469,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// parseAndLoadImage
 
 	private void parseAndLoadImageHex(String line) {
-		line = line.replace(" ", "");				// remove any spaces
+		line = line.replace(" ", ""); // remove any spaces
 		if (line.length() == 0) {
 			return; // skip the line
 		}// if
@@ -483,34 +485,34 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			JOptionPane.showMessageDialog(null, msg, "Out of bounds", JOptionPane.ERROR_MESSAGE);
 			return;
 		}// if max memory test
-		byte recordType = (byte)((int)(Integer.valueOf(line.substring(7, 9), 16)));
+		byte recordType = (byte) ((int) (Integer.valueOf(line.substring(7, 9), 16)));
 		switch (recordType) {
 		case DATA_RECORD:
 			byte[] values = new byte[byteCount];
 			byte value;
-			int checksum = byteCount +recordType +
+			int checksum = byteCount + recordType +
 					Integer.valueOf(line.substring(3, 5), 16) +
-					Integer.valueOf(line.substring(5, 7), 16) ;
+					Integer.valueOf(line.substring(5, 7), 16);
 			for (int i = 0; i < byteCount; i++) {
 				value = (byte) ((int) Integer.valueOf(line.substring((i * 2) + 9, (i * 2) + 11), 16));
 				values[i] = value;
 				checksum += value;
 			}// for
-			int checksumValue = Integer.valueOf(line.substring((byteCount*2) + 9, (byteCount*2) + 11), 16);
-			checksum =checksum + checksumValue;
-			
-			if ((checksum & 0xFF) != 0){
+			int checksumValue = Integer.valueOf(line.substring((byteCount * 2) + 9, (byteCount * 2) + 11), 16);
+			checksum = checksum + checksumValue;
+
+			if ((checksum & 0xFF) != 0) {
 				String msg = String.format(
 						"checksum error on address line: %s.", line.substring(3, 7));
 				JOptionPane.showMessageDialog(null, msg, "CheckSum error", JOptionPane.ERROR_MESSAGE);
 				return;
 			}// if - checksum test
-			
+
 			core.writeDMA(address, values); // avoid setting off memory traps
 
 			break;
 		case END_OF_FILE_RECORD:
-			String msg ="End of File Record found!";
+			String msg = "End of File Record found!";
 			JOptionPane.showMessageDialog(null, msg, "Hex memory loader", JOptionPane.INFORMATION_MESSAGE);
 			break;
 		case EXTENDED_SEGMENT_ADDRESS_RECORD:
@@ -523,16 +525,15 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			break;
 		default:
 		}// switch
-		
 
 	}
+
 	static final byte DATA_RECORD = (byte) 0x00;
 	static final byte END_OF_FILE_RECORD = (byte) 0x01;
 	static final byte EXTENDED_SEGMENT_ADDRESS_RECORD = (byte) 0x02;
 	static final byte START_SEGMENT_ADDRESS_RECORD = (byte) 0x03;
 	static final byte EXTENDED_LINEAR_ADDRESS_RECORD = (byte) 0x04;
 	static final byte START_LINEAR_ADDRESS_RECORD = (byte) 0x05;
-	
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -635,16 +636,22 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			disassembler.upDateDisplay(wrs.getProgramCounter());
 			txtAssemblerCode.setCaretPosition(0);
 			break;
-		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
-			File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
-			loadNewSystem(sourceFile);
-			sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
-			loadNewSystem(sourceFile);
+
+		case AC_MNU_TOOLS_PUTTY:
+			//System.out.println(cmdPutty);
+			try {
+				putty = Runtime.getRuntime().exec(cmdPutty);
+			} catch (IOException e) {
+				JOptionPane.showMessageDialog(null, cmdPutty
+						+ "failed execution ", "Load Putty",
+						JOptionPane.ERROR_MESSAGE);
+				return; // exit gracefully
+			}// try
 			break;
 		case AC_MNU_TOOLS_SHOW_CODE:
 			if (showCode == null) {
 				showCode = new ShowCode();
-			}
+			}// if
 			showCode.setVisible(true);
 			break;
 		case AC_MNU_TOOLS_DEBUG_MANAGER:
@@ -652,6 +659,12 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 				debugManager = new DebugManager(core);
 			}// if
 			debugManager.setVisible(true);
+			break;
+		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
+			File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
+			loadNewSystem(sourceFile);
+			sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
+			loadNewSystem(sourceFile);
 			break;
 		}// switch - actionCommand
 
@@ -744,8 +757,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 		String[] fileTypes = DiskMetrics.getDiskTypes();
 		String[] fileDesc = DiskMetrics.getDiskDescriptionss();
-		for ( int i = 0;i < fileTypes.length;i++){
-			chooser.addChoosableFileFilter(	new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
+		for (int i = 0; i < fileTypes.length; i++) {
+			chooser.addChoosableFileFilter(new FileNameExtensionFilter(fileDesc[i], fileTypes[i]));
 		}
 
 		chooser.setAcceptAllFileFilterUsed(false);
@@ -850,6 +863,13 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}
 
 	private void closeAllObjects() {
+		if (putty != null) {
+			if (putty.isAlive()) {
+				putty.destroy();
+			}// if alive
+		}// if not null
+		closeIt(putty);
+
 		closeIt(debugManager);
 		closeIt(showCode);
 		closeIt(disassembler);
@@ -895,6 +915,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			@Override
 			public void windowClosing(WindowEvent arg0) {
 				saveMachineState(); // use DEFAULT_STATE_FILE
+				appClose(); //clean up 
 			}
 		});
 		frmMachineb.setTitle("Machine8080B");
@@ -1475,23 +1496,29 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuToolsShowCode.setActionCommand(AC_MNU_TOOLS_SHOW_CODE);
 		mnuToolsShowCode.addActionListener(this);
 
-		JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
-		mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-		mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-		mnuToolsLoadNewSystem.addActionListener(this);
-		mnuTools.add(mnuToolsLoadNewSystem);
+		JMenuItem mnuToolsPutty = new JMenuItem("Open PuTTy");
+		mnuToolsPutty.setName(AC_MNU_TOOLS_PUTTY);
+		mnuToolsPutty.setActionCommand(AC_MNU_TOOLS_PUTTY);
+		mnuToolsPutty.addActionListener(this);
+		mnuTools.add(mnuToolsPutty);
 
 		JSeparator separator_4 = new JSeparator();
 		mnuTools.add(separator_4);
 		mnuTools.add(mnuToolsShowCode);
+		
+				JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
+				mnuToolsDebugManager.setActionCommand(AC_MNU_TOOLS_DEBUG_MANAGER);
+				mnuToolsDebugManager.addActionListener(this);
+				mnuTools.add(mnuToolsDebugManager);
 
 		JSeparator separator_3 = new JSeparator();
 		mnuTools.add(separator_3);
-
-		JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
-		mnuToolsDebugManager.setActionCommand(AC_MNU_TOOLS_DEBUG_MANAGER);
-		mnuToolsDebugManager.addActionListener(this);
-		mnuTools.add(mnuToolsDebugManager);
+		
+				JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
+				mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+				mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+				mnuToolsLoadNewSystem.addActionListener(this);
+				mnuTools.add(mnuToolsLoadNewSystem);
 	}
 
 	public static final int MEMORY_SIZE_K = 64; // in K
@@ -1522,6 +1549,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_SAVE = "mnuMemorySave";
 	private final static String AC_MNU_MEMORY_LOAD = "mnuMemoryLoad";
 
+	private final static String AC_MNU_TOOLS_PUTTY = "mnuToolsPutty";
 	private final static String AC_MNU_TOOLS_LOAD_NEW_SYSTEM = "mnuToolsLoadNewSystem";
 	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
 	private final static String AC_MNU_TOOLS_DEBUG_MANAGER = "mnuToolsDebugManager";

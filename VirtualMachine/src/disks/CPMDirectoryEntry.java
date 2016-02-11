@@ -6,19 +6,19 @@ import java.util.HashMap;
 import java.util.SortedMap;
 
 public class CPMDirectoryEntry {
-	private byte userNumber;
-	private String fileName;
-	private String fileType;
-	private byte ex;
-	private byte s2;
+//	private byte userNumber;
+//	private String fileName;
+//	private String fileType;
+//	private byte ex;
+//	private byte s2;
 	// private byte s1;
-	private byte rc;
+//	private byte rc;
 
 	private byte[] rawDirectory;
 
 	private boolean readOnly;
 	private boolean systemFile;
-	String strEntry;
+	//String strEntry;
 	private ArrayList<Integer> allocatedBlocks;
 
 	private boolean bigDisk;
@@ -33,14 +33,15 @@ public class CPMDirectoryEntry {
 
 	public CPMDirectoryEntry() {
 		rawDirectory = new byte[Disk.DIRECTORY_ENTRY_SIZE];
-		strEntry = new String(rawDirectory);
 		this.setUserNumber(Disk.EMPTY_ENTRY);
-		this.setFileName(Disk.EMPTY_NAME);
-		this.setFileType(Disk.EMPTY_TYPE);
-		this.setEx(Disk.NULL_BYTE);
-		this.setS2(Disk.NULL_BYTE);
-		// this.s1 = Disk.NULL_BYTE;
-		this.setRc(Disk.NULL_BYTE);
+		
+//		this.setFileName(Disk.EMPTY_NAME);
+//		this.setFileType(Disk.EMPTY_TYPE);
+//		this.setEx(Disk.NULL_BYTE);
+//		this.setS2(Disk.NULL_BYTE);
+//		// this.s1 = Disk.NULL_BYTE;
+//		this.setRc(Disk.NULL_BYTE);
+		
 		allocatedBlocks = new ArrayList<Integer>();
 		this.bigDisk = false;
 	}// Constructor
@@ -52,16 +53,21 @@ public class CPMDirectoryEntry {
 	public CPMDirectoryEntry(byte[] rawEntry, boolean bigDisk) {
 		this();
 		rawDirectory = rawEntry.clone();
+		this.bigDisk = bigDisk;
+		
+		if (rawDirectory[0]==Disk.EMPTY_ENTRY){
+			return;
+		}//
+		
+		String strEntry ="";
 		try {
 			strEntry = new String(rawDirectory, "US-ASCII");
 		} catch (UnsupportedEncodingException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}//try
-		this.bigDisk = bigDisk;
 
 		this.setUserNumber(rawDirectory[0]);
-
 		this.setFileName(strEntry.substring(Disk.DIR_NAME, Disk.DIR_NAME_END));
 		this.setFileType(strEntry.substring(Disk.DIR_TYPE, Disk.DIR_TYPE_END));
 
@@ -96,25 +102,28 @@ public class CPMDirectoryEntry {
 
 	// user number
 	public int getUserNumberInt() {
-		return (int) userNumber & 0xFF;
+		return (int) rawDirectory[Disk.DIR_USER] & 0xFF;
 	}//getUserNumberInt
 
 	public byte getUserNumber() {
-		return userNumber;
+		return rawDirectory[Disk.DIR_USER];
 	}//getUserNumber
 
 	public void setUserNumber(byte userNumber) {
-		this.userNumber = userNumber;
 		rawDirectory[Disk.DIR_USER] = userNumber;
 	}//setUserNumber
 
 	// File Name & Type
 	public String getFileName() {
-		return fileName;
+		byte[] name = new byte[Disk.NAME_MAX];
+		for ( int i = 0; i < Disk.NAME_MAX; i++){
+			name[i]= rawDirectory[i+1];
+		}//
+		return new String(name);
 	}//getFileName
 
 	public String getFileNameTrim() {
-		return fileName.trim();
+		return getFileName().trim();
 	}//getFileNameTrim
 	
 	public void setFilenameAndType(String nameAndType){
@@ -127,36 +136,38 @@ public class CPMDirectoryEntry {
 	}//setFilenameAndType
 
 	public void setFileName(String fileName) {
-
-		this.fileName = padEntryField(fileName, Disk.NAME_MAX);
-		byte[] name;
+		String namePad =padEntryField(fileName, Disk.NAME_MAX);
+		byte[] nameRaw;
 		try {
-			name = this.fileName.getBytes("US-ASCII");
-			for (int i = 0; i < 0 + Disk.NAME_MAX; i++) {
-				rawDirectory[Disk.DIR_NAME + i] = name[i];
-			}//fortry
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
+			nameRaw = namePad.getBytes("US-ASCII");
+			for (int i = 0; i < Disk.NAME_MAX; i++) {
+				rawDirectory[Disk.DIR_NAME + i] = nameRaw[i];
+			}//for in try
+		} catch (Exception e) {
 			e.printStackTrace();
-		}//
+		}//try
 	}//setFileName
 
 	public String getFileType() {
-		return fileType;
+		byte[] type = new byte[Disk.TYPE_MAX];
+		for ( int i = 0; i < Disk.TYPE_MAX; i++){
+			type[i]= rawDirectory[i+9];
+		}//
+		return new String(type);
 	}//getFileType
 
 	public String getFileTypeTrim() {
-		return fileType.trim();
+		return getFileType().trim();
 	}//getFileTypeTrim
 
 	public void setFileType(String fileType) {
 		boolean wasReadOnly = this.readOnly;
 		boolean wasSystemFile = this.systemFile;
 
-		this.fileType = padEntryField(fileType, Disk.TYPE_MAX);
+		String typePad = padEntryField(fileType, Disk.TYPE_MAX);
 		byte[] type;
 		try {
-			type = this.fileType.getBytes("US-ASCII");
+			type = typePad.getBytes("US-ASCII");
 			for (int i = 0; i < 0 + Disk.TYPE_MAX; i++) {
 				rawDirectory[Disk.DIR_TYPE + i] = type[i];
 			}//for
@@ -177,7 +188,9 @@ public class CPMDirectoryEntry {
 	}//setFileType
 
 	public String getNameAndType11() {
-		return getFileName() + getFileType();
+		String fileNamePadded = padEntryField(getFileName(), Disk.NAME_MAX);
+		String fileTypePadded = padEntryField(getFileType(), Disk.TYPE_MAX);
+		return fileNamePadded + fileTypePadded;
 	}///getNameAndType11
 
 	public String getNameTypeAndExt() {
@@ -201,30 +214,29 @@ public class CPMDirectoryEntry {
 
 	// Exstents values Ex & s2
 	public byte getEx() {
-		return ex;
+		return rawDirectory[Disk.DIR_EX];
 	}//getEx
 
 	public void setEx(byte ex) {
-		this.ex = (byte) (ex & 0x1F);
-		rawDirectory[Disk.DIR_EX] = this.ex;
+		rawDirectory[Disk.DIR_EX] = (byte) (ex & 0x1F);
 	}//setEx
 
 	public byte getS1() {
-		return Disk.NULL_BYTE;
+		return rawDirectory[Disk.DIR_S1];   //Disk.NULL_BYTE;
 	}//getS1
 
 	public byte getS2() {
-		return s2;
+		return rawDirectory[Disk.DIR_S2];
 	}//getS2
 
 	public void setS2(byte s2) {
-		this.s2 = (byte) (s2 & 0x3F);
-		rawDirectory[Disk.DIR_S2] = this.s2;
+		rawDirectory[Disk.DIR_S2] = (byte) (s2 & 0x3F);
 	}//setS2
 
 	public int getActualExtentNumber() {
 		return (getS2() * 32) + getEx(); // ( s2 * 32) + ex should max at 0x832
 	}//getActualExtentNumber
+	
 	public void setActualExtentNumber(int actualExtentNumber){
 		byte s = (byte) (actualExtentNumber / 32) ;
 		byte e = (byte) (actualExtentNumber % 32);
@@ -238,17 +250,16 @@ public class CPMDirectoryEntry {
 
 	// 128-byte record count
 	public int getRcInt() {
-		return (int) rc & 0xFF;
+		return (int) rawDirectory[Disk.DIR_RC] & 0xFF;
 	}//getRcInt
 
 	public byte getRc() {
-		return rc;
+		return rawDirectory[Disk.DIR_RC];
 	}//getRc
 
 	public void setRc(byte rc) {
 		int rcInt = rc & 0xFF;
-		this.rc = (byte) (rcInt > 0x80 ? 0x80 : rc); // 0x80 = this extent is full
-		rawDirectory[Disk.DIR_RC] = this.rc;
+		rawDirectory[Disk.DIR_RC] = (byte) (rcInt > 0x80 ? 0x80 : rc); // 0x80 = this extent is full
 	}//setRc
 	
 	public void incrementRc(int amount){

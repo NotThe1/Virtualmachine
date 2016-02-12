@@ -21,7 +21,7 @@ public class WorkingRegisterSet implements Serializable {
 		for (Reg r : Reg.values()) {
 			registers.put(r, b);
 		}// load all the registers with zeros
-		stackPointer = 0100; // set to a non zero value
+		stackPointer = 0x0100; // set to a non zero value
 	}//initialize
 
 	protected int getProgramCounter() {

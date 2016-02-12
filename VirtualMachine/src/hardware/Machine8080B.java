@@ -212,9 +212,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		setupDisks();
 	}
 
-	private void restoreMachineState() {
-		restoreMachineState(currentMachineName);// getDefaultMachineStateFile()
-	}// restoreMachineState
+//	private void restoreMachineState() {
+//		restoreMachineState(currentMachineName);// getDefaultMachineStateFile()
+//	}// restoreMachineState
 
 	private void restoreMachineState(String fileName) {
 		makeNewMachine();
@@ -574,8 +574,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			addRmoveDisk(3, ((AbstractButton) ae.getSource()).getText());
 			break;
 		case AC_MNU_FILE_NEW:
-			makeNewMachine();
-			disassembler.upDateDisplay(wrs.getProgramCounter());
+//			makeNewMachine();
+			appInit();
+//			disassembler.upDateDisplay(wrs.getProgramCounter());
 			break;
 
 		case AC_MNU_FILE_OPEN:
@@ -638,16 +639,18 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			break;
 
 		case AC_MNU_TOOLS_PUTTY:
-			//System.out.println(cmdPutty);
-			try {
-				putty = Runtime.getRuntime().exec(cmdPutty);
-			} catch (IOException e) {
-				JOptionPane.showMessageDialog(null, cmdPutty
-						+ "failed execution ", "Load Putty",
-						JOptionPane.ERROR_MESSAGE);
-				return; // exit gracefully
-			}// try
+			loadPutty();
 			break;
+		case AC_MNU_TOOLS_DEBUG_SUITE:
+			if (showCode == null) {
+				showCode = new ShowCode();
+			}// if
+			showCode.setVisible(true);
+			if (debugManager == null) {
+				debugManager = new DebugManager(core);
+			}// if
+			debugManager.setVisible(true);
+
 		case AC_MNU_TOOLS_SHOW_CODE:
 			if (showCode == null) {
 				showCode = new ShowCode();
@@ -661,10 +664,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			debugManager.setVisible(true);
 			break;
 		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
-			File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
-			loadNewSystem(sourceFile);
-			sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
-			loadNewSystem(sourceFile);
+			loadCPM();
 			break;
 		}// switch - actionCommand
 
@@ -710,6 +710,30 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// itemStateChanged
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+	
+	private void loadPutty(){
+		if (putty != null) {
+			if (putty.isAlive()) {
+				putty.destroy();
+			}// if alive
+		}// if not null
+		closeIt(putty);
+		try {
+			putty = Runtime.getRuntime().exec(cmdPutty);
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, cmdPutty
+					+ "failed execution ", "Load Putty",
+					JOptionPane.ERROR_MESSAGE);
+			return; // exit gracefully
+		}// try
+	
+	}
+	private void loadCPM(){
+		File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
+		loadNewSystem(sourceFile);
+		sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
+		loadNewSystem(sourceFile);	
+	}
 
 	private void addRmoveDisk(int diskNumber, String action) {
 		if (action.equals(MOUNT)) {
@@ -850,11 +874,14 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	private void appInit() {
-		currentMachineName = getDefaultMachineStateFile();
-		restoreMachineState();
-		loadTheDisplay();
+//		currentMachineName = getDefaultMachineStateFile();
+//		restoreMachineState();
+		makeNewMachine();
+		loadCPM();
+		loadPutty();
+//		loadTheDisplay();
 		disassembler.upDateDisplay(wrs.getProgramCounter());
-		setupDisks();
+//		setupDisks();
 	}
 
 	private void appClose() {
@@ -919,7 +946,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}
 		});
 		frmMachineb.setTitle("Machine8080B");
-		frmMachineb.setBounds(100, 100, 693, 1000);
+		frmMachineb.setBounds(100, 100, 693, 850);
 		frmMachineb.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		GridBagLayout gridBagLayout = new GridBagLayout();
@@ -1504,6 +1531,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 		JSeparator separator_4 = new JSeparator();
 		mnuTools.add(separator_4);
+		
+		JMenuItem mnuToolsDebugSuite = new JMenuItem("Debug Suite");
+		mnuToolsDebugSuite.setActionCommand(AC_MNU_TOOLS_DEBUG_SUITE);
+		mnuToolsDebugSuite.addActionListener(this);
+		mnuTools.add(mnuToolsDebugSuite);
 		mnuTools.add(mnuToolsShowCode);
 		
 				JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
@@ -1518,6 +1550,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 				mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
 				mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
 				mnuToolsLoadNewSystem.addActionListener(this);
+				mnuToolsLoadNewSystem.setToolTipText("Load Fresh BIOS.MEM and CPM22.MEM");
 				mnuTools.add(mnuToolsLoadNewSystem);
 	}
 
@@ -1553,7 +1586,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_TOOLS_LOAD_NEW_SYSTEM = "mnuToolsLoadNewSystem";
 	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
 	private final static String AC_MNU_TOOLS_DEBUG_MANAGER = "mnuToolsDebugManager";
-
+	private final static String AC_MNU_TOOLS_DEBUG_SUITE = "mnuToolsDebugSuite";
 	private final static String NAME_REG_A = "Reg_A";
 	private final static String NAME_REG_B = "Reg_B";
 	private final static String NAME_REG_C = "Reg_C";

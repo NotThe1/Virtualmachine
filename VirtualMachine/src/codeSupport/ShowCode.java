@@ -381,6 +381,7 @@ public class ShowCode extends JFrame {
 				File[] newFiles = fc.getSelectedFiles();
 				for (File newFile : newFiles) {
 					addFileToApp(newFile.getAbsolutePath());
+					defaultDirectory =newFile.getParent();
 					// if (addFileToApp(newFile.getAbsolutePath())) {
 					// defaultDirectory = newFile.getParent();
 					// setTitle(defaultDirectory);

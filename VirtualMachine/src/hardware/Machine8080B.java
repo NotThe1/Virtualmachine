@@ -126,6 +126,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	private String cmdPutty = "\"C:\\Program Files (x86)\\PuTTY\\putty.exe\" -load \"COM1\" ";
 	private Process putty;
+	
+	private String memoryDirectory = MEMORY;
 
 	/**
 	 * Launch the application.
@@ -402,11 +404,13 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// showRun
 
 	private void loadMemoryImage() {
-		JFileChooser chooserLMI = getFileChooser(MEMORY, "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
+		JFileChooser chooserLMI = getFileChooser(memoryDirectory, "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
 		if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
+			
 			File sourceFile = chooserLMI.getSelectedFile();
+			//memoryDirectory = sourceFile.getParent();
 			String memoryFileType = (sourceFile.getName().endsWith(MEMORY_SUFFIX)) ? MEMORY_SUFFIX : MEMORY_SUFFIX1;
 			try {
 				FileReader fileReader = new FileReader((sourceFile));

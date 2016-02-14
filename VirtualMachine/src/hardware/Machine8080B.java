@@ -126,7 +126,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 	private String cmdPutty = "\"C:\\Program Files (x86)\\PuTTY\\putty.exe\" -load \"COM1\" ";
 	private Process putty;
-	
+
 	private String memoryDirectory = MEMORY;
 
 	/**
@@ -149,7 +149,13 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	private JFileChooser getFileChooser(String subDirectory, String filterDescription, String... filterExtensions) {
-		Path sourcePath = Paths.get(FILE_LOCATION, subDirectory);
+		Path sourcePath;
+		if (subDirectory.contains("\\")) {
+			sourcePath = Paths.get(subDirectory);
+		} else {
+			sourcePath = Paths.get(FILE_LOCATION, subDirectory);
+
+		}
 		String fp = sourcePath.resolve(FILE_LOCATION).toString();
 
 		JFileChooser chooser = new JFileChooser(fp);
@@ -173,10 +179,10 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		return sourcePath.toString();
 	}// getDefaultMachineStateFile
 
-	private void saveMachineState() {
-		saveMachineState(getDefaultMachineStateFile());
-		;
-	}// saveMachineState
+	// private void saveMachineState() {
+	// saveMachineState(getDefaultMachineStateFile());
+	// ;
+	// }// saveMachineState
 
 	private void saveMachineState(String fileName) {
 		wrs.setProgramCounter(cpu.getProgramCounter()); // save PC
@@ -214,9 +220,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		setupDisks();
 	}
 
-//	private void restoreMachineState() {
-//		restoreMachineState(currentMachineName);// getDefaultMachineStateFile()
-//	}// restoreMachineState
+	// private void restoreMachineState() {
+	// restoreMachineState(currentMachineName);// getDefaultMachineStateFile()
+	// }// restoreMachineState
 
 	private void restoreMachineState(String fileName) {
 		makeNewMachine();
@@ -408,9 +414,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
-			
+
 			File sourceFile = chooserLMI.getSelectedFile();
-			//memoryDirectory = sourceFile.getParent();
+			 memoryDirectory = sourceFile.getParent();
 			String memoryFileType = (sourceFile.getName().endsWith(MEMORY_SUFFIX)) ? MEMORY_SUFFIX : MEMORY_SUFFIX1;
 			try {
 				FileReader fileReader = new FileReader((sourceFile));
@@ -578,9 +584,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			addRmoveDisk(3, ((AbstractButton) ae.getSource()).getText());
 			break;
 		case AC_MNU_FILE_NEW:
-//			makeNewMachine();
+			// makeNewMachine();
 			appInit();
-//			disassembler.upDateDisplay(wrs.getProgramCounter());
+			// disassembler.upDateDisplay(wrs.getProgramCounter());
 			break;
 
 		case AC_MNU_FILE_OPEN:
@@ -714,8 +720,8 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}// itemStateChanged
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-	
-	private void loadPutty(){
+
+	private void loadPutty() {
 		if (putty != null) {
 			if (putty.isAlive()) {
 				putty.destroy();
@@ -730,13 +736,14 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 					JOptionPane.ERROR_MESSAGE);
 			return; // exit gracefully
 		}// try
-	
+
 	}
-	private void loadCPM(){
+
+	private void loadCPM() {
 		File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
 		loadNewSystem(sourceFile);
 		sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
-		loadNewSystem(sourceFile);	
+		loadNewSystem(sourceFile);
 	}
 
 	private void addRmoveDisk(int diskNumber, String action) {
@@ -878,18 +885,18 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	private void appInit() {
-//		currentMachineName = getDefaultMachineStateFile();
-//		restoreMachineState();
+		// currentMachineName = getDefaultMachineStateFile();
+		// restoreMachineState();
 		makeNewMachine();
 		loadCPM();
 		loadPutty();
-//		loadTheDisplay();
+		// loadTheDisplay();
 		disassembler.upDateDisplay(wrs.getProgramCounter());
-//		setupDisks();
+		// setupDisks();
 	}
 
 	private void appClose() {
-		saveMachineState();
+		// saveMachineState();
 		closeAllObjects();
 	}
 
@@ -945,8 +952,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		frmMachineb.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent arg0) {
-				saveMachineState(); // use DEFAULT_STATE_FILE
-				appClose(); //clean up 
+				appClose(); // clean up
 			}
 		});
 		frmMachineb.setTitle("Machine8080B");
@@ -1535,27 +1541,27 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 
 		JSeparator separator_4 = new JSeparator();
 		mnuTools.add(separator_4);
-		
+
 		JMenuItem mnuToolsDebugSuite = new JMenuItem("Debug Suite");
 		mnuToolsDebugSuite.setActionCommand(AC_MNU_TOOLS_DEBUG_SUITE);
 		mnuToolsDebugSuite.addActionListener(this);
 		mnuTools.add(mnuToolsDebugSuite);
 		mnuTools.add(mnuToolsShowCode);
-		
-				JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
-				mnuToolsDebugManager.setActionCommand(AC_MNU_TOOLS_DEBUG_MANAGER);
-				mnuToolsDebugManager.addActionListener(this);
-				mnuTools.add(mnuToolsDebugManager);
+
+		JMenuItem mnuToolsDebugManager = new JMenuItem("Debug Manager ...");
+		mnuToolsDebugManager.setActionCommand(AC_MNU_TOOLS_DEBUG_MANAGER);
+		mnuToolsDebugManager.addActionListener(this);
+		mnuTools.add(mnuToolsDebugManager);
 
 		JSeparator separator_3 = new JSeparator();
 		mnuTools.add(separator_3);
-		
-				JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
-				mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-				mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-				mnuToolsLoadNewSystem.addActionListener(this);
-				mnuToolsLoadNewSystem.setToolTipText("Load Fresh BIOS.MEM and CPM22.MEM");
-				mnuTools.add(mnuToolsLoadNewSystem);
+
+		JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
+		mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+		mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
+		mnuToolsLoadNewSystem.addActionListener(this);
+		mnuToolsLoadNewSystem.setToolTipText("Load Fresh BIOS.MEM and CPM22.MEM");
+		mnuTools.add(mnuToolsLoadNewSystem);
 	}
 
 	public static final int MEMORY_SIZE_K = 64; // in K

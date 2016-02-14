@@ -360,7 +360,7 @@ public class CentralProcessingUnit implements MemoryListener {
 			}// outer if
 			opCodeSize = 1;
 			break;
-		case 6: // zzz = 110
+		case 6: //  zzz = 110 
 			// value = this.getByteImmediate();
 			// value = mm.getByte(programCounter+1);
 			value = mm.getByte(programCounter + 1);

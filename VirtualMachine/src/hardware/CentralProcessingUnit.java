@@ -201,11 +201,18 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("LXI %s%n", regPair);
 			} else { // DAD RegisterPair len =1, cycles = 10
 				// System.out.printf("DAD %s%n", regPair);
-				ccr.clearAllCodes();
+				
+				
+				byte originalCC = ccr.getConditionCode();
+//				ccr.clearAllCodes();
 				int operand1 = wrs.getDoubleReg(regPair);
 				int operand2 = wrs.getDoubleReg(Reg.HL);
 				int result = au.add(operand1, operand2);
 				wrs.setDoubleReg(Reg.HL, result);
+				boolean carryFromOperation = ccr.isCarryFlagSet();	// restore condition before operation
+				ccr.setConditionCode(originalCC);
+				
+				ccr.setCarryFlag(carryFromOperation);
 				opCodeSize = 1;
 			}// if
 			break;
@@ -341,7 +348,7 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("INC(INR) %s%n", regSingle);
 			}// outer if
 			opCodeSize = 1;
-			break;
+			break; // INR R
 		case 5: // zzz = 101
 			regSingle = registerDecode[yyy];
 			if (regSingle == Reg.M) { // DCR M len =1, cycles = 10
@@ -359,10 +366,8 @@ public class CentralProcessingUnit implements MemoryListener {
 				// System.out.printf("DCR %s%n", regSingle);
 			}// outer if
 			opCodeSize = 1;
-			break;
+			break; //DCR R
 		case 6: //  zzz = 110 
-			// value = this.getByteImmediate();
-			// value = mm.getByte(programCounter+1);
 			value = mm.getByte(programCounter + 1);
 
 			regSingle = registerDecode[yyy];

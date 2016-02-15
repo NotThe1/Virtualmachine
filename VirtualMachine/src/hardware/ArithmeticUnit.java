@@ -119,6 +119,7 @@ public class ArithmeticUnit {
 	 */
 	public byte increment(byte value) {
 		byte result =(byte) add((int) value, 1, Byte.SIZE);
+		ccr.setCarryFlag(false);
 		ccr.setZSP(result);											
 		return result;
 	}// increment(byte value)
@@ -131,6 +132,7 @@ public class ArithmeticUnit {
 	 */
 	public byte decrement(byte value) {
 		byte result =(byte) subtract((int) value, 1, Byte.SIZE);
+		ccr.setCarryFlag(false);
 		ccr.setZSP(result);											
 		return result;
 	}// increment(byte value)
@@ -192,8 +194,7 @@ public class ArithmeticUnit {
 	 */
 	public byte logicalAnd(byte operand1, byte operand2) {
 		byte result = (byte) (operand1 & operand2);
-		this.setCarryFlag(false);
-		ccr.setZSP(result);
+		ccr.setZSPclearCYandAUX(result);
 		return result;
 	}// logicalAnd
 
@@ -202,8 +203,7 @@ public class ArithmeticUnit {
 	 */
 	public byte logicalXor(byte operand1, byte operand2) {
 		byte result = (byte) (operand1 ^ operand2);
-		this.setCarryFlag(false);
-		ccr.setZSP(result);
+		ccr.setZSPclearCYandAUX(result);
 		return result;
 	}// logicalAnd
 
@@ -212,36 +212,47 @@ public class ArithmeticUnit {
 	 */
 	public byte logicalOr(byte operand1, byte operand2) {
 		byte result = (byte) (operand1 | operand2);
-		this.setCarryFlag(false);
-		ccr.setZSP(result);
-		//ccr.setAuxilaryCarryFlag(false);		// problem found by cpuDiag 2/9/2016
+		ccr.setZSPclearCYandAUX(result);
 		return result;
 	}// logicalAnd
 	public byte decimalAdjustByte(byte value){
-		byte loNibble = (byte) (value & 0X0F);
+		byte loNibble = getLoNibble( value);
 		byte ans = value;
+		
+		// save both Cy and Aux state on entry
 		boolean auxCarryTemp = ccr.isAuxilaryCarryFlagSet();
 		boolean carryTemp = ccr.isCarryFlagSet();
+		
 //		System.out.printf("value = %04X, , loNibble =%04X%n",value,loNibble);
 		if((loNibble > 9) || auxCarryTemp){
 			ans = this.add(value, (byte) 0X06);
+			
+//			if (((byte) (ans & 0X0F)) >9){
+//				
+//			}
 			auxCarryTemp = ccr.isAuxilaryCarryFlagSet(); // remember  the Aux flag for exit
-		}//if 
+		
+		}//if
+		
 		byte hiNibble = (byte) ((ans & 0XF0) >>4);
 //		System.out.printf("step1 = %04X, , hiNibble =%04X%n",ans,hiNibble);
-		if ((hiNibble > 9) || carryTemp)  {// carry when we enered the operation
+		if ((hiNibble > 9) || carryTemp)  {// carry when we entered the operation
 			ans = this.add(ans, (byte) 0X60);
 		}
 		ccr.setAuxilaryCarryFlag(auxCarryTemp);
+		ccr.setZSP(ans);
 //		System.out.printf("step1 = %04X, AuxCarry = %s, Carry = %s%n",ans,ccr.isAuxilaryCarryFlagSet(),ccr.isCarryFlagSet());
 		return ans;
 	}//
+	private byte getLoNibble(byte value){
+		return (byte) (value & 0X0F);
+	}
 	
-	public void setCarry(){
-		ccr.setCarryFlag(true);
-	}//setCarry
-	public void complementCarry(){
-		ccr.setCarryFlag(!ccr.isCarryFlagSet());
-	}//complementCarry
+//	public void setCarry(){
+//		ccr.setCarryFlag(true);
+//	}//setCarry
+//	public void complementCarry(){
+//		ccr.setCarryFlag(!ccr.isCarryFlagSet());
+//	}//complementCarry
 
 }// class ArithmeticUnit

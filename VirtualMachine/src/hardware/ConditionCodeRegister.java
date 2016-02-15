@@ -65,8 +65,12 @@ public class ConditionCodeRegister implements Serializable {
 		signFlag = false;
 		parityFlag = false;
 		zeroFlag = false;
-
 	}//clearAllCodes
+	
+	public void setZSPclearCYandAUX(byte value){
+		clearAllCodes();
+		 setZSP (value);
+	}// setZSPclearCYandAUX
 
 	/**
 	 * @return the auxilaryCarryFlag

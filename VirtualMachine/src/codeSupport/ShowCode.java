@@ -68,8 +68,8 @@ public class ShowCode extends JFrame {
 	private JPanel contentPane;
 	private int programCounter;
 
-	Pattern limitStart = Pattern.compile("CodeStart:");
-	Pattern limitEnd = Pattern.compile("CodeEnd:");
+	Pattern limitStart = Pattern.compile("CodeStart:",Pattern.CASE_INSENSITIVE);
+	Pattern limitEnd = Pattern.compile("CodeEnd:",Pattern.CASE_INSENSITIVE);
 	Pattern pLineNumber = Pattern.compile("^[0-9]{4}:\\s[a-f,A-F,0-9]{4}");
 
 	private HashMap<String, Limits> fileList; // HashMap<AbsoluteFIlePath,Limits>

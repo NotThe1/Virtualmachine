@@ -418,7 +418,7 @@ public class ShowCode extends JFrame {
 		JMenuItem mnuFileAddList = new JMenuItem("Add Files from List");
 		mnuFileAddList.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Files", "ListSet");
+				JFileChooser fc = getFileChooser("Lists", "Listing Files", "ListSet");
 				if (fc.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
 					System.out.printf("You cancelled the Add Files from List...%n", "");
 					return;
@@ -427,8 +427,10 @@ public class ShowCode extends JFrame {
 				try {
 					fileReader = new FileReader((fc.getSelectedFile().getAbsolutePath()));
 					BufferedReader reader = new BufferedReader(fileReader);
-					String filePathName;
-					while ((filePathName = reader.readLine()) != null) {
+					String rawFilePathName = null;
+					String filePathName = null;
+					while ((rawFilePathName  = reader.readLine()) != null) {
+						filePathName = rawFilePathName.replaceAll("mem\\z", "list");
 						addFileToApp(filePathName);
 					}// for each
 					reader.close();
@@ -483,7 +485,7 @@ public class ShowCode extends JFrame {
 		JMenuItem mnuFilesSaveSelected = new JMenuItem("Save Selected as List");
 		mnuFilesSaveSelected.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = getFileChooser(defaultDirectory, "Listing Set Files", "ListSet");
+				JFileChooser fc = getFileChooser("Lists", "Listing Set Files", "ListSet");
 				if (fc.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) {
 					System.out.printf("You cancelled theSave Selected as List...%n", "");
 					return;

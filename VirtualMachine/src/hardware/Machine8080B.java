@@ -47,11 +47,13 @@ import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -61,7 +63,10 @@ import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
 
+
+
 import javax.swing.AbstractButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
 import javax.swing.JDialog;
@@ -154,7 +159,6 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			sourcePath = Paths.get(subDirectory);
 		} else {
 			sourcePath = Paths.get(FILE_LOCATION, subDirectory);
-
 		}
 		String fp = sourcePath.resolve(FILE_LOCATION).toString();
 
@@ -409,43 +413,126 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		btnStop.setVisible(!runState);
 	}// showRun
 
-	private void loadMemoryImage() {
-		JFileChooser chooserLMI = getFileChooser(memoryDirectory, "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
+	private void removeSelectedFromList() {
+		int itemCount = mnuMemory.getItemCount();
+		for (int i = itemCount - 1; i > 0; i--) {
+			if (mnuMemory.getItem(i) instanceof JCheckBoxMenuItem) {
+				JCheckBoxMenuItem mi = (JCheckBoxMenuItem) mnuMemory.getItem(i);
+				if (mi.getState()) {
+					mnuMemory.remove(mi);
+				}
+			}// if
+		}// for
+	}// removeSelectedFromList
+	private void saveSelectedToList(){
+		JFileChooser fc = getFileChooser("Lists", "Listing Set Files", "ListSet");
+		if (fc.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) {
+			System.out.printf("You cancelled theSave Selected as List...%n", "");
+			return;
+		}// if
+		String destinationPath = fc.getSelectedFile().getAbsolutePath();
+		try {
+			FileWriter fileWriter = new FileWriter(destinationPath + ".ListSet");
+			BufferedWriter writer = new BufferedWriter(fileWriter);
+
+			int itemCount = mnuMemory.getItemCount();
+			for (int i = itemCount - 1; i > 0; i--) {
+
+				if (mnuMemory.getItem(i) instanceof JCheckBoxMenuItem) {
+					JCheckBoxMenuItem mi = (JCheckBoxMenuItem) mnuMemory.getItem(i);
+					if (mi.getState()) {
+						writer.write(mi.getName() + "\n");
+					}// inner if - selected = true
+				}// outer if
+			}// for
+			writer.close();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return;
+		}// try
+	}
+
+	private void getMemoryImageFiles() {
+//		JFileChooser fc = getFileChooser(memoryDirectory, "Memory file lists", "ListSet");
+		JFileChooser fc = getFileChooser("Lists", "Memory file lists", "ListSet");
+		if (fc.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
+			System.out.printf("You cancelled the Load Memory from File List...%n", "");
+		} else {
+			FileReader fileReader;
+			try {
+				fileReader = new FileReader((fc.getSelectedFile().getAbsolutePath()));
+				BufferedReader reader = new BufferedReader(fileReader);
+				String rawFilePathName = null;
+				String filePathName = null;
+				File currentFile;
+				while ((rawFilePathName = reader.readLine()) != null) {
+					filePathName = rawFilePathName.replaceAll("list\\z", MEMORY_SUFFIX);
+					currentFile = new File(filePathName);
+					loadMemoryImage(currentFile);
+				}// while
+			} catch (IOException e1) {
+				System.out.printf(e1.getMessage() + "%n", "");
+			}// try
+		}// if
+
+		return;
+	}// getMemoryImageFiles
+
+	private File getMemoryImageFile() {
+		File sourceFile = null;
+		JFileChooser chooserLMI = getFileChooser("", "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
 		if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
 			System.out.printf("You cancelled the Load Memory...%n", "");
 		} else {
+			sourceFile = chooserLMI.getSelectedFile();
+			memoryDirectory = sourceFile.getParent();
+		}
+		return sourceFile;
+	}
 
-			File sourceFile = chooserLMI.getSelectedFile();
-			 memoryDirectory = sourceFile.getParent();
-			String memoryFileType = (sourceFile.getName().endsWith(MEMORY_SUFFIX)) ? MEMORY_SUFFIX : MEMORY_SUFFIX1;
-			try {
-				FileReader fileReader = new FileReader((sourceFile));
-				BufferedReader reader = new BufferedReader(fileReader);
-				String line;
-				while ((line = reader.readLine()) != null) {
-					switch (memoryFileType) {
-					case MEMORY_SUFFIX:
-						parseAndLoadImageMem(line);
-						break;
-					case MEMORY_SUFFIX1:
-						parseAndLoadImageHex(line);
-						break;
-					default:
-					}
-				}// while
-				reader.close();
-			} catch (FileNotFoundException fnfe) {
-				JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
-						+ "not found", "unable to locate",
-						JOptionPane.ERROR_MESSAGE);
-				return; // exit gracefully
-			} catch (IOException ie) {
-				JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
-						+ ie.getMessage(), "IO error",
-						JOptionPane.ERROR_MESSAGE);
-				return; // exit gracefully
-			}// try
-		}// if - returnValue
+	private void loadMemoryImage(File sourceFile) {
+		// JFileChooser chooserLMI = getFileChooser(memoryDirectory, "Memory files", MEMORY_SUFFIX, MEMORY_SUFFIX1);
+		// if (chooserLMI.showOpenDialog(frmMachineb) != JFileChooser.APPROVE_OPTION) {
+		// System.out.printf("You cancelled the Load Memory...%n", "");
+		// } else {
+
+		// File sourceFile = chooserLMI.getSelectedFile();
+		// memoryDirectory = sourceFile.getParent();
+		String memoryFileType = (sourceFile.getName().endsWith(MEMORY_SUFFIX)) ? MEMORY_SUFFIX : MEMORY_SUFFIX1;
+		try {
+			FileReader fileReader = new FileReader((sourceFile));
+			BufferedReader reader = new BufferedReader(fileReader);
+			String line;
+			while ((line = reader.readLine()) != null) {
+				switch (memoryFileType) {
+				case MEMORY_SUFFIX:
+					parseAndLoadImageMem(line);
+					break;
+				case MEMORY_SUFFIX1:
+					parseAndLoadImageHex(line);
+					break;
+				default:
+				}
+			}// while
+			reader.close();
+			String thisFileName = sourceFile.getName();
+			mnuNew = new JCheckBoxMenuItem(thisFileName);
+			mnuNew.setName(sourceFile.getAbsolutePath());
+			mnuNew.setActionCommand(thisFileName);
+			mnuMemory.add(mnuNew);
+
+		} catch (FileNotFoundException fnfe) {
+			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+					+ "not found", "unable to locate",
+					JOptionPane.ERROR_MESSAGE);
+			return; // exit gracefully
+		} catch (IOException ie) {
+			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+					+ ie.getMessage(), "IO error",
+					JOptionPane.ERROR_MESSAGE);
+			return; // exit gracefully
+		}// try
+			// }// if - returnValue
 
 	}// loadMemoryImage
 
@@ -639,7 +726,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			new MemorySaver().show(core);
 			break;
 		case AC_MNU_MEMORY_LOAD:
-			loadMemoryImage();
+			File sourceFile = getMemoryImageFile();
+			if (sourceFile == null) {
+				break;
+			}
+			loadMemoryImage(sourceFile);
 			if (scm != null) {
 				scm.refresh();
 			}
@@ -648,6 +739,15 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			txtAssemblerCode.setCaretPosition(0);
 			break;
 
+		case AC_MNU_MEMORY_LOAD_LIST:
+			getMemoryImageFiles();
+			break;
+		case AC_MNU_MEMORY_SAVE_LIST:
+			saveSelectedToList();
+			break;
+		case AC_MNU_MEMORY_REMOVE_SELECTED:
+			removeSelectedFromList();
+			break;
 		case AC_MNU_TOOLS_PUTTY:
 			loadPutty();
 			break;
@@ -1504,7 +1604,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuDisksNew.addActionListener(this);
 		mnuDisks.add(mnuDisksNew);
 
-		JMenu mnuMemory = new JMenu("Memory");
+		mnuMemory = new JMenu("Memory");
 		menuBar.add(mnuMemory);
 
 		JMenuItem mnuMemoryShow = new JMenuItem("Show Memory ...");
@@ -1520,10 +1620,37 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		mnuMemorySave.addActionListener(this);
 		mnuMemory.add(mnuMemorySave);
 
-		JMenuItem mnuMemoryLoad = new JMenuItem("Load Memory From File...");
+		JMenuItem mnuMemoryLoad = new JMenuItem("Load Memory From A File...");
 		mnuMemoryLoad.setActionCommand(AC_MNU_MEMORY_LOAD);
 		mnuMemoryLoad.addActionListener(this);
+
+		JSeparator separator_5 = new JSeparator();
+		mnuMemory.add(separator_5);
 		mnuMemory.add(mnuMemoryLoad);
+
+		JSeparator separator_6 = new JSeparator();
+		mnuMemory.add(separator_6);
+
+		JMenuItem mnuMemoryLoadFromList = new JMenuItem("Load Memory from FIle List...");
+		mnuMemoryLoadFromList.setName(AC_MNU_MEMORY_LOAD_LIST);
+		mnuMemoryLoadFromList.setActionCommand(AC_MNU_MEMORY_LOAD_LIST);
+		mnuMemoryLoadFromList.addActionListener(this);
+		mnuMemory.add(mnuMemoryLoadFromList);
+
+		JMenuItem mnuMemorySaveToList = new JMenuItem("Save Selected to List...");
+		mnuMemorySaveToList.setName(AC_MNU_MEMORY_SAVE_LIST);
+		mnuMemorySaveToList.setActionCommand(AC_MNU_MEMORY_SAVE_LIST);
+		mnuMemorySaveToList.addActionListener(this);
+		mnuMemory.add(mnuMemorySaveToList);
+
+		JMenuItem mnuMemoryRemoveSelected = new JMenuItem("Remove Selected  from List");
+		mnuMemoryRemoveSelected.setName(AC_MNU_MEMORY_REMOVE_SELECTED);
+		mnuMemoryRemoveSelected.setActionCommand(AC_MNU_MEMORY_REMOVE_SELECTED);
+		mnuMemoryRemoveSelected.addActionListener(this);
+		mnuMemory.add(mnuMemoryRemoveSelected);
+
+		JSeparator separator_7 = new JSeparator();
+		mnuMemory.add(separator_7);
 
 		JMenu mnuTools = new JMenu("Tools");
 		menuBar.add(mnuTools);
@@ -1591,6 +1718,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_SHOW = "mnuMemoryShow";
 	private final static String AC_MNU_MEMORY_SAVE = "mnuMemorySave";
 	private final static String AC_MNU_MEMORY_LOAD = "mnuMemoryLoad";
+	private final static String AC_MNU_MEMORY_LOAD_LIST = "mnuMemoryLoadFromList";
+	private final static String AC_MNU_MEMORY_SAVE_LIST = "mnuMemorySaveToList";
+	private final static String AC_MNU_MEMORY_REMOVE_SELECTED = "mnuMemoryRemoveSelected";
 
 	private final static String AC_MNU_TOOLS_PUTTY = "mnuToolsPutty";
 	private final static String AC_MNU_TOOLS_LOAD_NEW_SYSTEM = "mnuToolsLoadNewSystem";
@@ -1620,6 +1750,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	public final static String MEMORY = "Memory";
 	// private final static String DISKS = "Disks";
 
+	public final static String LIST_SUFFIX1 = "list";
 	public final static String MEMORY_SUFFIX1 = "hex";
 	public final static String MEMORY_SUFFIX = "mem";
 	public final static String DISK_SUFFIX = "mem";
@@ -1644,6 +1775,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private JCheckBox ckbCarry;
 	private JButton btnRun;
 	private JButton btnStop;
+	private JCheckBoxMenuItem mnuNew;
 
 	private JLabel lblFileNameA;
 	private JLabel lblFileNameB;
@@ -1666,6 +1798,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String DISMOUNT = "Dismount";
 	private final static String NO_FILENAME = "<slot empty>";
 	private final static String NO_SIZE = "<0 KB>";
+	private JMenu mnuMemory;
 
 	// -----------------------------------------------------------
 

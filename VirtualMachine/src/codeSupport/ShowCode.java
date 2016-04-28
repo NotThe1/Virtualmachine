@@ -121,7 +121,7 @@ public class ShowCode extends JFrame {
 					continue;
 				}//
 
-				if (!doc.getText(posStart + 9, 2).equals("  ")) {
+				if (!doc.getText(posStart + 6, 2).equals("  ")) {// posStart + 9, 2)
 					notTheTargetLine = false;
 				}// if we have the line!
 

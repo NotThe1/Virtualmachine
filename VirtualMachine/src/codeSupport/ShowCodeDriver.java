@@ -20,16 +20,17 @@ import java.awt.event.ActionEvent;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JTextArea;
 import javax.swing.JScrollPane;
+import myComponents.Hex64KSpinner;
 
 public class ShowCodeDriver {
 	
 	private static ShowCode showCode;
 
 	private JFrame frame;
-	private JSpinner spinner;
 	private JButton btnTxtLog;
 	private JScrollPane scrollPane;
 	private JTextArea txtLog;
+	private Hex64KSpinner hexSpinner;
 
 	/**
 	 * Launch the application.
@@ -85,7 +86,8 @@ public class ShowCodeDriver {
 		JButton btnPC = new JButton("Send");
 		btnPC.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				showCode.setProgramCounter((int)spinner.getValue());
+//				showCode.setProgramCounter((int)spinner.getValue());
+				showCode.setProgramCounter((int)hexSpinner.getValue());
 			}
 		});
 		
@@ -118,15 +120,12 @@ public class ShowCodeDriver {
 		gbc_btnPC.gridy = 3;
 		frame.getContentPane().add(btnPC, gbc_btnPC);
 		
-		spinner = new JSpinner();
-		spinner.setModel(new SpinnerNumberModel(new Integer(259), null, null, new Integer(1)));
-		spinner.setPreferredSize(new Dimension(100, 20));
-		spinner.setMinimumSize(new Dimension(100, 20));
-		GridBagConstraints gbc_spinner = new GridBagConstraints();
-		gbc_spinner.insets = new Insets(0, 0, 0, 5);
-		gbc_spinner.gridx = 2;
-		gbc_spinner.gridy = 3;
-		frame.getContentPane().add(spinner, gbc_spinner);
+		hexSpinner = new Hex64KSpinner();
+		GridBagConstraints gbc_hexSpinner = new GridBagConstraints();
+		gbc_hexSpinner.insets = new Insets(0, 0, 0, 5);
+		gbc_hexSpinner.gridx = 2;
+		gbc_hexSpinner.gridy = 3;
+		frame.getContentPane().add(hexSpinner, gbc_hexSpinner);
 	}
 
 }

@@ -15,6 +15,7 @@ import javax.swing.JPanel;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.awt.Rectangle;
 
 import javax.swing.border.TitledBorder;
 import javax.swing.border.LineBorder;
@@ -62,6 +63,7 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
+
 
 
 
@@ -759,7 +761,9 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			if (debugManager == null) {
 				debugManager = new DebugManager(core);
 			}// if
+//			debugManager.setLocation(1, 100);
 			debugManager.setVisible(true);
+			
 
 		case AC_MNU_TOOLS_SHOW_CODE:
 			if (showCode == null) {
@@ -1056,7 +1060,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}
 		});
 		frmMachineb.setTitle("Machine8080B");
-		frmMachineb.setBounds(100, 100, 693, 850);
+		frmMachineb.setBounds(80, 120, 693, 850);
 		frmMachineb.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		GridBagLayout gridBagLayout = new GridBagLayout();

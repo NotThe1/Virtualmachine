@@ -355,13 +355,13 @@ public class ShowCode extends JFrame {
 	public ShowCode() {
 		initialize();
 		appInit();
-		this.setLocation(1055, 200);
+		this.setLocation(920, 200);
 		this.setVisible(true);
 	}
 
 	private void initialize() {
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 865, 750);		//original 100,100,669,674
+		setBounds(100, 100, 965, 850);		//original 100,100,669,674
 
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);

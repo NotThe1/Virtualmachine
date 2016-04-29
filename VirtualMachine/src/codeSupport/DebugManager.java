@@ -1,6 +1,7 @@
 package codeSupport;
 
 import java.awt.EventQueue;
+import java.awt.Rectangle;
 
 import javax.swing.JFrame;
 
@@ -79,7 +80,8 @@ public class DebugManager extends JFrame {
 	// ------------------------------------------------------------------------------------------------
 
 	private void appInit() {
-		this.setLocation(910, 200);
+		
+		this.setLocation( 790, 200);
 		updateScreen();
 	}//appInit
 

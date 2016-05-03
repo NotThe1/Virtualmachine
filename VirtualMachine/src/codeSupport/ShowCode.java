@@ -41,6 +41,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
+import javax.swing.JTextArea;
 
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -80,7 +81,8 @@ public class ShowCode extends JFrame {
 	private final static String SOURCE_FILE = "SourceFile";
 	// private final static String SPACE = " ";
 	private String currentFilePath;
-	private JEditorPane txtDisplay;
+	private JTextArea txtDisplay;
+//	private JEditorPane txtDisplay;
 	private Document doc;
 	private boolean fileIsCurrent;
 
@@ -342,8 +344,8 @@ public class ShowCode extends JFrame {
 		lblHeader.setFont(new Font("Courier New", Font.BOLD, 16));
 		lblHeader.setForeground(Color.BLUE);
 		scrollPane.setColumnHeaderView(lblHeader);
+		txtDisplay.setTabSize(10);
 		doc = txtDisplay.getDocument();
-
 		fileIsCurrent = false;
 		currentStart = -1;
 		currentEnd = -1;
@@ -357,6 +359,7 @@ public class ShowCode extends JFrame {
 		appInit();
 		this.setLocation(920, 200);
 		this.setVisible(true);
+		
 	}
 
 	private void initialize() {
@@ -536,7 +539,8 @@ public class ShowCode extends JFrame {
 		gbc_scrollPane.gridy = 0;
 		contentPane.add(scrollPane, gbc_scrollPane);
 
-		txtDisplay = new JEditorPane();
+		txtDisplay = new JTextArea();
+//		txtDisplay = new JEditorPane();
 		txtDisplay.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent me) {

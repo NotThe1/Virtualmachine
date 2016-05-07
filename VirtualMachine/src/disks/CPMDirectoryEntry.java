@@ -23,9 +23,14 @@ public class CPMDirectoryEntry {
 
 	private boolean bigDisk;
 
+	public static CPMDirectoryEntry emptyDirectoryEntry(boolean bigDisk) {
+		return new CPMDirectoryEntry(Disk.EMPTY_DIRECTORY_ENTRY,bigDisk);
+	}//emptyDirectoryEntry(boolean bigDisk)
+	
 	public static CPMDirectoryEntry emptyDirectoryEntry() {
 		return new CPMDirectoryEntry(Disk.EMPTY_DIRECTORY_ENTRY);
-	}//CPMDirectoryEntry
+	}//emptyDirectoryEntry()
+	
 
 	public void markAsDeleted() {
 		this.setUserNumber(Disk.EMPTY_ENTRY);
@@ -338,8 +343,26 @@ public class CPMDirectoryEntry {
 //		int limit = isBigDisk()?Disk.DIRECTORY_ALLOC_SIZE_BIG:Disk.DIRECTORY_ALLOC_SIZE_SMALL;
 //		return allocatedBlocks.size()>= limit;
 //	}//isEntryFull
-	public boolean isEntryFull(){
-		return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
+	public boolean isEntryFull() {
+		if (this.bigDisk) {
+			return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
+		} // done if big disk
+
+		if (this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT) {
+			
+			if ((getEx() % 2) == 0) {
+				setEx((byte) (getEx() + 1)); // update the extent
+				setRc((byte) 0X00); // restart the record count
+				return false;
+			}else{
+				return true;
+			}// ex odd
+			
+		} else {
+			return false;
+		}// outter if		
+		
+//		return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
 	}//isEntryFull
 
 	public boolean isEmpty() {

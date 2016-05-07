@@ -303,7 +303,7 @@ public class CPMDirectory {
 		}
 		dirEntries = new HashMap<Integer, CPMDirectoryEntry>();
 		for (int i = 0; i < maxEntries; i++) {
-			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry());
+			dirEntries.put(i, CPMDirectoryEntry.emptyDirectoryEntry(this.bigDisk));
 		}
 	}
 

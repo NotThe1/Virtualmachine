@@ -225,6 +225,12 @@ public class CPMDirectoryEntry {
 	public void setEx(byte ex) {
 		rawDirectory[Disk.DIR_EX] = (byte) (ex & 0x1F);
 	}//setEx
+	public int getExInt(){
+		return rawDirectory[Disk.DIR_EX] & 0X1F;
+	}//getExInt
+	public void incEx(){
+		setEx ((byte) (getExInt() +1)) ;
+	}//incEx
 
 	public byte getS1() {
 		return rawDirectory[Disk.DIR_S1];   //Disk.NULL_BYTE;
@@ -344,25 +350,25 @@ public class CPMDirectoryEntry {
 //		return allocatedBlocks.size()>= limit;
 //	}//isEntryFull
 	public boolean isEntryFull() {
-		if (this.bigDisk) {
-			return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
-		} // done if big disk
-
-		if (this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT) {
-			
-			if ((getEx() % 2) == 0) {
-				setEx((byte) (getEx() + 1)); // update the extent
-				setRc((byte) 0X00); // restart the record count
-				return false;
-			}else{
-				return true;
-			}// ex odd
-			
-		} else {
-			return false;
-		}// outter if		
+//		if (this.bigDisk) {
+//			return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
+//		} // done if big disk
+//
+//		if (this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT) {
+//			
+//			if ((getEx() % 2) == 0) {
+//				setEx((byte) (getEx() + 1)); // update the extent
+//				setRc((byte) 0X00); // restart the record count
+//				return false;
+//			}else{
+//				return true;
+//			}// ex odd
+//			
+//		} else {
+//			return false;
+//		}// outter if		
 		
-//		return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
+		return this.getRcInt() >= Disk.DIRECTORY_ENTRY_RECORD_LIMIT;
 	}//isEntryFull
 
 	public boolean isEmpty() {

@@ -105,12 +105,29 @@ public class CPMDirectory {
 	}
 
 	public int getNextDirectoryExtent(int directoryIndex) {
+		int index = directoryIndex;
+		if (this.bigDisk) {
+			index = getNextDirectoryExtentEntry(directoryIndex);
+		} else { // small disk
+			CPMDirectoryEntry currentEntry = dirEntries.get(directoryIndex);
+			if (currentEntry.getExInt() % 2 == 0) {
+				currentEntry.incEx();
+				index = directoryIndex;
+			} else {// need a whole new entry
+				index = getNextDirectoryExtentEntry(directoryIndex);
+			}// extent even/odd
+		}// big/small disk
+
+		return index;
+	}//getNextDirectoryExtent
+
+	public int getNextDirectoryExtentEntry(int directoryIndex) {
 		CPMDirectoryEntry currentEntry = dirEntries.get(directoryIndex);
 		int currentExtent = currentEntry.getActualExtentNumber();
 		byte userNo = currentEntry.getUserNumber();
 		String fullName = currentEntry.getNameAndTypePeriod();
 		return this.updateEntry(userNo, fullName, currentExtent + 1);
-	}
+	}// getNextDirectoryExtentEntry
 
 	public int getMoreStorage(int directoryIndex) {
 		int nextBlock = this.getNextAvailableBlock();

@@ -112,6 +112,7 @@ public class CPMDirectory {
 			CPMDirectoryEntry currentEntry = dirEntries.get(directoryIndex);
 			if (currentEntry.getExInt() % 2 == 0) {
 				currentEntry.incEx();
+				currentEntry.setRc(0);
 				index = directoryIndex;
 			} else {// need a whole new entry
 				index = getNextDirectoryExtentEntry(directoryIndex);

@@ -661,8 +661,8 @@ public class DiskUtility implements ActionListener {
 	}// fillDirectoryTable
 
 	private void fillFileChoosers(CPMDirectoryEntry entry, int index) {
-		if (entry.getActualExtentNumber() != 0) {
-			return; // only want one entry per file
+		if (entry.getActualExtentNumber() >1) {
+			return; // only want one entry per file [0 or 1]
 		}// if
 		fileCpmModel.add(new DirEntry(entry.getNameAndTypePeriod(), index));
 	}// fillFileChoosers

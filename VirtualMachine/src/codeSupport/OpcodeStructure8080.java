@@ -81,7 +81,7 @@ public class OpcodeStructure8080 {
 		String ans;
 		if (getDestination().equals("addr")) {
 			ans = String.format("%-4s 0%02X%02XH",
-					getInstruction(), plusTwo, plusOne);
+					getInstruction(), plusTwo, plusOne);	//0%02X%02XH
 		} else {
 			ans = String.format("%-4s %s,0%02X%02XH", getInstruction(), getDestination(), plusTwo, plusOne);
 		}

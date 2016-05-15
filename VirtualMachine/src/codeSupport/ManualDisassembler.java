@@ -240,6 +240,9 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		int targetAddress;
 		while (keepGoing) {
 			int a = currentLocation;
+			if(currentLocation > binaryData.capacity()){
+				return;
+			}
 
 			if (beenThere.add(currentLocation) == false) {
 				// System.out.printf("already visited %04X%n", startLocation);
@@ -247,8 +250,13 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 
 				return;
 			}//
-
-			currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
+try{
+	currentOpCode = opcodeMap.get(binaryData.get(currentLocation));
+}catch(Exception ex){
+	ex.printStackTrace();
+	
+}
+			
 			// System.out.printf("Location = %04X, opcode = %s%n", currentLocation, currentOpCode.getInstruction());
 			pcAction = currentOpCode.getPcAction();
 
@@ -604,6 +612,7 @@ public class ManualDisassembler implements ActionListener, ListSelectionListener
 		if (codeFragmentModel.getSize() < 2) {
 			return;
 		}// if
+		clearDocument(docASM);				// Star with clean doc
 		buildSourceHeader(docASM);
 		CodeFragment codeFragment;
 

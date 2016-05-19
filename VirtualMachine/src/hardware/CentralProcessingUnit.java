@@ -160,14 +160,12 @@ public class CentralProcessingUnit implements MemoryListener {
 		case 0: // zzz = 000
 			if (yyy == 0) {// its a NOP OO length =1, cycles = 4
 				// 00 real NOP
-				// System.out.printf("NOP %s%n", "");
 				opCodeSize = 1;
 			} else if (yyy == 6) {// Opcode "30" special for debugging **** act like a halt
 				setRunning(false);
 				opCodeSize = 0;
 			} else {// treat as if it is a NOP
-				// 08,10,18,20,28,30,38 - not implemented
-				// System.out.printf("*NOP %s%n", "");
+				// 08,10,18,20,28,30,38 - not implemented. treat as NOP
 				opCodeSize = 1;
 			}//
 			
@@ -198,11 +196,9 @@ public class CentralProcessingUnit implements MemoryListener {
 					badmemoryOpCode(programCounter);
 				}// switch
 				opCodeSize = 3;
-				// System.out.printf("LXI %s%n", regPair);
+				// 01,11,21,31 -LXI  regPair);
 			} else { // DAD RegisterPair len =1, cycles = 10
-				// System.out.printf("DAD %s%n", regPair);
-				
-				
+					
 				byte originalCC = ccr.getConditionCode();
 //				ccr.clearAllCodes();
 				int operand1 = wrs.getDoubleReg(regPair);
@@ -227,7 +223,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					mm.setByte(memoryLocation, wrs.getReg(Reg.A));
 					opCodeSize = 1;
 				}// if
-					// System.out.printf("STAX %s%n", "B");
+					// 02 -STAX B 
 				break;
 			case 1: // yyy = 001 LDAX B len =1, cycles = 1
 				memoryLocation = wrs.getDoubleReg(Reg.BC);
@@ -247,7 +243,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					mm.setByte(memoryLocation, wrs.getReg(Reg.A));
 					opCodeSize = 1;
 				}// if
-					// System.out.printf("STAX %s%n", "D");
+					// 12 -STAX D
 				break;
 			case 3: // yyy = 011 LDAX D len =1, cycles = 1
 				memoryLocation = wrs.getDoubleReg(Reg.DE);
@@ -267,7 +263,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					mm.setByte(memoryLocation + 1, wrs.getReg(Reg.H));
 					opCodeSize = 3;
 				}//
-					// System.out.printf("SHLD %s%n", "");
+					// 22 - SHLD
 				break;
 			case 5: // yyy = 101 LHLD len =3, cycles = 6
 				memoryLocation = mm.getWordReversed(programCounter + 1);
@@ -279,7 +275,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					opCodeSize = 3;
 				}//
 				break;
-			// System.out.printf("LHLD %s%n", "");
+			// 2A - LHLD 
 			case 6: // yyy = 110 STA len =3, cycles = 13
 				memoryLocation = mm.getWordReversed(programCounter + 1);
 				if (!isValidMemoryLocation(memoryLocation)) {
@@ -288,7 +284,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					mm.setByte(memoryLocation, wrs.getReg(Reg.A));
 					opCodeSize = 3;
 				}//
-					// System.out.printf("STA %s%n", "");
+					// 32 - STA 
 				break;
 			case 7: // yyy = 111 LDA len =3, cycles = 13
 				memoryLocation = mm.getWordReversed(programCounter + 1);
@@ -299,7 +295,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					// mm.setByte(memoryLocation, wrs.getReg(Reg.A));
 					opCodeSize = 3;
 				}//
-					// System.out.printf("LDA %s%n", "");
+					// 3A - LDA
 				break;
 			default:
 				badOpCode();
@@ -317,7 +313,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					int ans = wrs.getDoubleReg(regPair) + 1;
 					wrs.setDoubleReg(regPair, ans);
 				}// inner if
-					// System.out.printf("INX %s%n", regPair);
+					// 03 BC,13 DE,23 HL,33 SP -INX 
 			} else { // DCX RegisterPair len =1, cycles = 5
 				if (regPair == Reg.SP) {// stack Pointer
 					int ans = wrs.getStackPointer() - 1;
@@ -326,7 +322,7 @@ public class CentralProcessingUnit implements MemoryListener {
 					int ans = wrs.getDoubleReg(regPair) - 1;
 					wrs.setDoubleReg(regPair, ans);
 				}// inner if
-					// System.out.printf("DCX %s%n", regPair);
+					// 0B BC,1B DE, 2B HL,2B SP - DCX 
 			}// if
 			opCodeSize = 1;
 			break;
@@ -341,11 +337,11 @@ public class CentralProcessingUnit implements MemoryListener {
 					value = mm.getByte(memoryLocation);
 					mm.setByte(memoryLocation, au.increment(value));
 				}// inner if
-					// System.out.printf("INC(INR) %s%n", "M"); // Indirect
+					//  34 M INR Indirect
 			} else {// INR len =1, cycles = 5
 				value = wrs.getReg(regSingle);
 				wrs.setReg(regSingle, au.increment(value));
-				// System.out.printf("INC(INR) %s%n", regSingle);
+				// 04 B,14 D,24 H,0C C,1C E,2C L, 3C A - INR
 			}// outer if
 			opCodeSize = 1;
 			break; // INR R
@@ -359,11 +355,11 @@ public class CentralProcessingUnit implements MemoryListener {
 					value = mm.getByte(memoryLocation);
 					mm.setByte(memoryLocation, au.decrement(value));
 				}// inner if
-					// System.out.printf("DCR %s%n", "M"); // Indirect
+					// 35 M DCR Indirect
 			} else {// DCR len =1, cycles = 5
 				value = wrs.getReg(regSingle);
 				wrs.setReg(regSingle, au.decrement(value));
-				// System.out.printf("DCR %s%n", regSingle);
+				// 05 B,15 D,25 H,0D C,1D E,2D L, 3D A - INR
 			}// outer if
 			opCodeSize = 1;
 			break; //DCR R
@@ -377,10 +373,10 @@ public class CentralProcessingUnit implements MemoryListener {
 					reportInvalidMemoryReference(memoryLocation);
 				} else {
 					mm.setByte(memoryLocation, value);
-				}// inner if
+				}// 36 MVI M
 			} else {
 				wrs.setReg(regSingle, value);
-				// System.out.printf("MVI %s%n", "M"); // Indirect
+				// 06 B,16 D,26 H,0E C,1E E,2E L,3E A - MVI
 			} // outer if
 			opCodeSize = 2;
 			break;
@@ -392,41 +388,41 @@ public class CentralProcessingUnit implements MemoryListener {
 			case 0:// yyy = 000
 				ans = au.rotateLeft(value, false);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("RLC %s%n", "");
+				// 07 - RLC
 				break;
 			case 1:// yyy = 001
 				ans = au.rotateRight(value, false);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("RRC %s%n", "");
+				// )F - RRC %s%n", "");
 				break;
 			case 2:// yyy = 010
 				ans = au.rotateLeft(value, true);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("RAL %s%n", "");
+				// 17 - RAL 
 				break;
 			case 3:// yyy = 011
 				ans = au.rotateRight(value, true);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("RAR %s%n", "");
+				// 1F - RAR
 				break;
 			case 4:// yyy = 100
 				ans = au.decimalAdjustByte(value);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("DAA %s%n", "");
+				// 27 - DAA 
 				break;
 			case 5:// yyy = 101
 				ans = au.complement(value);
 				wrs.setReg(Reg.A, ans);
-				// System.out.printf("CMA %s%n", "");
+				// 2F - CMA
 				break;
 			case 6:// yyy = 110
 				ccr.setCarryFlag(true);
-				// System.out.printf("STC %s%n", "");
+				//  37 - STC
 				break;
 			case 7:// yyy = 111
 				boolean cFlag = ccr.isCarryFlagSet();
 				ccr.setCarryFlag(!cFlag);
-				// System.out.printf("CMC %s%n", "");
+				// 3F - CMC
 				break;
 			default:
 				badOpCode();

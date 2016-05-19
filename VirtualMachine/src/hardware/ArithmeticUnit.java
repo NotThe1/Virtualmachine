@@ -118,8 +118,9 @@ public class ArithmeticUnit {
 	 * Increment values
 	 */
 	public byte increment(byte value) {
+		boolean priorCarry = ccr.isCarryFlagSet();
 		byte result =(byte) add((int) value, 1, Byte.SIZE);
-		ccr.setCarryFlag(false);
+		ccr.setCarryFlag(priorCarry);
 		ccr.setZSP(result);											
 		return result;
 	}// increment(byte value)
@@ -131,8 +132,9 @@ public class ArithmeticUnit {
 	 * Deccremet values
 	 */
 	public byte decrement(byte value) {
+		boolean priorCarry = ccr.isCarryFlagSet();
 		byte result =(byte) subtract((int) value, 1, Byte.SIZE);
-		ccr.setCarryFlag(false);
+		ccr.setCarryFlag(priorCarry);
 		ccr.setZSP(result);											
 		return result;
 	}// increment(byte value)

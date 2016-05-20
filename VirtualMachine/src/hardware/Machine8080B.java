@@ -67,6 +67,8 @@ import java.util.Scanner;
 
 
 
+import java.util.prefs.Preferences;
+
 import javax.swing.AbstractButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -110,6 +112,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		FocusListener, ItemListener, ActionListener {
 
 	private JFrame frmMachineb;
+	private Preferences prefs;
 
 	private Core core;
 	private ConditionCodeRegister ccr;
@@ -642,10 +645,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		String actionCommand = ae.getActionCommand();
 		switch (actionCommand) {
 		case AC_BTN_RUN:
-			showRun(false);
-			cpu.startRunMode();
-			showRun(true);
-			loadTheDisplay();
+//			showRun(false);
+//			cpu.startRunMode();
+//			showRun(true);
+//			loadTheDisplay();
+			doRun();
 			break;
 		case AC_BTN_STOP:
 			// scrollAssembler.getVerticalScrollBar().setValue(0);
@@ -777,8 +781,11 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}// if
 			debugManager.setVisible(true);
 			break;
-		case AC_MNU_TOOLS_LOAD_NEW_SYSTEM:
-			loadCPM();
+		case AC_MNU_TOOLS_REBOOT:
+			loadROM();
+			wrs.setProgramCounter(0X0000);
+			wrs.setStackPointer(0X0080);
+			doRun();
 			break;
 		}// switch - actionCommand
 
@@ -842,13 +849,32 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		}// try
 
 	}
-
-	private void loadCPM() {
-		File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
-		loadNewSystem(sourceFile);
-		sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
-		loadNewSystem(sourceFile);
+	
+	private void loadROM(){
+		byte[] romMemory = new byte[0xff];
+		byte[] bootLoader = new byte[]{(byte)0X21, (byte)0X19, (byte)0X00, (byte)0X22, (byte)0X46, (byte)0X00, 
+				(byte)0X21, (byte)0X45, (byte)0X00, (byte)0X36, (byte)0X80, (byte)0X7E, (byte)0XB7, (byte)0XC2, 
+				(byte)0X0B, (byte)0X00, (byte)0X3A, (byte)0X43, (byte)0X00, (byte)0XFE, (byte)0X80, (byte)0XC3,
+				(byte)0X00, (byte)0X01, (byte)0X76, (byte)0X01, (byte)0X00, (byte)0X00, (byte)0X00, (byte)0X01,
+				(byte)0X00, (byte)0X02, (byte)0X00, (byte)0X01, (byte)0X43, (byte)0X00, (byte)0X40};
+		romMemory = prefs.getByteArray("Machine8080/BootLoader", bootLoader);
+		
+			core.writeDMA(0X0000, romMemory);
+		
 	}
+	private void doRun(){
+		showRun(false);
+		cpu.startRunMode();
+		showRun(true);
+		loadTheDisplay();
+	}//do run
+
+//	private void loadCPM() {
+//		File sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\CPM22.mem");
+//		loadNewSystem(sourceFile);
+//		sourceFile = new File("C:\\Users\\admin\\git\\assembler8080\\assembler8080\\Code\\System\\BIOS.mem");
+//		loadNewSystem(sourceFile);
+//	}//loadCPM
 
 	private void addRmoveDisk(int diskNumber, String action) {
 		if (action.equals(MOUNT)) {
@@ -962,37 +988,38 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		showTheDisks();
 	}// setupDisks
 
-	private void loadNewSystem(File sourceFile) {
-		try {
-			FileReader fileReader = new FileReader((sourceFile));
-			BufferedReader reader = new BufferedReader(fileReader);
-			String line;
-			while ((line = reader.readLine()) != null) {
-				parseAndLoadImageMem(line);
-			}// while
-			reader.close();
-		} catch (FileNotFoundException fnfe) {
-			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
-					+ "not found", "unable to locate",
-					JOptionPane.ERROR_MESSAGE);
-			return; // exit gracefully
-		} catch (IOException ie) {
-			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
-					+ ie.getMessage(), "IO error",
-					JOptionPane.ERROR_MESSAGE);
-			return; // exit gracefully
-		}// try
-	}// if - returnValue
+//	private void loadNewSystem(File sourceFile) {
+//		try {
+//			FileReader fileReader = new FileReader((sourceFile));
+//			BufferedReader reader = new BufferedReader(fileReader);
+//			String line;
+//			while ((line = reader.readLine()) != null) {
+//				parseAndLoadImageMem(line);
+//			}// while
+//			reader.close();
+//		} catch (FileNotFoundException fnfe) {
+//			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+//					+ "not found", "unable to locate",
+//					JOptionPane.ERROR_MESSAGE);
+//			return; // exit gracefully
+//		} catch (IOException ie) {
+//			JOptionPane.showMessageDialog(null, sourceFile.getAbsolutePath()
+//					+ ie.getMessage(), "IO error",
+//					JOptionPane.ERROR_MESSAGE);
+//			return; // exit gracefully
+//		}// try
+//	}// if - loadNewSystem
 
 	// <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	private void appInit() {
-		// currentMachineName = getDefaultMachineStateFile();
-		// restoreMachineState();
+		prefs = Preferences.userRoot().node(this.getClass().getName());
+		frmMachineb.setLocation(prefs.getInt("Machine8080/X", 00), prefs.getInt("Machine8080/Y", 00));
 		makeNewMachine();
-		loadCPM();
+//		loadCPM();
+		loadROM();
 		loadPutty();
 		// loadTheDisplay();
 		disassembler.upDateDisplay(wrs.getProgramCounter());
@@ -1000,7 +1027,10 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	}
 
 	private void appClose() {
-		// saveMachineState();
+		
+		prefs.putInt("Machine8080/X",frmMachineb.getX());
+		prefs.putInt("Machine8080/Y",frmMachineb.getY());
+
 		closeAllObjects();
 	}
 
@@ -1011,7 +1041,6 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 			}// if alive
 		}// if not null
 		closeIt(putty);
-
 		closeIt(debugManager);
 		closeIt(showCode);
 		closeIt(disassembler);
@@ -1687,12 +1716,12 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 		JSeparator separator_3 = new JSeparator();
 		mnuTools.add(separator_3);
 
-		JMenuItem mnuToolsLoadNewSystem = new JMenuItem("Load New System");
-		mnuToolsLoadNewSystem.setName(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-		mnuToolsLoadNewSystem.setActionCommand(AC_MNU_TOOLS_LOAD_NEW_SYSTEM);
-		mnuToolsLoadNewSystem.addActionListener(this);
-		mnuToolsLoadNewSystem.setToolTipText("Load Fresh BIOS.MEM and CPM22.MEM");
-		mnuTools.add(mnuToolsLoadNewSystem);
+		JMenuItem mnuToolsHardBoot = new JMenuItem("Hard Boot");
+		mnuToolsHardBoot.setName(AC_MNU_TOOLS_REBOOT);
+		mnuToolsHardBoot.setActionCommand("mnuToolsHardBoot");
+		mnuToolsHardBoot.addActionListener(this);
+		mnuToolsHardBoot.setToolTipText("Load Fresh BIOS.MEM and CPM22.MEM");
+		mnuTools.add(mnuToolsHardBoot);
 	}
 
 	public static final int MEMORY_SIZE_K = 64; // in K
@@ -1727,7 +1756,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	private final static String AC_MNU_MEMORY_REMOVE_SELECTED = "mnuMemoryRemoveSelected";
 
 	private final static String AC_MNU_TOOLS_PUTTY = "mnuToolsPutty";
-	private final static String AC_MNU_TOOLS_LOAD_NEW_SYSTEM = "mnuToolsLoadNewSystem";
+	private final static String AC_MNU_TOOLS_REBOOT = "mnuToolsHardBoot";
 	private final static String AC_MNU_TOOLS_SHOW_CODE = "mnuToolsShowCode";
 	private final static String AC_MNU_TOOLS_DEBUG_MANAGER = "mnuToolsDebugManager";
 	private final static String AC_MNU_TOOLS_DEBUG_SUITE = "mnuToolsDebugSuite";

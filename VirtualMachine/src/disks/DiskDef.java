@@ -44,11 +44,15 @@ public class DiskDef {
 	private SpinnerNumberModel headsModel;
 	private SpinnerNumberModel tracksModel;
 	private SpinnerNumberModel reservedTracksModel;
+	private SpinnerNumberModel directoryBlocksModel;
 	private boolean blocking;
 
 	static final int LOGICAL_SECTOR_SIZE = 128;
 	static final int PHYSICAL_SECTOR_SIZE = 512;
 	static final int LOGICAL_SECTORS_PER_PHYSICAL_SECTOR = PHYSICAL_SECTOR_SIZE / LOGICAL_SECTOR_SIZE;
+	static final int DIRECTORY_SIZE = 32;
+	static final int DIRECTORIES_PER_PHYSICAL_SECTOR = PHYSICAL_SECTOR_SIZE / DIRECTORY_SIZE;
+
 	private JLabel lblNumberOfBlocks;
 	private JLabel lblNumberOfLogicalSectors;
 	private JLabel lblNumberOfPhysicalSectors;
@@ -66,6 +70,9 @@ public class DiskDef {
 	private JLabel lblOff;
 	private JLabel lblBootable;
 	private JLabel lblNetBlocksAvailable;
+	private JLabel lblDirectoriesPerBlock;
+	private JLabel lblDirectories;
+	private JLabel lblAllocationVectorSize;
 
 	/**
 	 * Launch the application.
@@ -101,6 +108,8 @@ public class DiskDef {
 		int physicalBlocksPerSector = calcPhySectorsPerBlock();
 		int blockSize = calcBlockSize();
 		int numberOfBlocks = calcNumberOfBlocks(); // DSM
+		int directoriesPerBlock = calcDirectoriesPerBlock();
+		int numberOfDirectoryEntries = calcNumberOfDirectoryEntries(); // DRM
 		int numberOfLogicalSectors = calcNumberOfLogicalSectors();
 		int numberOfPhysicalSectors = calcNumberOfPhysicalSectors();
 		int sectorsPerHeadPerTrack = calcSectorsPerHeadPerTrack();
@@ -109,11 +118,47 @@ public class DiskDef {
 		int dataBlockMask = calcDataBlockMask(); // BLM
 		int numberOfAvailableBlocks = calcNetBlockCount(); // DRM
 		int reservedTracks = calcReservedTracks(); // OFF
+		int extentMask = calcExtentMask(); // EXM
+		int allocationBits = calcAL0andAL1(); // AL0 & AL1
+		int checkSumVectorSize = calcCheckSumVectorSize(); // CKS
 	}// calculateAllValues
+
+	private int calcCheckSumVectorSize() { // CKS
+		int ans = calcNumberOfDirectoryEntries() / 4;
+		lblCKS.setText(String.format("     %1$10d (0X%1$X)", ans));
+		return ans;
+
+	}
+
+	private int calcAL0andAL1() { // AL0 & AL1
+		int ans = 0XFFFF0000;
+		ans = ans >> (int) directoryBlocksModel.getValue();
+		ans = ans & 0XFFFF;
+		// System.out.printf("Allocation =  %1$04X%n", ans);
+		int AL0 = (ans >> 8) & 0XFF;
+		lblAL0.setText(String.format("     %1$10d (0X%1$X)", AL0));
+		int AL1 = ans & 0XFF;
+		lblAL1.setText(String.format("     %1$10d (0X%1$X)", AL1));
+		return ans;
+	}
+
+	private int calcExtentMask() { // EXM
+		int factor = calcNumberOfBlocks() < 256 ? 2 : 4;
+		int ans = (int) (calcPhySectorsPerBlock() / factor) - 1;
+		ans = ans < 0 ? 0 : ans;
+		lblEXM.setText(String.format("     %1$10d (0X%1$X)", ans));
+		return ans;
+
+	}
 
 	private int calcReservedTracks() { // OFF
 		int ans = (int) reservedTracksModel.getValue();
-		lblOff.setText(String.format("     %1$10d (0X%1$X)", ans ));
+		lblOff.setText(String.format("     %1$10d (0X%1$X)", ans));
+		if (ans > 0) {
+			lblBootable.setText("Bootable Disk");
+		} else {
+			lblBootable.setText("Disk is Not Bootable");
+		}
 		return ans;
 	}
 
@@ -126,6 +171,7 @@ public class DiskDef {
 		int sectorsPerBlock = calcPhySectorsPerBlock();
 		int ans = (netPhysicalSectors / sectorsPerBlock);
 
+		lblAllocationVectorSize.setText(String.format("     %1$10d (0X%1$X)", (ans / 8) + 1));
 		lblNetBlocksAvailable.setText(String.format("     %1$10d (0X%1$X)", ans));
 		lblDSM.setText(String.format("     %1$10d (0X%1$X)", ans - 1));
 		return ans;
@@ -175,27 +221,29 @@ public class DiskDef {
 		return ans;
 	}
 
+	private int calcNumberOfDirectoryEntries() { // DRM
+		int ans = calcDirectoriesPerBlock() * (int) directoryBlocksModel.getValue();
+		lblDirectories.setText(String.format("%1$10d (0X%1$X) Directory Entries", ans));
+		lblDRM.setText(String.format("     %1$10d (0X%1$X)", ans - 1));
+		return ans;
+	}
+
 	private int calcNumberOfLogicalSectors() {
 		int ans = (int) totalBytesModel.getValue() / LOGICAL_SECTOR_SIZE;
 		lblNumberOfLogicalSectors.setText(String.format("     %1$10d (0X%1$X)", ans));
 		return ans;
 	}
 
-	private int calcNumberOfBlocks() {
-		// int reserved = (int)reservedTracksModel.getValue();
-		// int heads = (int)headsModel.getValue();
-		// int tracks = (int) tracksModel.getValue();
-		// int sphpt = calcSectorsPerHeadPerTrack();
-		// int netPhysicalSectors = heads * ( tracks -reserved) * sphpt;
-		// int sectorsPerBlock = calcPhySectorsPerBlock();
-		// int netBlocks = (netPhysicalSectors / sectorsPerBlock );
-		//
-		// lblNetBlocksAvailable.setText(String.format("     %1$10d (0X%1$X)", netBlocks));
-		// lblDSM.setText(String.format("     %1$10d (0X%1$X)", netBlocks-1));
+	private int calcDirectoriesPerBlock() {
+		int ans = calcPhySectorsPerBlock() * DIRECTORIES_PER_PHYSICAL_SECTOR;
+		lblDirectoriesPerBlock.setText(String.format("     %1$10d (0X%1$X)", ans));
+		return ans;
 
+	}
+
+	private int calcNumberOfBlocks() {
 		int ans = (int) totalBytesModel.getValue() / calcBlockSize();
 		lblNumberOfBlocks.setText(String.format("     %1$10d (0X%1$X)", ans));
-
 		// int ans = logicalSecHeadTrk * (int) headsModel.getValue();
 
 		return ans;
@@ -244,6 +292,9 @@ public class DiskDef {
 
 		prefs.putInt("DiskDef/heads", (int) headsModel.getValue());
 		prefs.putInt("DiskDef/tracks", (int) tracksModel.getValue());
+
+		prefs.putInt("DiskDef/reservedTracks", (int) reservedTracksModel.getValue());
+		prefs.putInt("DiskDef/directoryBlocks", (int) directoryBlocksModel.getValue());
 		prefs = null;
 
 	}
@@ -257,6 +308,9 @@ public class DiskDef {
 		cbBlockSize.setSelectedIndex(prefs.getInt("DiskDef/blockSize", 0));
 		headsModel.setValue(prefs.getInt("DiskDef/heads", 1));
 		tracksModel.setValue(prefs.getInt("DiskDef/tracks", 1));
+		reservedTracksModel.setValue(prefs.getInt("DiskDef/reservedTracks", 1));
+		directoryBlocksModel.setValue(prefs.getInt("DiskDef/directoryBlocks", 1));
+
 		prefs = null;
 		blocking = false;
 		calculateAllValues();
@@ -721,15 +775,15 @@ public class DiskDef {
 		gbc_panel_6.gridy = 3;
 		frmDiskDef.getContentPane().add(panel_6, gbc_panel_6);
 		GridBagLayout gbl_panel_6 = new GridBagLayout();
-		gbl_panel_6.columnWidths = new int[] { 100, 50, 50, 0, 0, 0 };
-		gbl_panel_6.rowHeights = new int[] { 0, 0 };
+		gbl_panel_6.columnWidths = new int[] { 200, 50, 50, 0, 0, 0 };
+		gbl_panel_6.rowHeights = new int[] { 0, 0, 0 };
 		gbl_panel_6.columnWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
-		gbl_panel_6.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		gbl_panel_6.rowWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
 		panel_6.setLayout(gbl_panel_6);
 
-		JLabel lblNewLabel_7 = new JLabel("Reserved Tracks");
+		JLabel lblNewLabel_7 = new JLabel("Reserved Tracks Before Directory");
 		GridBagConstraints gbc_lblNewLabel_7 = new GridBagConstraints();
-		gbc_lblNewLabel_7.insets = new Insets(0, 0, 0, 5);
+		gbc_lblNewLabel_7.insets = new Insets(0, 0, 5, 5);
 		gbc_lblNewLabel_7.gridx = 0;
 		gbc_lblNewLabel_7.gridy = 0;
 		panel_6.add(lblNewLabel_7, gbc_lblNewLabel_7);
@@ -745,7 +799,7 @@ public class DiskDef {
 
 		reservedTracksDecimal.setPreferredSize(new Dimension(50, 20));
 		GridBagConstraints gbc_reservedTracksDecimal1 = new GridBagConstraints();
-		gbc_reservedTracksDecimal1.insets = new Insets(0, 0, 0, 5);
+		gbc_reservedTracksDecimal1.insets = new Insets(0, 0, 5, 5);
 		gbc_reservedTracksDecimal1.gridx = 1;
 		gbc_reservedTracksDecimal1.gridy = 0;
 		panel_6.add(reservedTracksDecimal, gbc_reservedTracksDecimal1);
@@ -760,9 +814,47 @@ public class DiskDef {
 
 		lblBootable = new JLabel("Not Bootable");
 		GridBagConstraints gbc_lblBootable = new GridBagConstraints();
+		gbc_lblBootable.insets = new Insets(0, 0, 5, 0);
 		gbc_lblBootable.gridx = 4;
 		gbc_lblBootable.gridy = 0;
 		panel_6.add(lblBootable, gbc_lblBootable);
+
+		JLabel lblNewLabel_10 = new JLabel("Reserved for Directory");
+		GridBagConstraints gbc_lblNewLabel_10 = new GridBagConstraints();
+		gbc_lblNewLabel_10.insets = new Insets(0, 0, 0, 5);
+		gbc_lblNewLabel_10.gridx = 0;
+		gbc_lblNewLabel_10.gridy = 1;
+		panel_6.add(lblNewLabel_10, gbc_lblNewLabel_10);
+
+		directoryBlocksModel = new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1);
+
+		JSpinner directoryBlocksDecimal = new JSpinner(directoryBlocksModel);
+		directoryBlocksDecimal.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				calculateAllValues();
+			}
+		});
+
+		directoryBlocksDecimal.setPreferredSize(new Dimension(50, 20));
+		GridBagConstraints gbc_directoryBlocksDecimal = new GridBagConstraints();
+		gbc_directoryBlocksDecimal.insets = new Insets(0, 0, 0, 5);
+		gbc_directoryBlocksDecimal.gridx = 1;
+		gbc_directoryBlocksDecimal.gridy = 1;
+		panel_6.add(directoryBlocksDecimal, gbc_directoryBlocksDecimal);
+
+		HexSpinner directoryBlocksHex = new HexSpinner(directoryBlocksModel);
+		directoryBlocksHex.setPreferredSize(new Dimension(50, 20));
+		GridBagConstraints gbc_directoryBlocksHex = new GridBagConstraints();
+		gbc_directoryBlocksHex.insets = new Insets(0, 0, 0, 5);
+		gbc_directoryBlocksHex.gridx = 2;
+		gbc_directoryBlocksHex.gridy = 1;
+		panel_6.add(directoryBlocksHex, gbc_directoryBlocksHex);
+
+		lblDirectories = new JLabel("New label");
+		GridBagConstraints gbc_lblDirectories = new GridBagConstraints();
+		gbc_lblDirectories.gridx = 4;
+		gbc_lblDirectories.gridy = 1;
+		panel_6.add(lblDirectories, gbc_lblDirectories);
 
 		JPanel panel_3 = new JPanel();
 		panel_3.setBorder(new LineBorder(new Color(0, 0, 0), 1, true));
@@ -774,9 +866,9 @@ public class DiskDef {
 		frmDiskDef.getContentPane().add(panel_3, gbc_panel_3);
 		GridBagLayout gbl_panel_3 = new GridBagLayout();
 		gbl_panel_3.columnWidths = new int[] { 150, 20, 0 };
-		gbl_panel_3.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		gbl_panel_3.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gbl_panel_3.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
-		gbl_panel_3.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panel_3.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		panel_3.setLayout(gbl_panel_3);
 
 		JLabel lblNumberOfPhysicalSectors0 = new JLabel("Number Of PhysicalSectors");
@@ -824,16 +916,45 @@ public class DiskDef {
 		JLabel lblNewLabel_8 = new JLabel("Net Blocks Available");
 		lblNewLabel_8.setToolTipText("");
 		GridBagConstraints gbc_lblNewLabel_8 = new GridBagConstraints();
-		gbc_lblNewLabel_8.insets = new Insets(0, 0, 0, 5);
+		gbc_lblNewLabel_8.insets = new Insets(0, 0, 5, 5);
 		gbc_lblNewLabel_8.gridx = 0;
 		gbc_lblNewLabel_8.gridy = 5;
 		panel_3.add(lblNewLabel_8, gbc_lblNewLabel_8);
 
 		lblNetBlocksAvailable = new JLabel("New label");
 		GridBagConstraints gbc_lblNetBlocksAvailable = new GridBagConstraints();
+		gbc_lblNetBlocksAvailable.insets = new Insets(0, 0, 5, 0);
 		gbc_lblNetBlocksAvailable.gridx = 1;
 		gbc_lblNetBlocksAvailable.gridy = 5;
 		panel_3.add(lblNetBlocksAvailable, gbc_lblNetBlocksAvailable);
+
+		JLabel lblNewLabel_9 = new JLabel("Directories Per Block");
+		GridBagConstraints gbc_lblNewLabel_9 = new GridBagConstraints();
+		gbc_lblNewLabel_9.insets = new Insets(0, 0, 5, 5);
+		gbc_lblNewLabel_9.gridx = 0;
+		gbc_lblNewLabel_9.gridy = 6;
+		panel_3.add(lblNewLabel_9, gbc_lblNewLabel_9);
+
+		lblDirectoriesPerBlock = new JLabel("00");
+		GridBagConstraints gbc_lblDirectoriesPerBlock = new GridBagConstraints();
+		gbc_lblDirectoriesPerBlock.insets = new Insets(0, 0, 5, 0);
+		gbc_lblDirectoriesPerBlock.anchor = GridBagConstraints.EAST;
+		gbc_lblDirectoriesPerBlock.gridx = 1;
+		gbc_lblDirectoriesPerBlock.gridy = 6;
+		panel_3.add(lblDirectoriesPerBlock, gbc_lblDirectoriesPerBlock);
+
+		JLabel label99 = new JLabel("Allocation Vector Size");
+		GridBagConstraints gbc_label99 = new GridBagConstraints();
+		gbc_label99.insets = new Insets(0, 0, 0, 5);
+		gbc_label99.gridx = 0;
+		gbc_label99.gridy = 7;
+		panel_3.add(label99, gbc_label99);
+
+		lblAllocationVectorSize = new JLabel("New label");
+		GridBagConstraints gbc_lblAllocationVectorSize = new GridBagConstraints();
+		gbc_lblAllocationVectorSize.gridx = 1;
+		gbc_lblAllocationVectorSize.gridy = 7;
+		panel_3.add(lblAllocationVectorSize, gbc_lblAllocationVectorSize);
 	}// initialize
 		// ---------------------------------------------------------------------
 		// ---------------------------------------------------------------------

@@ -1,60 +1,18 @@
 package disks;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-import javax.swing.JFrame;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumnModel;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import javax.swing.AbstractListModel;
-import javax.swing.ComboBoxModel;
-import javax.swing.JFileChooser;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-//import javax.swing.SpinnerModel;
-import javax.swing.SpinnerNumberModel;
-
-import java.awt.GridBagLayout;
-
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JPanel;
-
-import java.awt.FontMetrics;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-
-import javax.swing.JLabel;
-
-import java.awt.Font;
-
-import javax.swing.JTabbedPane;
-import javax.swing.JButton;
-
-import myComponents.Hex64KSpinner;
-
-import javax.swing.JSpinner;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-
-import java.awt.Dimension;
-
-import javax.swing.border.TitledBorder;
-import javax.swing.border.LineBorder;
-
-import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -69,15 +27,45 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
+import javax.swing.AbstractListModel;
+import javax.swing.Box;
+import javax.swing.ComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComboBox;
+//import javax.swing.DefaultComboBoxModel;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+//import javax.swing.SpinnerModel;
+import javax.swing.SpinnerNumberModel;
+
 //import com.jgoodies.forms.factories.DefaultComponentFactory;
 
 import javax.swing.SwingConstants;
-import javax.swing.JComboBox;
-//import javax.swing.DefaultComboBoxModel;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
 
-import java.awt.Component;
-
-import javax.swing.Box;
+import myComponents.Hex64KSpinner;
 
 public class DiskUtility implements ActionListener {
 
@@ -495,10 +483,7 @@ public class DiskUtility implements ActionListener {
 			diskMetrics = DiskMetrics.diskMetric(diskType);
 		}// if
 
-		// currentHead = 0;
-		// currentTrack = 0;
-		// ;
-		// currentSector = 1;
+		
 		currentAbsoluteSector = 0;
 
 		heads = state ? diskMetrics.heads : 0;
@@ -1105,7 +1090,7 @@ public class DiskUtility implements ActionListener {
 	 */
 	private void initialize() {
 		frmDiskUtility = new JFrame();
-		frmDiskUtility.setTitle("DIsk Utility");
+		frmDiskUtility.setTitle("Original Disk Utility     Version 1.0");
 		frmDiskUtility.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent we) {

@@ -250,9 +250,7 @@ public class DiskMetrics {
 			ans.offer(sector++);
 		}//for		
 		return ans;
-	
-	
-	}
+	}//storageFromBlock
 	
 	public ArrayList<Integer> sectorsFromBlock(int blockNumber){
 		ArrayList<Integer> ans  = new ArrayList<Integer>();

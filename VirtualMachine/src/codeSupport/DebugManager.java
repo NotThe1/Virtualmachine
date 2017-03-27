@@ -1,37 +1,29 @@
 package codeSupport;
 
-import java.awt.EventQueue;
-import java.awt.Rectangle;
-
-import javax.swing.JFrame;
-
-import java.awt.GridBagLayout;
-
-import javax.swing.JButton;
-
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
-
-import memory.Core;
-import memory.Core.TRAP;
-import myComponents.Hex64KSpinner;
-
+import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.prefs.Preferences;
 
+import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.Dimension;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import memory.Core;
+import memory.Core.TRAP;
+import myComponents.Hex64KSpinner;
 
 public class DebugManager extends JFrame {
 
@@ -86,7 +78,7 @@ public class DebugManager extends JFrame {
 	private void appInit() {
 
 		//this.setLocation(790, 200);
-		prefs = Preferences.userRoot().node(this.getClass().getName());
+		prefs = Preferences.userNodeForPackage(DebugManager.class).node(this.getClass().getName());
 		this.setLocation(prefs.getInt("DebugManager/X", 790), prefs.getInt("Machine8080/Y", 200));
 		updateScreen();
 		// this.addWindowListener(l);

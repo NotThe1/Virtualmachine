@@ -1,6 +1,11 @@
 package disks;
 
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
@@ -9,27 +14,20 @@ import java.text.ParseException;
 import java.util.prefs.Preferences;
 
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
+import javax.swing.JFormattedTextField.AbstractFormatter;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.JFormattedTextField.AbstractFormatter;
-import javax.swing.JSpinner.DefaultEditor;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultFormatter;
 import javax.swing.text.DefaultFormatterFactory;
-
-import java.awt.GridBagLayout;
-import javax.swing.JPanel;
-import java.awt.GridBagConstraints;
-import javax.swing.JLabel;
-import java.awt.Insets;
-import javax.swing.JComboBox;
-import java.awt.Dimension;
-import javax.swing.border.EtchedBorder;
-import java.awt.Color;
-import javax.swing.border.LineBorder;
 
 public class DiskDef {
 
@@ -280,7 +278,7 @@ public class DiskDef {
 	// -----------------------------------------------
 
 	private void appClose() {
-		prefs = Preferences.userRoot().node(this.getClass().getName());
+		prefs = Preferences.userNodeForPackage(DiskDef.class).node(this.getClass().getName());
 		frmDiskDef.getX();
 		prefs.putInt("DiskDef/X", frmDiskDef.getX());
 		prefs.putInt("DiskDef/Y", frmDiskDef.getY());
@@ -300,7 +298,7 @@ public class DiskDef {
 	}
 
 	private void appInit() {
-		prefs = Preferences.userRoot().node(this.getClass().getName());
+		prefs = Preferences.userNodeForPackage(DiskDef.class).node(this.getClass().getName());
 		frmDiskDef.setLocation(prefs.getInt("DiskDef/X", 00), prefs.getInt("DiskDef/Y", 00));
 		frmDiskDef.setSize(prefs.getInt("DiskDef/width", 870), prefs.getInt("DiskDef/height", 802));
 

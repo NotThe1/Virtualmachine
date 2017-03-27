@@ -1,40 +1,12 @@
 package hardware;
 
-//import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-
-import java.awt.GridBagLayout;
-
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JSeparator;
-import javax.swing.JPanel;
-
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import java.awt.Rectangle;
-
-import javax.swing.border.TitledBorder;
-import javax.swing.border.LineBorder;
-
-import java.awt.Color;
-
-import javax.swing.border.BevelBorder;
-
 import java.awt.BorderLayout;
-
-import javax.swing.border.CompoundBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
-//import javax.swing.text.JTextComponent;
-import javax.swing.text.MaskFormatter;
-//import javax.swing.text.PlainDocument;
-import javax.swing.JCheckBox;
-
-import java.awt.Font;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
@@ -63,38 +35,46 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Scanner;
 //import java.util.concurrent.TimeUnit;
-
-
-
-
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractButton;
+//import javax.swing.JTextArea;
+import javax.swing.JButton;
+//import javax.swing.text.PlainDocument;
+import javax.swing.JCheckBox;
 import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JComponent;
 //import javax.swing.AbstractButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JLabel;
 import javax.swing.JFormattedTextField;
+
+//import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
 import javax.swing.JTextPane;
+import javax.swing.SpinnerNumberModel;
 //import javax.swing.JFormattedTextField$AbstractFormatter;
 import javax.swing.SwingConstants;
-import javax.swing.JScrollPane;
-//import javax.swing.JTextArea;
-import javax.swing.JButton;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
+//import javax.swing.text.JTextComponent;
+import javax.swing.text.MaskFormatter;
 
 import codeSupport.DebugManager;
 import codeSupport.Disassembler;
 import codeSupport.ShowCode;
-import memory.Core;
-import memory.MainMemory;
-import memory.MemoryLimitVerifier;
-import memoryDisplay.MemorySaver;
-import memoryDisplay.ShowCoreMemory;
 import device.DeviceController;
 import disks.DiskControlUnit;
 import disks.DiskDrive;
@@ -102,6 +82,11 @@ import disks.DiskDrive;
 import disks.DiskMetrics;
 import disks.DiskUserInterface;
 import disks.MakeNewDisk;
+import memory.Core;
+import memory.MainMemory;
+import memory.MemoryLimitVerifier;
+import memoryDisplay.MemorySaver;
+import memoryDisplay.ShowCoreMemory;
 
 //import javax.swing.ScrollPaneConstants;
 //import javax.swing.BoxLayout;
@@ -1015,7 +1000,7 @@ public class Machine8080B implements PropertyChangeListener, MouseListener,
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	private void appInit() {
-		prefs = Preferences.userRoot().node(this.getClass().getName());
+		prefs = Preferences.userNodeForPackage(Machine8080B.class).node(this.getClass().getName());
 		frmMachineb.setLocation(prefs.getInt("Machine8080/X", 00), prefs.getInt("Machine8080/Y", 00));
 		makeNewMachine();
 //		loadCPM();
